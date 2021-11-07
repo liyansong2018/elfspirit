@@ -5,7 +5,7 @@ If you don't know anything about static injection, you can refer to the [ELF Sta
 
 ## Usage
 
-Add a section in a ELF file
+Add a section to the ELF file
 
 ```shell
 elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF
