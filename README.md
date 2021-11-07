@@ -1,8 +1,5 @@
-About
 
-A useful program that parse, manipulate and camouflage ELF files.
-
-**elfspirit** provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
+**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
 
 If you don't know anything about static injection, you can refer to the [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/)
 
