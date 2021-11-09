@@ -1,28 +1,40 @@
 
-**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
-
+# elfspirit
 
 [![libc](https://img.shields.io/badge/libc-3.31%20%7C%203.32-orange)](#) 
 [![ld](https://img.shields.io/badge/ld-3.31%20%7C%203.32-orange)](#)
 [![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey)](#)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
-If you don't know anything about static injection, you can refer to
+**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
 
+More details about static injection
 → [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/)
+
+## Building
+
+**elfspirit** can be installed easily:
+
+```shell
+make
+```
+
+## Dependencies
+
+We run **elfspirit** using:
+
+- Ubuntu 20.04 / Kali Linux 2020.4
+- gcc 10.2.1
+- libc-2.31/2.32
+
+Currently, this is the only supported environment. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. 
 
 ## Usage
 
-add a section to the ELF file
+add or delete a section to the ELF file
 
 ```shell
 elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF
-```
-
-delete a section of the ELF file
-
-```shell
-elfspirit delsec   [-n]<section name> ELF
 ```
 
 inject dynamic link library statically 
@@ -74,24 +86,6 @@ elfspirit parse ELF
      0x0000000c   DT_INIT           0x401000
      ...
 ```
-
-## Building
-
-**elfspirit** can also be installed easily:
-
-```shell
-make
-```
-
-## Dependencies
-
-We run **elfspirit** using:
-
-- Ubuntu 20.04 / Kali Linux 2020.4
-- gcc 10.2.1
-- libc-2.31/2.32
-
-Currently, this is the only supported environment. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. 
 
 ## Limitations
 
