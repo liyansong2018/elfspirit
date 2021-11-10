@@ -1,9 +1,10 @@
 
 # elfspirit
 
-[![libc](https://img.shields.io/badge/libc-3.31%20%7C%203.32-orange)](#) 
-[![ld](https://img.shields.io/badge/ld-3.31%20%7C%203.32-orange)](#)
-[![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey)](#)
+[![arch](https://img.shields.io/badge/arch-i386%20%7C%20amd64-orange)](#)
+[![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-orange)](#)
+[![libc](https://img.shields.io/badge/libc-3.31%20%7C%203.32-lightgrey)](#) 
+[![ld](https://img.shields.io/badge/ld-3.31%20%7C%203.32-lightgrey)](#)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
@@ -31,29 +32,40 @@ Currently, this is the only supported environment. Other environments may also w
 
 ## Usage
 
-add or delete a section to the ELF file
-
 ```shell
-elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF
+Usage: elfspirit [function] [option]<argument>... ELF
+Currently defined functions:
+  addsec           Add a section in a ELF file
+  delsec           Delete a section of ELF file
+  injectso         Statically injected dynamic link library
+  delshtab         Delete section header table
+Currently defined options:
+  -n, --section-name=<section name>         Set section name
+  -z, --section-size=<section size>         Set section size
+  -f, --file-name=<file name>               File containing code(e.g. so, etc.)
+  -c, --configure-name=<file name>          File containing configure(e.g. json, etc.)
+  -a, --architecture=<ELF architecture>     ELF architecture
+  -o, --offset=<injection offset>           Offset of injection point
+  -v, --version-libc=<libc version>         Libc.so or ld.so version
+  -h, --help[={none|English|Chinese}]       Display this output
+Detailed Usage: 
+  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF
+  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>
+                     [-v]<libc version> ELF
+  elfspirit delsec   [-n]<section name> ELF
+  elfspirit delshtab ELF
+  elfspirit parse ELF
+
 ```
 
-inject dynamic link library statically 
+### Demo of static analysis
 
-```shell
-elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file> [-v]<libc version> ELF
+command
+```
+elfspirit parse hello_x86
 ```
 
-delete section header table
-
-```shell
-elfspirit delshtab ELF
-```
-
-parse ELF file
-
-```shell
-elfspirit parse ELF
-```
+output: details of elf
 
 ```shell
 [+] ELF Header
@@ -86,6 +98,43 @@ elfspirit parse ELF
      0x0000000c   DT_INIT           0x401000
      ...
 ```
+
+### Demo of static injection
+
+command
+
+```shell
+$ ./elfspirit injectso -n .eh_frame -f libdemo_x32.so -c offset.json -v 2.31 ./testcase/hello_x86
+ [+] architecture: x86
+ [+] .eh_frame  offset: 0x2060  viraddr: 0x2060
+ [+] .eh_frame: U����(�E�libd�E�emo_�E�x32.�E�so
+ [+] entry point address: 0x1090 -> 0x2060
+ [+] LOAD offset: 0x2000        vaddr: 0x2000
+ [+] LOAD flag: 0x4 -> 0x5
+ [+] create ./testcase/hello_x86_new
+```
+output: process load libdemo_x32.so
+```shell
+$ cat /proc/2507769/maps
+565c9000-565ca000 r--p 00000000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
+565ca000-565cc000 r-xp 00001000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
+565cc000-565cd000 r--p 00002000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
+565cd000-565ce000 rw-p 00003000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
+56709000-5672b000 rw-p 00000000 00:00 0            [heap]
+f7da5000-f7dc2000 r--p 00000000 08:01 3155369      /usr/lib32/libc-2.32.so
+f7dc2000-f7f1a000 r-xp 0001d000 08:01 3155369      /usr/lib32/libc-2.32.so
+f7f1a000-f7f8c000 r--p 00175000 08:01 3155369      /usr/lib32/libc-2.32.so
+f7f8c000-f7f8d000 ---p 001e7000 08:01 3155369      /usr/lib32/libc-2.32.so
+f7f8d000-f7f8f000 r--p 001e7000 08:01 3155369      /usr/lib32/libc-2.32.so
+f7f8f000-f7f91000 rw-p 001e9000 08:01 3155369      /usr/lib32/libc-2.32.so
+f7f91000-f7f93000 rw-p 00000000 00:00 0
+f7fa7000-f7fa8000 r--p 00000000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
+f7fa8000-f7fa9000 r-xp 00001000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
+f7fa9000-f7faa000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
+f7faa000-f7fab000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
+f7fab000-f7fac000 rw-p 00003000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
+```
+
 
 ## Limitations
 
