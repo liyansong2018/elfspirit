@@ -79,7 +79,7 @@ static const char *help =
     "Currently defined functions:\n"
     "  addsec           Add a section in a ELF file\n"
     "  delsec           Delete a section of ELF file\n"
-    "  injectso         Statically injected dynamic link library\n"
+    "  injectso         Inject dynamic link library statically \n"
     "  delshtab         Delete section header table\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
@@ -99,11 +99,28 @@ static const char *help =
     "  elfspirit parse ELF\n";
 
 static const char *help_chinese = 
-    "用法： elfspirit [OPTIONS] FILE...\n"
-    " Description...\n"
-    "静态注入动态链接库"
-    "  -z, --zero      在文件末尾添加一个节\n"
-    "  -h, --help      Display...\n";
+    "用法: elfspirit [功能] [选项]<参数>... ELF\n"
+    "当前已定义的功能:\n"
+    "  addsec           增加一个节\n"
+    "  delsec           删除一个节\n"
+    "  injectso         静态注入一个so\n"
+    "  delshtab         删除节头表\n"
+    "Currently defined options:\n"
+    "  -n, --section-name=<section name>         设置节名\n"
+    "  -z, --section-size=<section size>         设置节大小\n"
+    "  -f, --file-name=<file name>               包含代码的文件名称(如某个so库)\n"
+    "  -c, --configure-name=<file name>          配置文件(如json)\n"
+    "  -a, --architecture=<ELF architecture>     ELF文件的架构(预留选项，非必须)\n"
+    "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
+    "  -v, --version-libc=<libc version>         libc或者ld的版本\n"
+    "  -h, --help[={none|English|Chinese}]       帮助\n"
+    "Detailed Usage: \n"
+    "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
+    "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
+    "                     [-v]<libc version> ELF\n"
+    "  elfspirit delsec   [-n]<section name> ELF\n"
+    "  elfspirit delshtab ELF\n"
+    "  elfspirit parse ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
