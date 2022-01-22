@@ -27,6 +27,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "addsec.h"
 #include "injectso.h"
 #include "delsec.h"
@@ -41,10 +45,29 @@ char file_name[LENGTH];
 char config_name[LENGTH];
 char arch[LENGTH];
 char ver[LENGTH];
+char ver_elfspirt[LENGTH];
 char elf_name[LENGTH];
 char function[LENGTH];
 uint32_t size;
 uint32_t off;
+
+/**
+ * @description: obtain tool version
+ */
+static int get_version(char *ver, size_t len) {
+    int fd;
+    int ret;
+
+    fd = open("./VERSION", O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    ret = read(fd, ver, len);
+    close(fd);
+    return ret;
+}
 
 /**
  * @description: initialize arguments
@@ -56,6 +79,7 @@ static void init() {
     memset(function, 0, LENGTH);
     size = 0;
     off = 0;
+    get_version(ver_elfspirt, LENGTH);
 }
 static const char *shortopts = "n:z:f:c:a:o:v:h::";
 
@@ -126,6 +150,7 @@ static void readcmdline(int argc, char *argv[]) {
     int opt;
     if (argc == 1) {
         fputs(help, stdout);
+        printf("Current version: %s\n", ver_elfspirt);
     }
     while((opt = getopt_long(argc, argv, shortopts, longopts, NULL)) != EOF) {
         switch (opt) {
@@ -178,9 +203,11 @@ static void readcmdline(int argc, char *argv[]) {
                 printf("%s\n", optarg);
                 if (optarg != NULL && !strcmp(optarg, "Chinese")){       
                     fputs(help_chinese, stdout);
+                    printf("当前版本: %s\n", ver_elfspirt);
                 }
                 else {
-                    fputs(help, stdout);                
+                    fputs(help, stdout);
+                    printf("Current version: %s\n", ver_elfspirt);                
                 }                    
                            
                 break;
