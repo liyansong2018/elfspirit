@@ -73,6 +73,17 @@ int flag2str_sh(int flag, char *flag_str) {
     return 0;
 }
 
+/**
+ * @description: Judge whether the memory address is legal
+ * @param {uint32_t} addr
+ * @param {uint32_t} start
+ * @param {uint32_t} end
+ * @return {*}
+ */
+int validated_offset(uint32_t addr, uint32_t start, uint32_t end){
+    return addr <= end && addr >= start? 0:-1;
+}
+
 int parse(char *elf) {
     int fd;
     struct stat st;
@@ -256,6 +267,10 @@ int parse(char *elf) {
         PRINT_SECTION_TITLE("Nr", "Name", "Type", "Addr", "Off", "Size", "Es", "Flg", "Lk", "Inf", "Al");
         for (int i = 0; i < ehdr->e_shnum; i++) {
             name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                return -1;
+            }
 
             switch (shdr[i].sh_type) {
                 case SHT_NULL:
@@ -902,6 +917,10 @@ int parse(char *elf) {
         PRINT_SECTION_TITLE("Nr", "Name", "Type", "Addr", "Off", "Size", "Es", "Flg", "Lk", "Inf", "Al");
         for (int i = 0; i < ehdr->e_shnum; i++) {
             name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                return -1;
+            }
 
             switch (shdr[i].sh_type) {
                 case SHT_NULL:
