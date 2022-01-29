@@ -148,4 +148,4 @@ f7fab000-f7fac000 rw-p 00003000 08:01 2726661      /home/lys/Documents/elf/testc
 
 ## License
 
-**elfspirit** is open source software. Its code is in the public domain. See the `LICENSE` file for more details.
+**elfspirit** is open source software. See the `LICENSE` file for more details.
