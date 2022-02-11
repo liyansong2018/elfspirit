@@ -94,6 +94,9 @@ int parse(char *elf) {
     char flag[4];
 
     MODE = get_elf_class(elf);
+    if (MODE == -1) {
+        return -1;
+    }
 
     fd = open(elf, O_RDONLY);
     if (fd < 0) {

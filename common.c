@@ -181,6 +181,11 @@ int get_elf_class(char *elf_name) {
         return -1;
     }
 
+    if (elf_map[0] != 0x7f || strncmp(&elf_map[1], "ELF", 3)) {
+        ERROR("%s is not an ELF file\n", elf_name);
+        return -1;
+    }
+
     /* EI_CLASS */
     switch (elf_map[4]) {
         case ELFCLASS32:
