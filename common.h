@@ -59,7 +59,7 @@ typedef struct handle64 {
     Elf64_Ehdr *ehdr;
     Elf64_Phdr *phdr;
     Elf64_Shdr *shdr;
-    Elf64_Shdr shstrtab;
+    Elf64_Shdr *shstrtab;
     uint8_t *mem;
     size_t size;
 } handle_t64;
