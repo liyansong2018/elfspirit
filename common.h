@@ -46,6 +46,24 @@ extern int MODE;
 /* ELF architecture */
 extern int ARCH;
 
+typedef struct handle32 {
+    Elf32_Ehdr *ehdr;
+    Elf32_Phdr *phdr;
+    Elf32_Shdr *shdr;
+    Elf32_Shdr *shstrtab;
+    uint8_t *mem;
+    size_t size;
+} handle_t32;
+
+typedef struct handle64 {
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+    Elf64_Shdr *shdr;
+    Elf64_Shdr shstrtab;
+    uint8_t *mem;
+    size_t size;
+} handle_t64;
+
 void log_warning(char *str);
 void log_error(char *str);
 void log_info(char *str);

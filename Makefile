@@ -1,5 +1,5 @@
 CFLAGS = -w -c
-DEBUG = -g -fsanitize=address
+DEBUG = -g
 SANIT = -fsanitize=address
 elfspirit : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o
 	$(CC) $(DEBUG) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o -o elfspirit
