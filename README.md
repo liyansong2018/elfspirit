@@ -40,8 +40,9 @@ Usage: elfspirit [function] [option]<argument>... ELF
 Currently defined functions:
   addsec           Add a section in a ELF file
   delsec           Delete a section of ELF file
-  injectso         Statically injected dynamic link library
+  injectso         Inject dynamic link library statically 
   delshtab         Delete section header table
+  elfspirit        Parse ELF file statically like readelf
 Currently defined options:
   -n, --section-name=<section name>         Set section name
   -z, --section-size=<section size>         Set section size
@@ -58,6 +59,7 @@ Detailed Usage:
   elfspirit delsec   [-n]<section name> ELF
   elfspirit delshtab ELF
   elfspirit parse ELF
+Current version: 1.1.2
 
 ```
 
