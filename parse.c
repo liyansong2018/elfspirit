@@ -180,25 +180,20 @@ int parse(char *elf, parser_opt_t *po) {
         h.size = st.st_size;
 
         /* ELF Header Information */
-        display_header64(&h);
+        if (!get_option(po, HEADERS)) 
+            display_header64(&h);
 
         /* Section Information */
-        display_section64(&h);
+        if (!get_option(po, SECTIONS))
+            display_section64(&h);
 
         /* Segmentation Information */
-        display_segment64(&h);
+        if (!get_option(po, SEGMENTS))
+            display_segment64(&h);
 
         /* Dynamic Infomation */
-        display_dyninfo64(&h); 
-
-        Elf64_Shdr *shdr;
-        Elf64_Phdr *phdr;
-        Elf64_Shdr shstrtab;
-        Elf64_Ehdr *ehdr = elf_map;
-
-        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
-        phdr = (Elf64_Phdr *)&elf_map[ehdr->e_phoff];
-        shstrtab = shdr[ehdr->e_shstrndx];                
+        if (!get_option(po, LINK))
+            display_dyninfo64(&h);              
     }
 
     return 0;
