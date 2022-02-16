@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "common.h"
+#include "parse.h"
 
 #define PRINT_HEADER_EXP(key, value, explain) printf ("     %-20s %10hu -> %s\n", key, value, explain)
 #define PRINT_HEADER(key, value) printf ("     %-20s %10hu\n", key, value)
@@ -84,6 +85,23 @@ int validated_offset(uint32_t addr, uint32_t start, uint32_t end){
     return addr <= end && addr >= start? 0:-1;
 }
 
+/**
+ * @description: Judge whether the option is true
+ * @param {parser_opt_t} po
+ * @param {PARSE_OPT_T} option
+ * @return {*}
+ */
+int get_option(parser_opt_t *po, PARSE_OPT_T option){
+    int i;
+    for (i = 0; i < po->index; i++) {
+        if (po->options[i] == option) {
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 static void display_header32(handle_t32 *);
 static void display_header64(handle_t64 *);
 static void display_section32(handle_t32 *);
@@ -93,7 +111,7 @@ static void display_segment64(handle_t64 *);
 static void display_dyninfo32(handle_t32 *);
 static void display_dyninfo64(handle_t64 *);
 
-int parse(char *elf) {
+int parse(char *elf, parser_opt_t *po) {
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -134,17 +152,21 @@ int parse(char *elf) {
         h.shstrtab = (Elf32_Shdr *)&h.shdr[h.ehdr->e_shstrndx];
         h.size = st.st_size;
 
-        /* ELF Header Information */       
-        display_header32(&h);
+        /* ELF Header Information */
+        if (!get_option(po, HEADERS))       
+            display_header32(&h);
         
         /* Section Information */
-        display_section32(&h);
+        if (!get_option(po, SECTIONS))
+            display_section32(&h);
 
         /* Segmentation Information */
-        display_segment32(&h);
+        if (!get_option(po, SEGMENTS))
+            display_segment32(&h);
 
         /* Dynamic Infomation */
-        display_dyninfo32(&h);                
+        if (!get_option(po, LINK))
+            display_dyninfo32(&h);           
     }
 
     /* 64bit */
