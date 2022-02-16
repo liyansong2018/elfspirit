@@ -50,6 +50,7 @@ char elf_name[LENGTH];
 char function[LENGTH];
 uint32_t size;
 uint32_t off;
+parser_opt_t po;
 
 /**
  * @description: obtain tool version
@@ -80,8 +81,10 @@ static void init() {
     size = 0;
     off = 0;
     get_version(ver_elfspirt, LENGTH);
+    po.index = 0;
+    memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:o:v:h::";
+static const char *shortopts = "n:z:f:c:a:o:v:h::HSPL";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -115,6 +118,10 @@ static const char *help =
     "  -o, --offset=<injection offset>           Offset of injection point\n"
     "  -v, --version-libc=<libc version>         Libc.so or ld.so version\n"
     "  -h, --help[={none|English|Chinese}]       Display this output\n"
+    "  -H, (no argument)                         Display the ELF file header\n"
+    "  -S, (no argument)                         Display the sections' header\n"
+    "  -P, (no argument)                         Display the program headers\n"
+    "  -L, (no argument)                         Display the link information\n"
     "Detailed Usage: \n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
@@ -155,6 +162,10 @@ static void readcmdline(int argc, char *argv[]) {
         printf("Current version: %s\n", ver_elfspirt);
     }
     while((opt = getopt_long(argc, argv, shortopts, longopts, NULL)) != EOF) {
+        /* The number of options cannot be greater than the array capacity */
+        if (po.index >= sizeof(po.options)) {
+            break;
+        }
         switch (opt) {
             // set section name
             case 'n':
@@ -213,6 +224,23 @@ static void readcmdline(int argc, char *argv[]) {
                 }                    
                            
                 break;
+
+            /* ELF parser's options */
+            case 'H':
+                po.options[po.index++] = HEADERS;
+                break;
+            
+            case 'S':
+                po.options[po.index++] = SECTIONS;
+                break;
+
+            case 'P':
+                po.options[po.index++] = SEGMENTS;
+                break;
+
+            case 'L':
+                po.options[po.index++] = LINK;
+                break;
             
             default:
                 break;
@@ -250,7 +278,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* ELF parser */
     if (!strcmp(function, "parse")) {
-        parse(elf_name);
+        parse(elf_name, &po);
     }
 
 #ifdef DEBUG
