@@ -22,4 +22,21 @@
  SOFTWARE.
 */
 
-int parse(char *elf);
+/* ELF parser options */
+#ifndef __PARSE_H
+#define __PARSE_H
+typedef enum PARSE_OPT {
+    HEADERS = 1,
+    SECTIONS,
+    SEGMENTS,
+    LINK,
+    END
+} PARSE_OPT_T;
+
+typedef struct parser_opt {
+    char options[END];
+    int index;
+} parser_opt_t;
+#endif
+
+int parse(char *elf, parser_opt_t *po);
