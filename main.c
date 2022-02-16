@@ -248,7 +248,7 @@ static void readcmdline(int argc, char *argv[]) {
         delete_shtab(elf_name);
     }
 
-    /* */
+    /* ELF parser */
     if (!strcmp(function, "parse")) {
         parse(elf_name);
     }
