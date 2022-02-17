@@ -153,19 +153,19 @@ int parse(char *elf, parser_opt_t *po) {
         h.size = st.st_size;
 
         /* ELF Header Information */
-        if (!get_option(po, HEADERS))       
+        if (!get_option(po, HEADERS) || !get_option(po, ALL))    
             display_header32(&h);
         
         /* Section Information */
-        if (!get_option(po, SECTIONS))
+        if (!get_option(po, SECTIONS) || !get_option(po, ALL))
             display_section32(&h);
 
         /* Segmentation Information */
-        if (!get_option(po, SEGMENTS))
+        if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
             display_segment32(&h);
 
         /* Dynamic Infomation */
-        if (!get_option(po, LINK))
+        if (!get_option(po, LINK) || !get_option(po, ALL))
             display_dyninfo32(&h);           
     }
 
@@ -180,19 +180,19 @@ int parse(char *elf, parser_opt_t *po) {
         h.size = st.st_size;
 
         /* ELF Header Information */
-        if (!get_option(po, HEADERS)) 
+        if (!get_option(po, HEADERS) || !get_option(po, ALL)) 
             display_header64(&h);
 
         /* Section Information */
-        if (!get_option(po, SECTIONS))
+        if (!get_option(po, SECTIONS) || !get_option(po, ALL))
             display_section64(&h);
 
         /* Segmentation Information */
-        if (!get_option(po, SEGMENTS))
+        if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
             display_segment64(&h);
 
         /* Dynamic Infomation */
-        if (!get_option(po, LINK))
+        if (!get_option(po, LINK) || !get_option(po, ALL))
             display_dyninfo64(&h);              
     }
 

@@ -84,7 +84,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:o:v:h::HSPL";
+static const char *shortopts = "n:z:f:c:a:o:v:h::AHSPL";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -118,6 +118,7 @@ static const char *help =
     "  -o, --offset=<injection offset>           Offset of injection point\n"
     "  -v, --version-libc=<libc version>         Libc.so or ld.so version\n"
     "  -h, --help[={none|English|Chinese}]       Display this output\n"
+    "  -A, (no argument)                         Display all ELF file infomation\n"
     "  -H, (no argument)                         Display the ELF file header\n"
     "  -S, (no argument)                         Display the sections' header\n"
     "  -P, (no argument)                         Display the program headers\n"
@@ -128,7 +129,7 @@ static const char *help =
     "                     [-v]<libc version> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
     "  elfspirit delshtab ELF\n"
-    "  elfspirit parse ELF\n";
+    "  elfspirit parse -A ELF\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -147,17 +148,18 @@ static const char *help_chinese =
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
     "  -v, --version-libc=<libc version>         libc或者ld的版本\n"
     "  -h, --help[={none|English|Chinese}]       帮助\n"
-    "  -H, 不需要参数                           显示ELF头\n"
-    "  -S, (不需要参数)                         显示ELF节头\n"
-    "  -P, (不需要参数)                         显示ELF程序头\n"
-    "  -L, (不需要参数)                         显示ELF链接\n"
+    "  -A, 不需要参数                    显示ELF解析器解析的所有信息\n"
+    "  -H, 不需要参数                    显示ELF头\n"
+    "  -S, 不需要参数                    显示ELF节头\n"
+    "  -P, 不需要参数                    显示ELF程序头\n"
+    "  -L, 不需要参数                    显示ELF链接\n"
     "细节: \n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
     "                     [-v]<libc version> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
     "  elfspirit delshtab ELF\n"
-    "  elfspirit parse ELF\n";
+    "  elfspirit parse -A ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -230,6 +232,9 @@ static void readcmdline(int argc, char *argv[]) {
                 break;
 
             /* ELF parser's options */
+            case 'A':
+                po.options[po.index++] = ALL;
+                break;
             case 'H':
                 po.options[po.index++] = HEADERS;
                 break;

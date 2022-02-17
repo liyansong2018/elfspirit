@@ -26,7 +26,8 @@
 #ifndef __PARSE_H
 #define __PARSE_H
 typedef enum PARSE_OPT {
-    HEADERS = 1,
+    ALL = 1,
+    HEADERS,
     SECTIONS,
     SEGMENTS,
     LINK,
