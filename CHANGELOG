@@ -1,0 +1,29 @@
+[2021-11-07]
+    elfspirit 0.1
+        - Original version
+
+[2022-01-22]
+    elfspirit 1.0
+        - Add version information
+        - Add Chinese help
+        - Update README.txt
+
+[2022-02-11]
+    elfspirit 1.1.0
+        - Fix CVE-2022-21711
+        - Merge pull request #2 from ware/main
+        - Check the format of ELF file
+
+[2022-02-15]
+    elfspirit 1.1.1
+        - Significantly adjust the architecture of ELF32 parser
+
+[2022-02-15]
+    elfspirit 1.1.2
+        - Significantly adjust the architecture of ELF64 parser
+
+[2022-02-17]
+    elfspirit 1.1.3
+        - Fix bugs from ELF parser
+        - Add many options for ELF parser
+  
