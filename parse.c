@@ -229,7 +229,7 @@ static void display_header32(handle_t32 *h) {
             break;
         
         default:
-            tmp = "An unknown type";
+            tmp = UNKOWN;
             break;
     }
     PRINT_HEADER_EXP("e_type:", h->ehdr->e_type, tmp);
@@ -312,7 +312,7 @@ static void display_header32(handle_t32 *h) {
             break;
         
         default:
-            tmp = "An unknown machine";
+            tmp = UNKOWN;
             break;
     }
     PRINT_HEADER_EXP("e_machine:", h->ehdr->e_machine, tmp);
@@ -327,7 +327,7 @@ static void display_header32(handle_t32 *h) {
             break;
 
         default:
-            tmp = "Known version";
+            tmp = UNKOWN;
             break;
     }
     PRINT_HEADER_EXP("e_version:", h->ehdr->e_version, tmp);
@@ -368,7 +368,7 @@ static void display_header64(handle_t64 *h) {
             break;
         
         default:
-            tmp = "An unknown type";
+            tmp = UNKOWN;
             break;
     }
     PRINT_HEADER_EXP("e_type:", h->ehdr->e_type, tmp);
@@ -451,7 +451,7 @@ static void display_header64(handle_t64 *h) {
             break;
         
         default:
-            tmp = "An unknown machine";
+            tmp = UNKOWN;
             break;
     }
     PRINT_HEADER_EXP("e_machine:", h->ehdr->e_machine, tmp);
@@ -466,7 +466,7 @@ static void display_header64(handle_t64 *h) {
             break;
 
         default:
-            tmp = "Known version";
+            tmp = UNKOWN;
             break;
     }
     PRINT_HEADER_EXP("e_version:", h->ehdr->e_version, tmp);
@@ -566,6 +566,7 @@ static void display_section32(handle_t32 *h) {
                 break;
             
             default:
+                tmp = UNKOWN;
                 break;
         }
 
@@ -658,6 +659,7 @@ static void display_section64(handle_t64 *h) {
                 break;
             
             default:
+                tmp = UNKOWN;
                 break;
         }
 
@@ -725,6 +727,7 @@ static void display_segment32(handle_t32 *h) {
                 break;
             
             default:
+                tmp = UNKOWN;
                 break;
         }
         strcpy(flag, "   ");
@@ -796,6 +799,7 @@ static void display_segment64(handle_t64 *h) {
                 break;
             
             default:
+                tmp = UNKOWN;
                 break;
         }
         strcpy(flag, "   ");
@@ -849,7 +853,6 @@ static void display_dyninfo32(handle_t32 *h) {
     PRINT_DYN_TITLE("Tag", "Type", "Name/Value");
     
     for(int i = 0; i < count; i++) {
-        tmp = "";
         memset(value, 0, 50);
         snprintf(value, 50, "0x%x", dyn[i].d_un.d_val);
         switch (dyn[i].d_tag) {
@@ -1167,6 +1170,7 @@ static void display_dyninfo32(handle_t32 *h) {
                 break;
             
             default:
+                tmp = UNKOWN;
                 break;
         }
         PRINT_DYN(dyn[i].d_tag, tmp, value);
@@ -1199,7 +1203,6 @@ static void display_dyninfo64(handle_t64 *h) {
     PRINT_DYN_TITLE("Tag", "Type", "Name/Value");
     
     for(int i = 0; i < count; i++) {
-        tmp = "";
         memset(value, 0, 50);
         snprintf(value, 50, "0x%x", dyn[i].d_un.d_val);
         switch (dyn[i].d_tag) {
@@ -1517,6 +1520,7 @@ static void display_dyninfo64(handle_t64 *h) {
                 break;
             
             default:
+                tmp = UNKOWN;
                 break;
         }
         PRINT_DYN(dyn[i].d_tag, tmp, value);

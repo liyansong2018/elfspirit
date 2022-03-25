@@ -40,6 +40,8 @@
 #define ERROR(format, ...) printf (""L_RED" [-] "format""NONE"", ##__VA_ARGS__)
 #define INFO(format, ...) printf (""L_GREEN" [+] "format""NONE"", ##__VA_ARGS__)
 
+#define UNKOWN "Unkown"
+
 /* ELF class */
 extern int MODE;
 
