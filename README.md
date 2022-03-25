@@ -52,14 +52,19 @@ Currently defined options:
   -o, --offset=<injection offset>           Offset of injection point
   -v, --version-libc=<libc version>         Libc.so or ld.so version
   -h, --help[={none|English|Chinese}]       Display this output
+  -A, (no argument)                         Display all ELF file infomation
+  -H, (no argument)                         Display the ELF file header
+  -S, (no argument)                         Display the sections\' header
+  -P, (no argument)                         Display the program headers
+  -L, (no argument)                         Display the link information
 Detailed Usage: 
   elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF
   elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>
                      [-v]<libc version> ELF
   elfspirit delsec   [-n]<section name> ELF
   elfspirit delshtab ELF
-  elfspirit parse ELF
-Current version: 1.1.2
+  elfspirit parse -A ELF
+Current version: 1.1.4
 
 ```
 
@@ -67,7 +72,7 @@ Current version: 1.1.2
 
 command
 ```
-elfspirit parse hello_x86
+elfspirit parse -A hello_x86
 ```
 
 output: details of elf
