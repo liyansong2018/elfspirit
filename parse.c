@@ -497,7 +497,7 @@ static void display_section32(handle_t32 *h) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
         if (validated_offset(name, h->mem, h->mem + h->size)) {
             ERROR("Corrupt file format\n");
-            return -1;
+            exit(-1);
         }
 
         switch (h->shdr[i].sh_type) {
@@ -590,7 +590,7 @@ static void display_section64(handle_t64 *h) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
         if (validated_offset(name, h->mem, h->mem + h->size)) {
             ERROR("Corrupt file format\n");
-            return -1;
+            exit(-1);
         }
 
         switch (h->shdr[i].sh_type) {
@@ -837,9 +837,16 @@ static void display_dyninfo32(handle_t32 *h) {
     Elf32_Dyn *dyn;
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
+
         if (!strcmp(name, ".dynstr")) {
             dynstr = i;
         }
+        
         if (!strcmp(name, ".dynamic")) {
             dynamic = i;
         }
@@ -1187,9 +1194,15 @@ static void display_dyninfo64(handle_t64 *h) {
     Elf64_Dyn *dyn;
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
+
         if (!strcmp(name, ".dynstr")) {
             dynstr = i;
         }
+
         if (!strcmp(name, ".dynamic")) {
             dynamic = i;
         }
