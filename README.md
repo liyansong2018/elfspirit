@@ -68,10 +68,24 @@ Current version: 1.1.4
 
 ```
 
+### Demo of patching IoT firmware for IDA
+
+command
+```shell
+$ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
+```
+
+output: add ELF info to firmware for IDA
+```shell
+ [+] source file length is 0xdd748
+ [+] base address is 0x18308000                                              
+ [+] create /home/kali/Documents/app.bin.new 
+```
+
 ### Demo of static analysis
 
 command
-```
+```shell
 elfspirit parse -A hello_x86
 ```
 

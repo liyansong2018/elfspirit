@@ -96,7 +96,9 @@ static const struct option longopts[] = {
     {"file-name", required_argument, NULL, 'f'},
     {"configure-name", required_argument, NULL, 'c'},
     {"architcture", required_argument, NULL, 'a'},
-    {"offset", required_argument, NULL, 'o'},
+    {"class", required_argument, NULL, 'm'},
+    {"endian", required_argument, NULL, 'e'},
+    {"base", required_argument, NULL, 'b'},
     {"lib-version", required_argument, NULL, 'v'},
     {"help", optional_argument, NULL, 'h'},
     {0, 0, 0, 0}
@@ -113,12 +115,16 @@ static const char *help =
     "  injectso         Inject dynamic link library statically \n"
     "  delshtab         Delete section header table\n"
     "  parse            Parse ELF file statically like readelf\n"
+    "  addelfinfo       Add ELF info to firmware for IDA\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
     "  -z, --section-size=<section size>         Set section size\n"
     "  -f, --file-name=<file name>               File containing code(e.g. so, etc.)\n"
     "  -c, --configure-name=<file name>          File containing configure(e.g. json, etc.)\n"
     "  -a, --architecture=<ELF architecture>     ELF architecture\n"
+    "  -m, --class=<ELF machine>                 ELF class(e.g. 32bit, 64bit, etc.)\n"
+    "  -e, --endian=<ELF endian>                 ELF endian(e.g. little, big, etc.)\n"
+    "  -b, --base=<ELF base address>             ELF base address\n"
     "  -o, --offset=<injection offset>           Offset of injection point\n"
     "  -v, --version-libc=<libc version>         Libc.so or ld.so version\n"
     "  -h, --help[={none|English|Chinese}]       Display this output\n"
@@ -133,7 +139,9 @@ static const char *help =
     "                     [-v]<libc version> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
     "  elfspirit delshtab ELF\n"
-    "  elfspirit parse -A ELF\n";
+    "  elfspirit parse -A ELF\n"
+    "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
+    "                     ELF\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -142,13 +150,17 @@ static const char *help_chinese =
     "  delsec           删除一个节\n"
     "  injectso         静态注入一个so\n"
     "  delshtab         删除节头表\n"
-    "  parse        ELF文件格式分析, 类似于readelf\n"
+    "  parse            ELF文件格式分析, 类似于readelf\n"
+    "  addelfinfo       为原始固件添加ELF信息, 方便IDA识别\n"
     "支持的选项:\n"
     "  -n, --section-name=<section name>         设置节名\n"
     "  -z, --section-size=<section size>         设置节大小\n"
     "  -f, --file-name=<file name>               包含代码的文件名称(如某个so库)\n"
     "  -c, --configure-name=<file name>          配置文件(如json)\n"
     "  -a, --architecture=<ELF architecture>     ELF文件的架构(预留选项，非必须)\n"
+    "  -m, --class=<ELF machine>                 设置ELF字长(32bit, 64bit)\n"
+    "  -e, --endian=<ELF endian>                 设置ELF大小端(little, big)\n"
+    "  -b, --base=<ELF base address>             设置ELF入口地址\n"
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
     "  -v, --version-libc=<libc version>         libc或者ld的版本\n"
     "  -h, --help[={none|English|Chinese}]       帮助\n"
@@ -163,7 +175,9 @@ static const char *help_chinese =
     "                     [-v]<libc version> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
     "  elfspirit delshtab ELF\n"
-    "  elfspirit parse -A ELF\n";
+    "  elfspirit parse -A ELF\n"
+    "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
+                            "ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;

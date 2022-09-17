@@ -4,7 +4,7 @@ SANIT = -fsanitize=address
 elfspirit : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o
 	$(CC) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o -o elfspirit
 %.o: %.c
-	$(CC) $(CFLAGS) $(DEBUG) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 .PHONY: clean
 clean:
