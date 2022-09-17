@@ -1,7 +1,7 @@
 /*
  MIT License
  
- Copyright (c) 2021 Yansong Li
+ Copyright (c) 2021-2022 Yansong Li
  
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 #include <elf.h>
 
 /**
- * @description: add ELF info to firmware for IDA
+ * @description: add ELF info to firmware for IDA (为原始固件添加ELF信息, 方便IDA识别)
  * @param {uint8_t} *bin
  * @param {uint8_t} *arch
  * @param {uint32_t} class
