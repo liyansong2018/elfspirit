@@ -1,12 +1,26 @@
-[2021-11-07]
-    elfspirit 0.1
-        - Original version
-
-[2022-01-22]
-    elfspirit 1.0
-        - Add version information
-        - Add Chinese help
+[2022-09-17]
+    elfspirit 1.2.0
+        - Add ELF info to firmware(arm32) for IDA
         - Update README.txt
+
+[2022-03-15]
+    elfspirit 1.1.4
+        - Fix https://github.com/liyansong2018/elfspirit/issues/4
+        - Fix https://github.com/liyansong2018/elfspirit/issues/3
+        - Prevent CWE - <NULL Pointer Dereference - (476)>
+
+[2022-02-17]
+    elfspirit 1.1.3
+        - Fix bugs from ELF parser
+        - Add many options for ELF parser
+
+[2022-02-15]
+    elfspirit 1.1.2
+        - Significantly adjust the architecture of ELF64 parser
+
+[2022-02-15]
+    elfspirit 1.1.1
+        - Significantly adjust the architecture of ELF32 parser
 
 [2022-02-11]
     elfspirit 1.1.0
@@ -14,22 +28,12 @@
         - Merge pull request #2 from ware/main
         - Check the format of ELF file
 
-[2022-02-15]
-    elfspirit 1.1.1
-        - Significantly adjust the architecture of ELF32 parser
+[2022-01-22]
+    elfspirit 1.0
+        - Add version information
+        - Add Chinese help
+        - Update README.txt
 
-[2022-02-15]
-    elfspirit 1.1.2
-        - Significantly adjust the architecture of ELF64 parser
-
-[2022-02-17]
-    elfspirit 1.1.3
-        - Fix bugs from ELF parser
-        - Add many options for ELF parser
-
-[2022-03-15]
-    elfspirit 1.1.4
-        - Fix https://github.com/liyansong2018/elfspirit/issues/4
-        - Fix https://github.com/liyansong2018/elfspirit/issues/3
-        - Prevent CWE - <NULL Pointer Dereference - (476)>
-  
+[2021-11-07]
+    elfspirit 0.1
+        - Original version

@@ -35,39 +35,6 @@ Currently, this is the only supported environment. Other environments may also w
 
 ## Usage
 
-```shell
-Usage: elfspirit [function] [option]<argument>... ELF
-Currently defined functions:
-  addsec           Add a section in a ELF file
-  delsec           Delete a section of ELF file
-  injectso         Inject dynamic link library statically 
-  delshtab         Delete section header table
-  elfspirit        Parse ELF file statically like readelf
-Currently defined options:
-  -n, --section-name=<section name>         Set section name
-  -z, --section-size=<section size>         Set section size
-  -f, --file-name=<file name>               File containing code(e.g. so, etc.)
-  -c, --configure-name=<file name>          File containing configure(e.g. json, etc.)
-  -a, --architecture=<ELF architecture>     ELF architecture
-  -o, --offset=<injection offset>           Offset of injection point
-  -v, --version-libc=<libc version>         Libc.so or ld.so version
-  -h, --help[={none|English|Chinese}]       Display this output
-  -A, (no argument)                         Display all ELF file infomation
-  -H, (no argument)                         Display the ELF file header
-  -S, (no argument)                         Display the sections\' header
-  -P, (no argument)                         Display the program headers
-  -L, (no argument)                         Display the link information
-Detailed Usage: 
-  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF
-  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>
-                     [-v]<libc version> ELF
-  elfspirit delsec   [-n]<section name> ELF
-  elfspirit delshtab ELF
-  elfspirit parse -A ELF
-Current version: 1.1.4
-
-```
-
 ### Demo of patching IoT firmware for IDA
 
 command
