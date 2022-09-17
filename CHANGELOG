@@ -1,4 +1,9 @@
 [2022-09-17]
+    elfspirit 1.2.1
+        - Add ELF info to firmware(64bit) for IDA
+        - Close issue #5 #6
+
+[2022-09-17]
     elfspirit 1.2.0
         - Add ELF info to firmware(arm32) for IDA
         - Update README.txt
