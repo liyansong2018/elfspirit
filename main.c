@@ -37,6 +37,7 @@
 #include "delshtab.h"
 #include "parse.h"
 #include "common.h"
+#include "addelfinfo.h"
 
 #define CONTENT_LENGTH 1024 * 1024
 
@@ -44,12 +45,15 @@ char section_name[LENGTH];
 char file_name[LENGTH];
 char config_name[LENGTH];
 char arch[LENGTH];
+char endian[LENGTH];
 char ver[LENGTH];
 char ver_elfspirt[LENGTH];
 char elf_name[LENGTH];
 char function[LENGTH];
+uint64_t base_addr;
 uint32_t size;
 uint32_t off;
+uint32_t class;
 parser_opt_t po;
 
 /**
@@ -84,7 +88,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:o:v:h::AHSPL";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:h::AHSPL";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -198,10 +202,32 @@ static void readcmdline(int argc, char *argv[]) {
                 memcpy(config_name, optarg, LENGTH);
                 break;
 
+            /***** add elf info to firmware for IDA - STRT*****/
             // set architecture
             case 'a':
                 memcpy(arch, optarg, LENGTH);
                 break;
+
+            // set class
+            case 'm':
+                class = atoi(optarg);
+                break;
+            
+            // set endian
+            case 'e':
+                memcpy(endian, optarg, LENGTH);
+                break;
+
+            // set base address
+            case 'b':
+                if (optarg[0] == '0' && optarg[1] == 'x') {
+                    base_addr = hex2int(optarg);
+                }
+                else{
+                    base_addr = atoi(optarg);
+                }                
+                break;
+            /***** add elf info to firmware for IDA - END *****/
 
             // set offset
             case 'o':
@@ -288,6 +314,11 @@ static void readcmdline(int argc, char *argv[]) {
     /* ELF parser */
     if (!strcmp(function, "parse")) {
         parse(elf_name, &po);
+    }
+
+    /* add elf info to firmware for IDA */
+    if (!strcmp(function, "addelfinfo")) {
+        add_elf_info(elf_name, arch, class, endian, base_addr);
     }
 
 #ifdef DEBUG

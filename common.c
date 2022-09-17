@@ -312,7 +312,7 @@ int create_file(char *elf_name, char *elf_map, uint32_t map_size) {
     /* new file */
     char new_name[PATH_LENGTH_NEW];
     memset(new_name, 0, PATH_LENGTH_NEW);
-    snprintf(new_name, PATH_LENGTH_NEW, "%s_new", elf_name);
+    snprintf(new_name, PATH_LENGTH_NEW, "%s.new", elf_name);
     int fd_new = open(new_name, O_RDWR|O_CREAT|O_TRUNC, 0777);
     if (fd_new < 0) {
         ERROR("open fd_new\n");

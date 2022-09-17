@@ -1,10 +1,10 @@
 CFLAGS = -w -c
 DEBUG = -g
 SANIT = -fsanitize=address
-elfspirit : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o
-	$(CC) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o -o elfspirit
+elfspirit : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o
+	$(CC) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o -o elfspirit
 %.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(DEBUG) $< -o $@
 
 .PHONY: clean
 clean:
