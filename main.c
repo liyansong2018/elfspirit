@@ -39,6 +39,7 @@
 #include "common.h"
 #include "addelfinfo.h"
 
+#define VERSION "1.2.1"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];
@@ -65,8 +66,8 @@ static int get_version(char *ver, size_t len) {
 
     fd = open("./VERSION", O_RDONLY);
     if (fd < 0) {
-        perror("open");
-        return -1;
+        ret = strcpy(ver, VERSION);
+        return ret;
     }
 
     ret = read(fd, ver, len);
