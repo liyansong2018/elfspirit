@@ -307,13 +307,18 @@ int is_sec_addr(char *elf_name, int offset) {
  * @param {char} *elf_name original file name
  * @param {char} *elf_map
  * @param {uint32_t} map_size
+ * @param {uint32_t} is_new
  * @return {*}
  */
-int create_file(char *elf_name, char *elf_map, uint32_t map_size) {
+int create_file(char *elf_name, char *elf_map, uint32_t map_size, uint32_t is_new) {
     /* new file */
     char new_name[PATH_LENGTH_NEW];
     memset(new_name, 0, PATH_LENGTH_NEW);
-    snprintf(new_name, PATH_LENGTH_NEW, "%s.new", elf_name);
+    if (is_new) 
+        snprintf(new_name, PATH_LENGTH_NEW, "%s.new", elf_name);
+    else
+        strncpy(new_name, elf_name, PATH_LENGTH_NEW);
+        
     int fd_new = open(new_name, O_RDWR|O_CREAT|O_TRUNC, 0777);
     if (fd_new < 0) {
         ERROR("open fd_new\n");

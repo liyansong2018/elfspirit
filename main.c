@@ -339,7 +339,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* connect each bin in firmware for IDA */
     if (!strcmp(function, "joinelf")) {
-        join_elf(config_name, arch, class, endian);
+        join_elf(config_name, arch, class, endian, elf_name);
     }
 
 #ifdef DEBUG

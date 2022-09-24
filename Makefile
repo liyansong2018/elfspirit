@@ -5,7 +5,7 @@ DEBUG = -g -fsanitize=address
 $(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o
 	$(CC) $(DEBUG) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o -o $(TARGET)
 %.o: %.c
-	$(CC) $(CFLAGS) $(DEBUG) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 .PHONY: clean
 clean:

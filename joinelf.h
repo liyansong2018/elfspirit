@@ -30,6 +30,7 @@
  * @param {uint8_t} *arch
  * @param {uint32_t} class
  * @param {uint8_t} *endian
+ * @param {uint8_t} *out
  * @return {*}
  */
-int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian);
+int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian, uint8_t *out);

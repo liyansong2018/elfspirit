@@ -203,7 +203,7 @@ int add_elf_info(uint8_t *bin, uint8_t *arch, uint32_t class, uint8_t *endian, u
 
     INFO("source file length is 0x%x\n", st.st_size);
     INFO("base address is 0x%x\n", base_addr);
-    create_file(bin, new_bin_map, new_size);
+    create_file(bin, new_bin_map, new_size, 1);
     free(new_bin_map);
     close(fd);
 }

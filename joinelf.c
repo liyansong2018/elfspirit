@@ -1,3 +1,27 @@
+/*
+ MIT License
+ 
+ Copyright (c) 2021-2022 Yansong Li
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+*/
+
 #include <stdio.h>
 #include <elf.h>
 #include <sys/types.h>
@@ -39,16 +63,17 @@ static int conv_arch(uint8_t *arch) {
  * @param {uint8_t} *arch
  * @param {uint32_t} class
  * @param {uint8_t} *endian
+ * @param {uint8_t} *out
  * @return {*}
  */
-int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian) {
+int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian, uint8_t *out) {
     uint32_t count = 0;
     uint32_t size = 0;
     uint32_t new_size = 0;
     uint8_t *new_bin_map;
     Bin *bin;
     uint8_t *point_t;   // map address
-    uint8_t *point_s;   // section address
+    uint32_t offset_t;   // section address
 
     cJSON *root = NULL;
     root = get_json_object(configure);
@@ -58,6 +83,10 @@ int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian)
     } else {
         count = cJSON_GetArraySize(root);
         bin = (Bin *)malloc(sizeof(Bin) * count);
+        if (bin == NULL) {
+            perror("malloc");
+            return -1;
+        }
 
         for (int i = 0; i < count; i++) {
             cJSON *item = cJSON_GetArrayItem(root, i);
@@ -69,12 +98,14 @@ int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian)
                 if (fd < 0) {
                     ERROR("%s\n", bin[i].name);
                     perror("open in join_elf");
+                    free(bin);
                     cJSON_Delete(root);
                     return -1;
                 }
 
                 if (fstat(fd, &st) < 0) {
                     perror("fstat");
+                    free(bin);
                     cJSON_Delete(root);
                     return -1;
                 }
@@ -83,6 +114,7 @@ int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian)
                 bin[i].bin_mem = mmap(0, bin[i].size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
                 if (bin[i].bin_mem == NULL) {
                     perror("mmap");
+                    free(bin);
                     cJSON_Delete(root);
                     return -1;
                 }
@@ -114,7 +146,6 @@ int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian)
             .e_shnum = 2,
             .e_shstrndx = 0,
         };
-        printf("--30x%x\n", bin[0].base_addr);
         if (ehdr.e_machine == EM_ARM) {
             ehdr.e_flags = 0x05000200;  /* arm32 */
         }
@@ -135,17 +166,15 @@ int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian)
         point_t += sizeof(Elf32_Ehdr);
         /***** null section header *****/
         point_t += sizeof(Elf32_Shdr);
-        point_s = new_bin_map + sizeof(Elf32_Ehdr) + sizeof(Elf32_Shdr) * (count + 1);
+        offset_t = sizeof(Elf32_Ehdr) + sizeof(Elf32_Shdr) * (count + 1);
 
         for (int i = 0; i < count; i++) {
-            printf("--40x%x\n", bin[i].base_addr);
-            printf("--40x%x\n", bin[i].name);
             Elf32_Shdr shdr = {
                 .sh_name = 0x0,
                 .sh_type = SHT_PROGBITS,      /* Program data */
                 .sh_flags = SHF_EXECINSTR,    /* Executable */ 
                 .sh_addr = bin[i].base_addr,  /* Bin offset */
-                .sh_offset = point_s,
+                .sh_offset = offset_t,
                 .sh_size = bin[i].size,       /* Section(bin) size */
                 .sh_link = 0x0,
                 .sh_info = 0x0,
@@ -153,15 +182,15 @@ int join_elf(uint8_t *configure, uint8_t *arch, uint32_t class, uint8_t *endian)
                 .sh_entsize = 0x0
             };
             memcpy(point_t, &shdr, sizeof(Elf32_Shdr));
-            memcpy(point_s, bin[i].bin_mem, bin[i].size);
+            memcpy(offset_t + new_bin_map, bin[i].bin_mem, bin[i].size);
             point_t += sizeof(Elf32_Shdr);
-            point_s += bin[i].size;
+            offset_t += bin[i].size;
         }
     }
 
-    create_file("bin", new_bin_map, new_size);
+    create_file(out, new_bin_map, new_size, 0);
     free(new_bin_map);
-
+    free(bin);
     cJSON_Delete(root);
     return 0;
 }
