@@ -38,6 +38,7 @@
 #include "parse.h"
 #include "common.h"
 #include "addelfinfo.h"
+#include "joinelf.h"
 
 #define VERSION "1.2.1"
 #define CONTENT_LENGTH 1024 * 1024
@@ -334,6 +335,11 @@ static void readcmdline(int argc, char *argv[]) {
     /* add elf info to firmware for IDA */
     if (!strcmp(function, "addelfinfo")) {
         add_elf_info(elf_name, arch, class, endian, base_addr);
+    }
+
+    /* connect each bin in firmware for IDA */
+    if (!strcmp(function, "joinelf")) {
+        join_elf(config_name, arch, class, endian);
     }
 
 #ifdef DEBUG

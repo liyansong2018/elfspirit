@@ -91,30 +91,6 @@ typedef struct Offset{
     uint32_t __libc_dlopen_mode;
 }AddrOffset;
 
-cJSON *get_json_object(char *name) {
-    FILE *fp;
-    int len;
-    char *content;
-    cJSON *cJsonObject;
-
-    fp = fopen(name, "rb");
-    if (fp < 0) {
-        perror("fopen");
-        return NULL;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    len = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    content = (char *)malloc(len + 1);      // len + 1, fix off-by-one
-    memset(content, 0, len + 1);        
-    fread(content, 1, len, fp);
-    cJsonObject = cJSON_Parse(content);
-    fclose(fp);
-    free(content);
-    return cJsonObject;
-}
-
 int read_offset(char *json_name, AddrOffset *addr_offset, char *arch, char *version) {
     cJSON *root = NULL;
     cJSON *item = NULL;

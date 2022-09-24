@@ -31,6 +31,7 @@
 #include <sys/mman.h>
 #include <elf.h>
 #include "common.h"
+#include "cJSON/cJSON.h"
 
 int MODE;
 int ARCH;
@@ -323,4 +324,33 @@ int create_file(char *elf_name, char *elf_map, uint32_t map_size) {
     INFO("create %s\n", new_name);
     close(fd_new);
     return 0;
+}
+
+/**
+ * @description: Create json object from json file
+ * @param {char} *name original json file name
+ * @return {*}
+ */
+cJSON *get_json_object(char *name) {
+    FILE *fp;
+    int len;
+    char *content;
+    cJSON *cJsonObject;
+
+    fp = fopen(name, "rb");
+    if (fp <= 0) {
+        perror("fopen");
+        return NULL;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    len = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    content = (char *)malloc(len + 1);      // len + 1, fix off-by-one
+    memset(content, 0, len + 1);        
+    fread(content, 1, len, fp);
+    cJsonObject = cJSON_Parse(content);
+    fclose(fp);
+    free(content);
+    return cJsonObject;
 }
