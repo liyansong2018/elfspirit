@@ -451,7 +451,7 @@ int inject_so(char *elf_name, char *modify_sec_name, char *so_name, char *json_n
 #endif  
 
     /* new file */
-    create_file(elf_name, elf_map, st.st_size);
+    create_file(elf_name, elf_map, st.st_size, 1);
 
     munmap(elf_map, st.st_size);
     close(fd);

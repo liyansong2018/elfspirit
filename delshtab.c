@@ -72,7 +72,7 @@ int delete_shtab(char *elf) {
         ehdr->e_shnum = 0;
         ehdr->e_shoff = 0;
         ehdr->e_shentsize = 0;
-        create_file(elf, elf_map_new, st.st_size - shtab_size);
+        create_file(elf, elf_map_new, st.st_size - shtab_size, 1);
     }
 
     /* 64bit */
@@ -85,7 +85,7 @@ int delete_shtab(char *elf) {
         ehdr->e_shnum = 0;
         ehdr->e_shoff = 0;
         ehdr->e_shentsize = 0;
-        create_file(elf, elf_map_new, st.st_size - shtab_size);
+        create_file(elf, elf_map_new, st.st_size - shtab_size, 1);
     }
 
     free(elf_map_new);

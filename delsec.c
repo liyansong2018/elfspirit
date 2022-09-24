@@ -120,7 +120,7 @@ int delete_section(char *elf_name, char *section_name) {
             }
         }
 
-        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf32_Shdr));
+        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf32_Shdr), 1);
     }
 
     /* 64bit */
@@ -167,7 +167,7 @@ int delete_section(char *elf_name, char *section_name) {
             }
         }
 
-        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf64_Shdr));
+        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf64_Shdr), 1);
     }
 
     free(elf_map_new);

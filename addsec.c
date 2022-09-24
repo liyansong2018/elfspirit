@@ -294,7 +294,7 @@ int add_section(uint8_t *elf, uint32_t offset, uint8_t *new_sec, uint32_t sec_si
         memcpy(&elf_map_new[ehdr->e_shoff + sizeof(Elf64_Shdr) * (ehdr->e_shnum - 1)], &new_sec_head, sizeof(Elf64_Shdr)); 
     }
     
-    create_file(elf, elf_map_new, new_map_size);
+    create_file(elf, elf_map_new, new_map_size, 1);
 
     free(elf_map_new);
     close(fd);

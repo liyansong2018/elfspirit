@@ -118,6 +118,7 @@ static const char *help =
     "  delshtab         Delete section header table\n"
     "  parse            Parse ELF file statically like readelf\n"
     "  addelfinfo       Add ELF info to firmware for IDA\n"
+    "  joinelf          Connect bin in firmware for IDA\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
     "  -z, --section-size=<section size>         Set section size\n"
@@ -143,7 +144,9 @@ static const char *help =
     "  elfspirit delshtab ELF\n"
     "  elfspirit parse -A ELF\n"
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
-    "                     ELF\n";
+    "                     ELF\n"
+    "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file>\n"
+    "                     OUT_ELF\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -154,6 +157,7 @@ static const char *help_chinese =
     "  delshtab         删除节头表\n"
     "  parse            ELF文件格式分析, 类似于readelf\n"
     "  addelfinfo       为原始固件添加ELF信息, 方便IDA识别\n"
+    "  joinelf          还原固件各个部分在内存中的布局\n"
     "支持的选项:\n"
     "  -n, --section-name=<section name>         设置节名\n"
     "  -z, --section-size=<section size>         设置节大小\n"
@@ -179,7 +183,9 @@ static const char *help_chinese =
     "  elfspirit delshtab ELF\n"
     "  elfspirit parse -A ELF\n"
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
-                            "ELF\n";
+                            "ELF\n"
+    "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file>\n"
+    "                     OUT_ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
