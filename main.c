@@ -40,7 +40,7 @@
 #include "addelfinfo.h"
 #include "joinelf.h"
 
-#define VERSION "1.2.1"
+#define VERSION "1.2.2"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];

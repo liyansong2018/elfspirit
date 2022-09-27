@@ -1,3 +1,9 @@
+[2022-09-27]
+    elfspirit 1.2.2
+        - Add program segment for qemu
+        - Connect each bin in firmware for IDA
+        - Patch firmware for IDA
+
 [2022-09-17]
     elfspirit 1.2.1
         - Add ELF info to firmware(64bit) for IDA
