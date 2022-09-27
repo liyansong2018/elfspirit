@@ -83,8 +83,8 @@ int add_elf_info(uint8_t *bin, uint8_t *arch, uint32_t class, uint8_t *endian, u
 
     /* 32bit */
     if (class == 32) {
-        /*****| ELF Header | ELF Section header1 | ELF Section header2 |*****/
-        new_size = sizeof(Elf32_Ehdr) + sizeof(Elf32_Shdr) * 2 + st.st_size; 
+        /*****| ELF Header | ELF Phdr | ELF Section header1 | ELF Section header2 |*****/
+        new_size = sizeof(Elf32_Ehdr) + sizeof(Elf32_Phdr) + sizeof(Elf32_Shdr) * 2 + st.st_size; 
         new_bin_map = malloc(new_size);
         if (new_bin_map < 0) {
             return -1;
@@ -97,12 +97,12 @@ int add_elf_info(uint8_t *bin, uint8_t *arch, uint32_t class, uint8_t *endian, u
             .e_machine = conv_arch(arch),
             .e_version = EV_CURRENT,
             .e_entry = base_addr,
-            .e_phoff = 0,
-            .e_shoff = sizeof(Elf32_Ehdr),
+            .e_phoff = sizeof(Elf32_Ehdr),
+            .e_shoff = sizeof(Elf32_Ehdr) + sizeof(Elf32_Phdr),
             .e_flags = 0,
             .e_ehsize = sizeof(Elf32_Ehdr),
             .e_phentsize = sizeof(Elf32_Phdr),
-            .e_phnum = 0,
+            .e_phnum = 1,
             .e_shentsize = sizeof(Elf32_Shdr),
             .e_shnum = 2,
             .e_shstrndx = 0,
@@ -121,12 +121,23 @@ int add_elf_info(uint8_t *bin, uint8_t *arch, uint32_t class, uint8_t *endian, u
             ehdr.e_ident[5] = '\x02';            
         ehdr.e_ident[6] = '\x01';       /* EI_VERSION */
 
+        Elf32_Phdr phdr = {
+            .p_type = PT_LOAD,
+            .p_offset = sizeof(Elf32_Ehdr) + sizeof(Elf32_Phdr) + sizeof(Elf32_Shdr) * 2,
+            .p_vaddr = base_addr,
+            .p_paddr = 0x0,
+            .p_filesz = st.st_size,
+            .p_memsz = st.st_size,
+            .p_flags = PF_R | PF_W | PF_X,
+            .p_align = 0x1000
+        };
+
         Elf32_Shdr shdr = {
             .sh_name = 0x0,
             .sh_type = SHT_PROGBITS,    /* Program data */
-            .sh_flags = SHF_EXECINSTR,  /* Executable */ 
+            .sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE,  /* Executable */ 
             .sh_addr = base_addr,
-            .sh_offset = sizeof(Elf32_Ehdr) + sizeof(Elf32_Shdr) * 2,
+            .sh_offset = sizeof(Elf32_Ehdr) + sizeof(Elf32_Phdr) + sizeof(Elf32_Shdr) * 2,
             .sh_size = st.st_size,      /* Section(bin) size */
             .sh_link = 0x0,
             .sh_info = 0x0,
@@ -134,11 +145,12 @@ int add_elf_info(uint8_t *bin, uint8_t *arch, uint32_t class, uint8_t *endian, u
             .sh_entsize = 0x0
         };
 
-        /*****| ELF Header | ELF Section header1 | ELF Section header2 |*****/
+        /*****| ELF Header | ELF Phdr | ELF Section header1 | ELF Section header2 |*****/
         memset(new_bin_map, 0, new_size);
         memcpy(new_bin_map, &ehdr, sizeof(Elf32_Ehdr));
-        memcpy(new_bin_map + sizeof(Elf32_Ehdr) + sizeof(Elf32_Shdr), &shdr, sizeof(Elf32_Shdr));
-        memcpy(new_bin_map + sizeof(Elf32_Ehdr) + sizeof(Elf32_Shdr) * 2, bin_map, st.st_size);
+        memcpy(new_bin_map + sizeof(Elf32_Ehdr), &phdr, sizeof(Elf32_Phdr));
+        memcpy(new_bin_map + sizeof(Elf32_Ehdr) + sizeof(Elf32_Phdr) + sizeof(Elf32_Shdr), &shdr, sizeof(Elf32_Shdr));
+        memcpy(new_bin_map + sizeof(Elf32_Ehdr) + sizeof(Elf32_Phdr) + sizeof(Elf32_Shdr) * 2, bin_map, st.st_size);
     }
 
     /* 64bit */
