@@ -1,11 +1,17 @@
 TARGET=elfspirit
 OUT=/usr/local/bin/
 CFLAGS = -w -c
-DEBUG = -g -fsanitize=address
+
+ifeq ($(debug), true)
+	CXXFLAGS=-g -fsanitize=address
+else
+	CXXFLAGS=-O3
+endif
+
 $(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o
-	$(CC) $(DEBUG) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o -o $(TARGET)
+	$(CC) $(CXXFLAGS) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o -o $(TARGET)
 %.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(CXXFLAGS) $< -o $@
 
 .PHONY: clean
 clean:
