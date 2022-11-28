@@ -82,6 +82,7 @@ static int get_version(char *ver, size_t len) {
 static void init() {
     memset(section_name, 0, LENGTH);
     memset(file_name, 0, LENGTH);
+    memset(config_name, 0, LENGTH);
     memset(elf_name, 0, LENGTH);
     memset(function, 0, LENGTH);
     size = 0;
@@ -141,6 +142,7 @@ static const char *help =
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
     "                     [-v]<libc version> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
+    "                     [-c]<multi section name> ELF\n"
     "  elfspirit delshtab ELF\n"
     "  elfspirit parse -A ELF\n"
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
@@ -180,6 +182,7 @@ static const char *help_chinese =
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
     "                     [-v]<libc version> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
+    "                     [-c]<multi section name> ELF\n"
     "  elfspirit delshtab ELF\n"
     "  elfspirit parse -A ELF\n"
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
@@ -325,7 +328,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* delete a section */
     if (!strcmp(function, "delsec")) {
-        delete_section(elf_name, section_name);
+        delete_section(elf_name, section_name, config_name);
     }
 
     /* delete a section */

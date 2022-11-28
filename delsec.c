@@ -51,7 +51,42 @@ char *delete_data(char *elf_map, uint32_t file_size, uint32_t offset, uint32_t d
     return tmp;
 }
 
-int delete_section(char *elf_name, char *section_name) {
+int delete_section(char *elf_name, char *section_name, char *config_name) {
+    FILE *fp;
+    int count = 0;
+    char tmp_sec_name[LENGTH];
+    char new_file[LENGTH];
+    snprintf(new_file, LENGTH, "%s.new", elf_name);
+
+    if (strlen(config_name) == 0) {
+        printf("delete %s\n", tmp_sec_name);
+        delete_section_imp(elf_name, section_name, 1);
+        return 0;
+    }
+   
+    fp = fopen(config_name, "r");
+    if (fp <= 0) {
+        perror("fopen");
+        return -1;
+    }
+    
+    while (!feof(fp)) {
+        fgets(tmp_sec_name, LENGTH, fp);
+        if ( tmp_sec_name[strlen(tmp_sec_name) - 1] == '\n')
+            tmp_sec_name[strlen(tmp_sec_name) - 1] = '\0';  /* delete \n */
+        printf("delete %s\n", tmp_sec_name);
+        
+        if (!count)
+            delete_section_imp(elf_name, tmp_sec_name, 1);
+        else {
+            delete_section_imp(new_file, tmp_sec_name, 0);
+        }
+        count++;
+    }
+    fclose(fp);
+}
+
+int delete_section_imp(char *elf_name, char *section_name, int is_rename) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
@@ -120,7 +155,8 @@ int delete_section(char *elf_name, char *section_name) {
             }
         }
 
-        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf32_Shdr), 1);
+        close(fd);
+        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf32_Shdr), is_rename);
     }
 
     /* 64bit */
@@ -167,12 +203,12 @@ int delete_section(char *elf_name, char *section_name) {
             }
         }
 
-        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf64_Shdr), 1);
+        close(fd);
+        create_file(elf_name, elf_map_new, st.st_size - sizeof(Elf64_Shdr), is_rename);
     }
 
     free(elf_map_new);
     munmap(elf_map, st.st_size);
-    close(fd);
     
     return 0;
 };

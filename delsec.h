@@ -32,4 +32,4 @@
  */
 char *delete_data(char *elf_map, uint32_t file_size, uint32_t offset, uint32_t data_size);
 
-int delete_section(char *elf_name, char *section_name);
+int delete_section(char *elf_name, char *section_name, char *config_name);
