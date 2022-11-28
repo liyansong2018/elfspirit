@@ -39,6 +39,10 @@ Currently, this is the only supported environment. Other environments may also w
 
 command
 ```shell
+# # Add elf header for IoT firmware.bin
+$ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
+
+# # Connect multi-bin
 $ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
 ```
 
@@ -53,7 +57,7 @@ output: add ELF info to firmware for IDA
 
 command
 ```shell
-elfspirit parse -A hello_x86
+./elfspirit parse -A hello_x86
 ```
 
 output: details of elf
@@ -88,6 +92,14 @@ output: details of elf
      0x00000001   DT_NEEDED         Shared library: [libc.so.6]   
      0x0000000c   DT_INIT           0x401000
      ...
+```
+
+### Demo of deleting section
+```shell
+# # delete one section
+$ ./elfspirit delsec -n .eh_frame_hdr hello
+# # delete multi-sections
+$ ./elfspirit delsec -c configure/multi_sec_name hello
 ```
 
 ### Demo of static injection
