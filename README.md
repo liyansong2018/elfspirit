@@ -43,7 +43,7 @@ command
 $ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
 
 # # Connect multi-bin
-$ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
+$ ./elfspirit joinelf -a arm -m 32 -e big -c ./configure/bininfo.json ~/Documents/app.bin
 ```
 
 output: add ELF info to firmware for IDA
