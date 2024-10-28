@@ -182,16 +182,16 @@ static const char *help_chinese =
     "  -P, 不需要参数                    显示ELF程序头\n"
     "  -L, 不需要参数                    显示ELF链接\n"
     "细节: \n"
-    "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
-    "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
-    "                     [-v]<libc version> ELF\n"
-    "  elfspirit delsec   [-n]<section name> ELF\n"
-    "                     [-c]<multi section name> ELF\n"
+    "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
+    "  elfspirit injectso [-n]<节的名字> [-f]<so的名字> [-c]<配置文件>\n"
+    "                     [-v]<libc的版本> ELF\n"
+    "  elfspirit delsec   [-n]<节的名字> ELF\n"
+    "                     [-c]<多个节的名字> ELF\n"
     "  elfspirit delshtab ELF\n"
     "  elfspirit parse -A ELF\n"
-    "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
+    "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<基地址>\n"
                             "ELF\n"
-    "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file>\n"
+    "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
