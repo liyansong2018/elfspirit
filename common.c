@@ -359,3 +359,190 @@ cJSON *get_json_object(char *name) {
     free(content);
     return cJsonObject;
 }
+
+/**
+ * @brief Extract binary fragments from the target file
+ * 
+ * @param input_file original file name
+ * @param offset start address
+ * @param size end address(size)
+ */
+void extract_fragment(const char *input_file, long offset, size_t size) {
+    FILE *input_fp = fopen(input_file, "rb");
+    if (input_fp == NULL) {
+        perror("Error opening input file");
+        return;
+    }
+
+    // 设置文件指针偏移量
+    fseek(input_fp, offset, SEEK_SET);
+
+    // 读取指定大小的数据
+    unsigned char *buffer = (unsigned char *)malloc(size);
+    if (buffer == NULL) {
+        perror("Memory allocation error");
+        fclose(input_fp);
+        return;
+    }
+
+    fread(buffer, 1, size, input_fp);
+    for (int i = 0; i < size; i++) {
+        printf("\\x%02x", buffer[i]);
+    }
+    printf("\n");
+
+    // 关闭输入文件
+    fclose(input_fp);
+
+    // 写入数据到一个新文件
+    FILE *output_fp = fopen("/tmp/elfspirt_out.bin", "wb");
+    if (output_fp == NULL) {
+        perror("Error creating output file");
+        free(buffer);
+        return;
+    }
+
+    fwrite(buffer, 1, size, output_fp);
+    printf("write to %s\n", "/tmp/elfspirt_out.bin");
+
+    // 关闭输出文件
+    fclose(output_fp);
+
+    free(buffer);
+}
+
+/**
+ * @brief Get the section information
+ * 
+ * @param elf_name original file name
+ * @param section_name input argument: section name
+ * @param section_info output argument: section information
+ */
+void get_section_info(char *elf_name, char *section_name, char *section_info) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Phdr *phdr;
+        Elf32_Shdr shstrtab;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
+                break;
+            }
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Phdr *phdr;
+        Elf64_Shdr shstrtab;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                memcpy(section_info, &shdr[i], sizeof(Elf64_Shdr));          
+                break;
+            }
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+};
+
+/**
+ * @brief Get the section address
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section address
+ */
+int get_section_addr(char *elf_name, char *section_name) {
+    MODE = get_elf_class(elf_name);
+    if (MODE == ELFCLASS32) {
+        Elf32_Shdr section_info;
+        get_section_info(elf_name, section_name, &section_info);
+        return section_info.sh_addr;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Shdr section_info;
+        get_section_info(elf_name, section_name, &section_info);
+        return section_info.sh_addr;
+    }
+}
+
+/**
+ * @brief Get the section file offset address
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section file offset address
+ */
+int get_section_offset(char *elf_name, char *section_name) {
+    MODE = get_elf_class(elf_name);
+    if (MODE == ELFCLASS32) {
+        Elf32_Shdr section_info;
+        get_section_info(elf_name, section_name, &section_info);
+        return section_info.sh_offset;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Shdr section_info;
+        get_section_info(elf_name, section_name, &section_info);
+        return section_info.sh_offset;
+    }
+}
+
+/**
+ * @brief Get the section size
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section size
+ */
+int get_section_size(char *elf_name, char *section_name) {
+    MODE = get_elf_class(elf_name);
+    if (MODE == ELFCLASS32) {
+        Elf32_Shdr section_info;
+        get_section_info(elf_name, section_name, &section_info);
+        return section_info.sh_size;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Shdr section_info;
+        get_section_info(elf_name, section_name, &section_info);
+        return section_info.sh_size;
+    }
+}

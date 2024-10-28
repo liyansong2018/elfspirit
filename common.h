@@ -138,3 +138,41 @@ int create_file(char *elf_name, char *elf_map, uint32_t map_size, uint32_t is_ne
  * @return {*}
  */
 cJSON *get_json_object(char *name);
+
+/**
+ * @brief Extract binary fragments from the target file
+ * 
+ * @param input_file original file name
+ * @param offset start address
+ * @param size end address(size)
+ */
+void extract_fragment(const char *input_file, long offset, size_t size);
+
+
+/* EXTERN API */
+/**
+ * @brief Get the section address
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section address
+ */
+int get_section_addr(char *elf_name, char *section_name);
+
+/**
+ * @brief Get the section file offset address
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section file offset address
+ */
+int get_section_offset(char *elf_name, char *section_name);
+
+/**
+ * @brief Get the section size
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section 
+ */
+int get_section_size(char *elf_name, char *section_name);
