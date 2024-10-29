@@ -10,7 +10,7 @@
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
 
 不想看英文？没关系，请戳中文简介:yum:
-- [x] :point_right: [elfspirit 适用场景](https://github.com/liyansong2018/elfspirit/wiki/elfspirit-%E9%80%82%E7%94%A8%E5%9C%BA%E6%99%AF%E3%80%90%E4%B8%AD%E6%96%87%E3%80%91)
+- [x] :point_right: [elfspirit 适用场景](https://github.com/liyansong2018/elfspirit/wiki/elfspirit-%E9%80%82%E7%94%A8%E5%9C%BA%E6%99%AF)
 
 - [x] :point_right: [elfspirit：Linux平台下的静态分析和注入框架](https://bbs.pediy.com/thread-270194.htm)
 
