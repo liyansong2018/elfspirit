@@ -121,6 +121,7 @@ static const char *help =
     "  addelfinfo       Add ELF info to firmware for IDA\n"
     "  joinelf          Connect bin in firmware for IDA\n"
     "  extract          Extract binary fragments from the target file, like `dd` command\n"
+    "  modify           Modify section information\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
     "  -z, --section-size=<section size>         Set section size\n"
@@ -128,6 +129,7 @@ static const char *help =
     "  -c, --configure-name=<file name>          File containing configure(e.g. json, etc.)\n"
     "  -a, --architecture=<ELF architecture>     ELF architecture\n"
     "  -m, --class=<ELF machine>                 ELF class(e.g. 32bit, 64bit, etc.)\n"
+    "      --class=<math value>                  Reserve value(e.g. 7=111=rwx)\n"
     "  -e, --endian=<ELF endian>                 ELF endian(e.g. little, big, etc.)\n"
     "  -b, --base=<ELF base address>             ELF base address\n"
     "  -o, --offset=<injection offset>           Offset of injection point\n"
@@ -151,7 +153,8 @@ static const char *help =
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file>\n"
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
-    "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n";
+    "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
+    "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -164,6 +167,7 @@ static const char *help_chinese =
     "  addelfinfo       为原始固件添加ELF信息, 方便IDA识别\n"
     "  joinelf          还原固件各个部分在内存中的布局\n"
     "  extract          从目标文件中提取二进制片段(like dd)\n"
+    "  modify           修改节的信息\n"
     "支持的选项:\n"
     "  -n, --section-name=<section name>         设置节名\n"
     "  -z, --section-size=<section size>         设置节大小\n"
@@ -171,6 +175,7 @@ static const char *help_chinese =
     "  -c, --configure-name=<file name>          配置文件(如json)\n"
     "  -a, --architecture=<ELF architecture>     ELF文件的架构(预留选项，非必须)\n"
     "  -m, --class=<ELF machine>                 设置ELF字长(32bit, 64bit)\n"
+    "      --class=<math value>                  预留的参数，可以用于传递数值(e.g. 7=111=rwx)\n"
     "  -e, --endian=<ELF endian>                 设置ELF大小端(little, big)\n"
     "  -b, --base=<ELF base address>             设置ELF入口地址\n"
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
@@ -192,7 +197,8 @@ static const char *help_chinese =
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<基地址>\n"
                             "ELF\n"
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
-    "                     OUT_ELF\n";
+    "                     OUT_ELF\n"
+    "  elfspirit mod_sec_flags [-n]<节的名字> [-m]<权限值> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -364,6 +370,11 @@ static void readcmdline(int argc, char *argv[]) {
         } else if (size != 0) {
             extract_fragment(elf_name, off, size);
         }
+    }
+
+    /* modify section information */
+    if (!strcmp(function, "mod_sec_flags")) {
+        set_section_flags(elf_name, section_name, class);
     }
 
 #ifdef DEBUG

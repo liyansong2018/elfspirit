@@ -36,6 +36,19 @@
 int MODE;
 int ARCH;
 
+enum SectionLabel {
+    NAME,		/* Section name (string tbl index) */
+    TYPE,       /* Section type */
+    FLAGS,		/* Section flags */
+    ADDR,		/* Section virtual addr at execution */
+    OFF,		/* Section file offset */
+    SIZE,		/* Section size in bytes */
+    LINK,		/* Link to another section */
+    INFO,		/* Additional section information */
+    ALIGN,		/* Section alignment */
+    ENTSIZE,	/* Entry size if section holds table */
+};
+
 /**
  * @description: get name from path. (从路径中得到文件名)
  * @param {char} *file
@@ -446,7 +459,6 @@ void get_section_info(char *elf_name, char *section_name, char *section_info) {
     if (MODE == ELFCLASS32) {
         Elf32_Ehdr *ehdr;
         Elf32_Shdr *shdr;
-        Elf32_Phdr *phdr;
         Elf32_Shdr shstrtab;
 
         ehdr = (Elf32_Ehdr *)elf_map;
@@ -466,7 +478,6 @@ void get_section_info(char *elf_name, char *section_name, char *section_info) {
     if (MODE == ELFCLASS64) {
         Elf64_Ehdr *ehdr;
         Elf64_Shdr *shdr;
-        Elf64_Phdr *phdr;
         Elf64_Shdr shstrtab;
 
         ehdr = (Elf64_Ehdr *)elf_map;
@@ -545,4 +556,125 @@ int get_section_size(char *elf_name, char *section_name) {
         get_section_info(elf_name, section_name, &section_info);
         return section_info.sh_size;
     }
+}
+
+/**
+ * @brief Set the section information
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @param value permission
+ * @param label 
+ */
+void set_section_info(char *elf_name, char *section_name, int value, enum SectionLabel label) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    /* rwx -> xrw*/
+    int section_flags = ((value & 1) << 2) | ((value & 2) >> 1) | ((value & 4) >> 1);
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Phdr *phdr;
+        Elf32_Shdr shstrtab;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                switch (label)
+                {
+                case FLAGS:
+                    shdr[i].sh_flags = section_flags;
+                    for (int j = 0; j < ehdr->e_phnum; j++) {
+                        if (shdr[i].sh_addr >= phdr[j].p_vaddr && shdr[i].sh_addr + shdr[i].sh_size <= phdr[j].p_vaddr + phdr[j].p_memsz && shdr[i].sh_type != SHT_NULL) {
+                            phdr[j].p_flags = value;
+                            break;
+                        }
+                    }
+                    break;
+                
+                default:
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Phdr *phdr;
+        Elf64_Shdr shstrtab;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        phdr = (Elf64_Phdr *)&elf_map[ehdr->e_phoff];
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                switch (label)
+                {
+                case FLAGS:
+                    shdr[i].sh_flags = section_flags;
+                    for (int j = 0; j < ehdr->e_phnum; j++) {
+                        if (shdr[i].sh_addr >= phdr[j].p_vaddr && shdr[i].sh_addr + shdr[i].sh_size <= phdr[j].p_vaddr + phdr[j].p_memsz && shdr[i].sh_type != SHT_NULL) {
+                            phdr[j].p_flags = value;
+                            break;
+                        }
+                    }
+                    break;
+                
+                default:
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+};
+
+/**
+ * @brief Set the section flags
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @param value permission
+ */
+void set_section_flags(char *elf_name, char *section_name, int value) {
+    set_section_info(elf_name, section_name, value, FLAGS);
 }

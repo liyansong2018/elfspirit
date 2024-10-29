@@ -176,3 +176,12 @@ int get_section_offset(char *elf_name, char *section_name);
  * @return section 
  */
 int get_section_size(char *elf_name, char *section_name);
+
+/**
+ * @brief Set the section flags
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @param value permission
+ */
+void set_section_flags(char *elf_name, char *section_name, int value);
