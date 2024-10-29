@@ -31,8 +31,8 @@
 #include "common.h"
 #include "parse.h"
 
-#define PRINT_HEADER_EXP(key, value, explain) printf ("     %-20s %10hu -> %s\n", key, value, explain)
-#define PRINT_HEADER(key, value) printf ("     %-20s %10hu\n", key, value)
+#define PRINT_HEADER_EXP(key, value, explain) printf ("     %-20s %10p (%s)\n", key, value, explain)
+#define PRINT_HEADER(key, value) printf ("     %-20s %10p\n", key, value)
 #define PRINT_SECTION(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
     printf("     [%2d] %-15s %-15s %8x %6x %6x %2x %4s %3u %3u %3u\n", \
     Nr, name, type, addr, off, size, es, flg, lk, inf, al)
@@ -206,7 +206,7 @@ int parse(char *elf, parser_opt_t *po) {
  */
 static void display_header32(handle_t32 *h) {
     char *tmp;
-    INFO("ELF Header\n");        
+    INFO("ELF32 Header\n");        
     switch (h->ehdr->e_type) {
         case ET_NONE:
             tmp = "An unknown type";
@@ -331,21 +331,21 @@ static void display_header32(handle_t32 *h) {
             break;
     }
     PRINT_HEADER_EXP("e_version:", h->ehdr->e_version, tmp);
-    PRINT_HEADER("e_entry:", h->ehdr->e_entry);
-    PRINT_HEADER("e_phoff:", h->ehdr->e_phoff);
-    PRINT_HEADER("e_shoff:", h->ehdr->e_shoff);
+    PRINT_HEADER_EXP("e_entry:", h->ehdr->e_entry, "Entry point address");
+    PRINT_HEADER_EXP("e_phoff:", h->ehdr->e_phoff, "Start of program headers");
+    PRINT_HEADER_EXP("e_shoff:", h->ehdr->e_shoff, "Start of section headers");
     PRINT_HEADER("e_flags:", h->ehdr->e_flags);
-    PRINT_HEADER("e_ehsize:", h->ehdr->e_ehsize);
-    PRINT_HEADER("e_phentsize:", h->ehdr->e_phentsize);
-    PRINT_HEADER("e_phnum:", h->ehdr->e_phnum);
-    PRINT_HEADER("e_shentsize:", h->ehdr->e_shentsize);
-    PRINT_HEADER("e_shnum:", h->ehdr->e_shnum);
-    PRINT_HEADER("e_shstrndx:", h->ehdr->e_shstrndx);
+    PRINT_HEADER_EXP("e_ehsize:", h->ehdr->e_ehsize, "Size of this header");
+    PRINT_HEADER_EXP("e_phentsize:", h->ehdr->e_phentsize, "Size of program headers");
+    PRINT_HEADER_EXP("e_phnum:", h->ehdr->e_phnum, "Number of program headers");
+    PRINT_HEADER_EXP("e_shentsize:", h->ehdr->e_shentsize, "Size of section headers");
+    PRINT_HEADER_EXP("e_shnum:", h->ehdr->e_shnum, "Number of section headers");
+    PRINT_HEADER_EXP("e_shstrndx:", h->ehdr->e_shstrndx, "Section header string table index");
 }
 
 static void display_header64(handle_t64 *h) {
     char *tmp;
-    INFO("ELF Header\n");        
+    INFO("ELF64 Header\n");        
     switch (h->ehdr->e_type) {
         case ET_NONE:
             tmp = "An unknown type";
@@ -470,16 +470,16 @@ static void display_header64(handle_t64 *h) {
             break;
     }
     PRINT_HEADER_EXP("e_version:", h->ehdr->e_version, tmp);
-    PRINT_HEADER("e_entry:", h->ehdr->e_entry);
-    PRINT_HEADER("e_phoff:", h->ehdr->e_phoff);
-    PRINT_HEADER("e_shoff:", h->ehdr->e_shoff);
+    PRINT_HEADER_EXP("e_entry:", h->ehdr->e_entry, "Entry point address");
+    PRINT_HEADER_EXP("e_phoff:", h->ehdr->e_phoff, "Start of program headers");
+    PRINT_HEADER_EXP("e_shoff:", h->ehdr->e_shoff, "Start of section headers");
     PRINT_HEADER("e_flags:", h->ehdr->e_flags);
-    PRINT_HEADER("e_ehsize:", h->ehdr->e_ehsize);
-    PRINT_HEADER("e_phentsize:", h->ehdr->e_phentsize);
-    PRINT_HEADER("e_phnum:", h->ehdr->e_phnum);
-    PRINT_HEADER("e_shentsize:", h->ehdr->e_shentsize);
-    PRINT_HEADER("e_shnum:", h->ehdr->e_shnum);
-    PRINT_HEADER("e_shstrndx:", h->ehdr->e_shstrndx);
+    PRINT_HEADER_EXP("e_ehsize:", h->ehdr->e_ehsize, "Size of this header");
+    PRINT_HEADER_EXP("e_phentsize:", h->ehdr->e_phentsize, "Size of program headers");
+    PRINT_HEADER_EXP("e_phnum:", h->ehdr->e_phnum, "Number of program headers");
+    PRINT_HEADER_EXP("e_shentsize:", h->ehdr->e_shentsize, "Size of section headers");
+    PRINT_HEADER_EXP("e_shnum:", h->ehdr->e_shnum, "Number of section headers");
+    PRINT_HEADER_EXP("e_shstrndx:", h->ehdr->e_shstrndx, "Section header string table index");
 }
 
 /**

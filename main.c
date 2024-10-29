@@ -120,7 +120,7 @@ static const char *help =
     "  parse            Parse ELF file statically like readelf\n"
     "  addelfinfo       Add ELF info to firmware for IDA\n"
     "  joinelf          Connect bin in firmware for IDA\n"
-    "  extract          Extract binary fragments from the target file, just like the dd command\n"
+    "  extract          Extract binary fragments from the target file, like `dd` command\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
     "  -z, --section-size=<section size>         Set section size\n"
@@ -362,7 +362,6 @@ static void readcmdline(int argc, char *argv[]) {
             size = get_section_size(elf_name, section_name);
             extract_fragment(elf_name, off, size);
         } else if (size != 0) {
-            printf("%p\n", off);
             extract_fragment(elf_name, off, size);
         }
     }
