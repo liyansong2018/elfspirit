@@ -23,3 +23,5 @@
 */
 
 void set_segment_flags(char *elf_name, int index, int value);
+
+void set_dynsym_value(char *elf_name, int index, int value);

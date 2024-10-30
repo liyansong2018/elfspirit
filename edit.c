@@ -43,6 +43,10 @@ enum SegmentLabel {
     P_ALIGN,	    /* Segment alignment */
 };
 
+enum DynsymLabel {
+    D_VAL,          /* Integer value */
+};
+
 void set_segment_info(char *elf_name, int index, int value, enum SegmentLabel label) {
     MODE = get_elf_class(elf_name);
     int fd;
@@ -111,4 +115,131 @@ void set_segment_info(char *elf_name, int index, int value, enum SegmentLabel la
 
 void set_segment_flags(char *elf_name, int index, int value) {
     set_segment_info(elf_name, index, value, P_FLAGS);
+}
+
+/**
+ * @brief Set the dynsym info object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param label readelf .dynsym column
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        Elf32_Sym *sym;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(".dynsym", tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else
+                    return -1;
+                if (index >= size)
+                    return -1;
+                /* security check end*/
+                sym = (Elf32_Sym *)(elf_map + shdr[i].sh_offset);
+                switch (label)
+                {
+                case D_VAL:
+                    printf("%x->%x\n", sym[index].st_value, value);
+                    sym[index].st_value = value;
+                    break;
+                default:
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        Elf64_Sym *sym;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(".dynsym", tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else
+                    return -1;
+                if (index >= size)
+                    return -1;
+                /* security check end*/
+                sym = (Elf64_Sym *)(elf_map + shdr[i].sh_offset);
+                switch (label)
+                {
+                case D_VAL:
+                    printf("%x->%x\n", sym[index].st_value, value);
+                    sym[index].st_value = value;
+                    break;
+                default:
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+};
+
+/**
+ * @brief Set the dynsym value object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_value(char *elf_name, int index, int value) {
+    int ret = set_dynsym_info(elf_name, index, value, D_VAL);
+    return ret;
 }

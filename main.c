@@ -307,7 +307,7 @@ static void readcmdline(int argc, char *argv[]) {
                 break;
 
             case 'i':
-                if (optarg[0] == '0' && optarg[1] == 'x') {
+                if (strlen(optarg) > 1 && optarg[0] == '0' && optarg[1] == 'x') {
                     number = hex2int(optarg);
                 }
                 else{
@@ -403,6 +403,11 @@ static void readcmdline(int argc, char *argv[]) {
     /* modify segment information */
     if (!strcmp(function, "mod_seg_flags")) {
         set_segment_flags(elf_name, number, value);
+    }
+
+    /*m modify .dynsym information */
+    if (!strcmp(function, "mod_dyn_value")) {
+        set_dynsym_value(elf_name, number, value);
     }
 
 #ifdef DEBUG
