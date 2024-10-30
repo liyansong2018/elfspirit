@@ -56,6 +56,7 @@ uint64_t base_addr;
 uint32_t size;
 uint32_t off;
 uint32_t class;
+uint32_t value;
 parser_opt_t po;
 
 /**
@@ -100,6 +101,7 @@ static const struct option longopts[] = {
     {"configure-name", required_argument, NULL, 'c'},
     {"architcture", required_argument, NULL, 'a'},
     {"class", required_argument, NULL, 'm'},
+    {"value", required_argument, NULL, 'm'},
     {"endian", required_argument, NULL, 'e'},
     {"base", required_argument, NULL, 'b'},
     {"lib-version", required_argument, NULL, 'v'},
@@ -129,7 +131,7 @@ static const char *help =
     "  -c, --configure-name=<file name>          File containing configure(e.g. json, etc.)\n"
     "  -a, --architecture=<ELF architecture>     ELF architecture\n"
     "  -m, --class=<ELF machine>                 ELF class(e.g. 32bit, 64bit, etc.)\n"
-    "      --class=<math value>                  Reserve value(e.g. 7=111=rwx)\n"
+    "      --value=<math value>                  Reserve value(e.g. 7=111=rwx)\n"
     "  -e, --endian=<ELF endian>                 ELF endian(e.g. little, big, etc.)\n"
     "  -b, --base=<ELF base address>             ELF base address\n"
     "  -o, --offset=<injection offset>           Offset of injection point\n"
@@ -175,7 +177,7 @@ static const char *help_chinese =
     "  -c, --configure-name=<file name>          配置文件(如json)\n"
     "  -a, --architecture=<ELF architecture>     ELF文件的架构(预留选项，非必须)\n"
     "  -m, --class=<ELF machine>                 设置ELF字长(32bit, 64bit)\n"
-    "      --class=<math value>                  预留的参数，可以用于传递数值(e.g. 7=111=rwx)\n"
+    "      --value=<math value>                  预留的参数，可以用于传递数值(e.g. 7=111=rwx)\n"
     "  -e, --endian=<ELF endian>                 设置ELF大小端(little, big)\n"
     "  -b, --base=<ELF base address>             设置ELF入口地址\n"
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
@@ -245,7 +247,13 @@ static void readcmdline(int argc, char *argv[]) {
 
             // set class
             case 'm':
-                class = atoi(optarg);
+                if (optarg[0] == '0' && optarg[1] == 'x') {
+                    class = hex2int(optarg);
+                }
+                else{
+                    class = atoi(optarg);
+                }
+                value = class;
                 break;
             
             // set endian
@@ -374,7 +382,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* modify section information */
     if (!strcmp(function, "mod_sec_flags")) {
-        set_section_flags(elf_name, section_name, class);
+        set_section_flags(elf_name, section_name, value);
     }
 
 #ifdef DEBUG
