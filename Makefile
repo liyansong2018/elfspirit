@@ -2,14 +2,14 @@ TARGET=elfspirit
 OUT=/usr/local/bin/
 CFLAGS = -w -c
 
-ifeq ($(debug), true)
+ifeq ($(DEBUG), true)
 	CXXFLAGS=-g -fsanitize=address
 else
 	CXXFLAGS=-O3
 endif
 
-$(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o
-	$(CC) $(CXXFLAGS) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o -o $(TARGET)
+$(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o
+	$(CC) $(CXXFLAGS) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o -o $(TARGET)
 %.o: %.c
 	$(CC) $(CFLAGS) $(CXXFLAGS) $< -o $@
 

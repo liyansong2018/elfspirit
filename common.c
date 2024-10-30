@@ -37,16 +37,16 @@ int MODE;
 int ARCH;
 
 enum SectionLabel {
-    NAME,		/* Section name (string tbl index) */
-    TYPE,       /* Section type */
-    FLAGS,		/* Section flags */
-    ADDR,		/* Section virtual addr at execution */
-    OFF,		/* Section file offset */
-    SIZE,		/* Section size in bytes */
-    LINK,		/* Link to another section */
-    INFO,		/* Additional section information */
-    ALIGN,		/* Section alignment */
-    ENTSIZE,	/* Entry size if section holds table */
+    NAME,	        /* Section name (string tbl index) */
+    TYPE,           /* Section type */
+    FLAGS,		    /* Section flags */
+    ADDR,		    /* Section virtual addr at execution */
+    OFF,		    /* Section file offset */
+    SIZE,		    /* Section size in bytes */
+    LINK,		    /* Link to another section */
+    INFO,		    /* Additional section information */
+    ALIGN,		    /* Section alignment */
+    ENTSIZE,	    /* Entry size if section holds table */
 };
 
 /**

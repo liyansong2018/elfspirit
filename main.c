@@ -39,6 +39,7 @@
 #include "common.h"
 #include "addelfinfo.h"
 #include "joinelf.h"
+#include "edit.h"
 
 #define VERSION "1.3"
 #define CONTENT_LENGTH 1024 * 1024
@@ -57,6 +58,7 @@ uint32_t size;
 uint32_t off;
 uint32_t class;
 uint32_t value;
+uint32_t number;
 parser_opt_t po;
 
 /**
@@ -92,7 +94,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:h::AHSPL";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:h:i::AHSPL";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -106,6 +108,7 @@ static const struct option longopts[] = {
     {"base", required_argument, NULL, 'b'},
     {"lib-version", required_argument, NULL, 'v'},
     {"help", optional_argument, NULL, 'h'},
+    {"index", required_argument, NULL, 'i'},
     {0, 0, 0, 0}
 };
 
@@ -135,6 +138,7 @@ static const char *help =
     "  -e, --endian=<ELF endian>                 ELF endian(e.g. little, big, etc.)\n"
     "  -b, --base=<ELF base address>             ELF base address\n"
     "  -o, --offset=<injection offset>           Offset of injection point\n"
+    "  -i, --number=<object index>               Index of the object to be read or written\n"
     "  -v, --version-libc=<libc version>         Libc.so or ld.so version\n"
     "  -h, --help[={none|English|Chinese}]       Display this output\n"
     "  -A, (no argument)                         Display all ELF file infomation\n"
@@ -156,7 +160,8 @@ static const char *help =
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
-    "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n";
+    "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n"
+    "  elfspirit mod_seg_flags [-i]<number of segment> [-m]<value> ELF\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -181,6 +186,7 @@ static const char *help_chinese =
     "  -e, --endian=<ELF endian>                 设置ELF大小端(little, big)\n"
     "  -b, --base=<ELF base address>             设置ELF入口地址\n"
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
+    "  -i, --number=<object index>               待读出或者写入的对象的下标\n"
     "  -v, --version-libc=<libc version>         libc或者ld的版本\n"
     "  -h, --help[={none|English|Chinese}]       帮助\n"
     "  -A, 不需要参数                    显示ELF解析器解析的所有信息\n"
@@ -200,7 +206,8 @@ static const char *help_chinese =
                             "ELF\n"
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n"
-    "  elfspirit mod_sec_flags [-n]<节的名字> [-m]<权限值> ELF\n";
+    "  elfspirit mod_sec_flags [-n]<节的名字> [-m]<权限值> ELF\n"
+    "  elfspirit mod_seg_flags [-i]<第几个段> [-m]<权限值> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -288,7 +295,6 @@ static void readcmdline(int argc, char *argv[]) {
                 break;
             
             case 'h':
-                printf("%s\n", optarg);
                 if (optarg != NULL && !strcmp(optarg, "Chinese")){       
                     fputs(help_chinese, stdout);
                     printf("当前版本: %s\n", ver_elfspirt);
@@ -298,6 +304,15 @@ static void readcmdline(int argc, char *argv[]) {
                     printf("Current version: %s\n", ver_elfspirt);                
                 }                    
                            
+                break;
+
+            case 'i':
+                if (optarg[0] == '0' && optarg[1] == 'x') {
+                    number = hex2int(optarg);
+                }
+                else{
+                    number = atoi(optarg);
+                }                
                 break;
 
             /* ELF parser's options */
@@ -383,6 +398,11 @@ static void readcmdline(int argc, char *argv[]) {
     /* modify section information */
     if (!strcmp(function, "mod_sec_flags")) {
         set_section_flags(elf_name, section_name, value);
+    }
+
+    /* modify segment information */
+    if (!strcmp(function, "mod_seg_flags")) {
+        set_segment_flags(elf_name, number, value);
     }
 
 #ifdef DEBUG
