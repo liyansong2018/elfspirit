@@ -142,6 +142,9 @@ f7faa000-f7fab000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testc
 f7fab000-f7fac000 rw-p 00003000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
 ```
 
+## Upcoming updates
+
+🚀 Modify any field of the ELF file, just like the 010 editor.
 
 ## Limitations
 

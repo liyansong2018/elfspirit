@@ -3,6 +3,7 @@
         - Add the ability to modify section information
         - Add the ability to extract binary fragments from the target file
         - Add more description for ELF header
+        - Fix several bugs
 
 [2022-09-27]
     elfspirit 1.2.2
