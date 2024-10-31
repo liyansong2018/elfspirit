@@ -22,6 +22,23 @@
  SOFTWARE.
 */
 
-void set_segment_flags(char *elf_name, int index, int value);
+/**
+ * @brief Set the segment type
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_type(char *elf_name, int index, int value);
+int set_segment_flags(char *elf_name, int index, int value);
+int set_segment_offset(char *elf_name, int index, int value);
+int set_segment_vaddr(char *elf_name, int index, int value);
+int set_segment_paddr(char *elf_name, int index, int value);
+int set_segment_filesz(char *elf_name, int index, int value);
+int set_segment_memsz(char *elf_name, int index, int value);
+int set_segment_align(char *elf_name, int index, int value);
 
 void set_dynsym_value(char *elf_name, int index, int value);
+
+int edit(char *elf, parser_opt_t *po, int row, int column, int value);

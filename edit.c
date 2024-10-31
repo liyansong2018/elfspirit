@@ -31,6 +31,7 @@
 #include <sys/mman.h>
 #include <elf.h>
 #include "common.h"
+#include "parse.h"
 
 enum SegmentLabel {
     P_TYPE,		    /* Segment type */
@@ -47,7 +48,16 @@ enum DynsymLabel {
     D_VAL,          /* Integer value */
 };
 
-void set_segment_info(char *elf_name, int index, int value, enum SegmentLabel label) {
+/**
+ * @brief Set the segment information
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .segment row
+ * @param value value to be edited
+ * @param label readelf .segment column
+ * @return error code {-1:error,0:sucess}
+ */
+static int set_segment_info(char *elf_name, int index, int value, enum SegmentLabel label) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
@@ -80,12 +90,36 @@ void set_segment_info(char *elf_name, int index, int value, enum SegmentLabel la
 
         switch (label)
         {
-        case P_FLAGS:
-            phdr[index].p_flags = value;
-            break;
-        
-        default:
-            break;
+            case P_TYPE:
+                phdr[index].p_type = value;
+                break;
+            
+            case P_FLAGS:
+                phdr[index].p_flags = value;
+                break;
+
+            case P_OFFSET:
+                phdr[index].p_offset = value;
+                break;
+
+            case P_VADDR:
+                phdr[index].p_vaddr = value;
+                break;
+
+            case P_FILESZ:
+                phdr[index].p_filesz = value;
+                break;
+
+            case P_MEMSZ:
+                phdr[index].p_memsz = value;
+                break;
+
+            case P_ALIGN:
+                phdr[index].p_align = value;
+                break;
+            
+            default:
+                break;
         }
     }
 
@@ -99,12 +133,36 @@ void set_segment_info(char *elf_name, int index, int value, enum SegmentLabel la
 
         switch (label)
         {
-        case P_FLAGS:
-            phdr[index].p_flags = value;
-            break;
+            case P_TYPE:
+                phdr[index].p_type = value;
+                break;
+            
+            case P_FLAGS:
+                phdr[index].p_flags = value;
+                break;
+
+            case P_OFFSET:
+                phdr[index].p_offset = value;
+                break;
+
+            case P_VADDR:
+                phdr[index].p_vaddr = value;
+                break;
+
+            case P_FILESZ:
+                phdr[index].p_filesz = value;
+                break;
+
+            case P_MEMSZ:
+                phdr[index].p_memsz = value;
+                break;
+
+            case P_ALIGN:
+                phdr[index].p_align = value;
+                break;
         
-        default:
-            break;
+            default:
+                break;
         }
     }
 
@@ -113,12 +171,104 @@ void set_segment_info(char *elf_name, int index, int value, enum SegmentLabel la
     return 0;
 };
 
-void set_segment_flags(char *elf_name, int index, int value) {
-    set_segment_info(elf_name, index, value, P_FLAGS);
+/**
+ * @brief Set the segment type
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_type(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_TYPE);
 }
 
 /**
- * @brief Set the dynsym info object
+ * @brief Set the segment flags
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_flags(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_FLAGS);
+}
+
+/**
+ * @brief Set the segment offset
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_offset(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_OFFSET);
+}
+
+/**
+ * @brief Set the segment vaddr
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_vaddr(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_VADDR);
+}
+
+/**
+ * @brief Set the segment paddr
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_paddr(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_PADDR);
+}
+
+/**
+ * @brief Set the segment filesz
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_filesz(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_FILESZ);
+}
+
+/**
+ * @brief Set the segment memsz
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_memsz(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_MEMSZ);
+}
+
+/**
+ * @brief Set the segment align
+ * 
+ * @param elf_name elf file name
+ * @param index readelf segment row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_segment_align(char *elf_name, int index, int value) {
+    return set_segment_info(elf_name, index, value, P_ALIGN);
+}
+
+/**
+ * @brief Set the dynsym information
  * 
  * @param elf_name elf file name
  * @param index readelf .dynsym row
@@ -240,6 +390,77 @@ int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_value(char *elf_name, int index, int value) {
-    int ret = set_dynsym_info(elf_name, index, value, D_VAL);
-    return ret;
+    return set_dynsym_info(elf_name, index, value, D_VAL);
+}
+
+/**
+ * @brief entry function
+ * 
+ * @param elf elf file name
+ * @param po selection
+ * @return error code {-1:error,0:sucess} 
+ */
+int edit(char *elf, parser_opt_t *po, int row, int column, int value) {
+    int error_code = 0;
+
+    /* edit ELF header information */
+    if (!get_option(po, HEADERS) || !get_option(po, ALL)) {
+        // TODO:
+        ;
+    }
+
+    /* edit section informtion */
+    if (!get_option(po, SECTIONS) || !get_option(po, ALL)) {
+        // TODO:
+        ;
+    }
+    
+    /* edit segment information */
+    if (!get_option(po, SEGMENTS) || !get_option(po, ALL)) {
+        switch (column)
+        {
+            case 0:
+                error_code = set_segment_type(elf, row, value);
+                break;
+
+            case 1:
+                error_code = set_segment_offset(elf, row, value);
+                break;
+
+            case 2:
+                error_code = set_segment_vaddr(elf, row, value);
+                break;
+
+            case 3:
+                error_code = set_segment_paddr(elf, row, value);
+                break;
+
+            case 4:
+                error_code = set_segment_filesz(elf, row, value);
+                break;
+
+            case 5:
+                error_code = set_segment_memsz(elf, row, value);
+                break;
+
+            case 6:
+                error_code = set_segment_flags(elf, row, value);
+                break;
+
+            case 7:
+                error_code = set_segment_align(elf, row, value);
+                break;
+            
+            default:
+                break;
+        }
+    }
+
+    /* edit .dynsym informtion */
+    if (!get_option(po, DYNSYM) || !get_option(po, ALL)) {
+        // TODO:
+        ;
+    }
+
+    return error_code;
 }

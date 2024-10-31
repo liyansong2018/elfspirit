@@ -58,7 +58,8 @@ uint32_t size;
 uint32_t off;
 uint32_t class;
 uint32_t value;
-uint32_t number;
+uint32_t row;
+uint32_t column;
 parser_opt_t po;
 
 /**
@@ -94,7 +95,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:h:i::AHSPL";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:h::AHSPL";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -106,9 +107,12 @@ static const struct option longopts[] = {
     {"value", required_argument, NULL, 'm'},
     {"endian", required_argument, NULL, 'e'},
     {"base", required_argument, NULL, 'b'},
+    {"offset", required_argument, NULL, 'o'},
     {"lib-version", required_argument, NULL, 'v'},
     {"help", optional_argument, NULL, 'h'},
     {"index", required_argument, NULL, 'i'},
+    {"row", required_argument, NULL, 'i'},
+    {"column", required_argument, NULL, 'j'},
     {0, 0, 0, 0}
 };
 
@@ -138,7 +142,7 @@ static const char *help =
     "  -e, --endian=<ELF endian>                 ELF endian(e.g. little, big, etc.)\n"
     "  -b, --base=<ELF base address>             ELF base address\n"
     "  -o, --offset=<injection offset>           Offset of injection point\n"
-    "  -i, --number=<object index>               Index of the object to be read or written\n"
+    "  -i, --row=<object index>                  Index of the object to be read or written\n"
     "  -v, --version-libc=<libc version>         Libc.so or ld.so version\n"
     "  -h, --help[={none|English|Chinese}]       Display this output\n"
     "  -A, (no argument)                         Display all ELF file infomation\n"
@@ -161,7 +165,7 @@ static const char *help =
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
     "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n"
-    "  elfspirit mod_seg_flags [-i]<number of segment> [-m]<value> ELF\n";
+    "  elfspirit mod_seg_flags [-i]<row of segment> [-m]<value> ELF\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -186,7 +190,7 @@ static const char *help_chinese =
     "  -e, --endian=<ELF endian>                 设置ELF大小端(little, big)\n"
     "  -b, --base=<ELF base address>             设置ELF入口地址\n"
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
-    "  -i, --number=<object index>               待读出或者写入的对象的下标\n"
+    "  -i, --row=<object index>                  待读出或者写入的对象的下标\n"
     "  -v, --version-libc=<libc version>         libc或者ld的版本\n"
     "  -h, --help[={none|English|Chinese}]       帮助\n"
     "  -A, 不需要参数                    显示ELF解析器解析的所有信息\n"
@@ -216,7 +220,7 @@ static void readcmdline(int argc, char *argv[]) {
         printf("Current version: %s\n", ver_elfspirt);
     }
     while((opt = getopt_long(argc, argv, shortopts, longopts, NULL)) != EOF) {
-        /* The number of options cannot be greater than the array capacity */
+        /* The row of options cannot be greater than the array capacity */
         if (po.index >= sizeof(po.options)) {
             break;
         }
@@ -308,10 +312,19 @@ static void readcmdline(int argc, char *argv[]) {
 
             case 'i':
                 if (strlen(optarg) > 1 && optarg[0] == '0' && optarg[1] == 'x') {
-                    number = hex2int(optarg);
+                    row = hex2int(optarg);
                 }
                 else{
-                    number = atoi(optarg);
+                    row = atoi(optarg);
+                }                
+                break;
+
+            case 'j':
+                if (strlen(optarg) > 1 && optarg[0] == '0' && optarg[1] == 'x') {
+                    column = hex2int(optarg);
+                }
+                else{
+                    column = atoi(optarg);
                 }                
                 break;
 
@@ -329,6 +342,10 @@ static void readcmdline(int argc, char *argv[]) {
 
             case 'P':
                 po.options[po.index++] = SEGMENTS;
+                break;
+
+            case 'D':
+                po.options[po.index++] = DYNSYM;
                 break;
 
             case 'L':
@@ -402,12 +419,17 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* modify segment information */
     if (!strcmp(function, "mod_seg_flags")) {
-        set_segment_flags(elf_name, number, value);
+        set_segment_flags(elf_name, row, value);
     }
 
-    /*m modify .dynsym information */
+    /* modify .dynsym information */
     if (!strcmp(function, "mod_dyn_value")) {
-        set_dynsym_value(elf_name, number, value);
+        set_dynsym_value(elf_name, row, value);
+    }
+
+    /* edit elf */
+    if (!strcmp(function, "edit")) {
+        edit(elf_name, &po, row, column, value);
     }
 
 #ifdef DEBUG

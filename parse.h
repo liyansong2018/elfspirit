@@ -30,6 +30,7 @@ typedef enum PARSE_OPT {
     HEADERS,
     SECTIONS,
     SEGMENTS,
+    DYNSYM,
     LINK,
     END
 } PARSE_OPT_T;
@@ -41,3 +42,11 @@ typedef struct parser_opt {
 #endif
 
 int parse(char *elf, parser_opt_t *po);
+
+/**
+ * @description: Judge whether the option is true
+ * @param {parser_opt_t} po
+ * @param {PARSE_OPT_T} option
+ * @return {*}
+ */
+int get_option(parser_opt_t *po, PARSE_OPT_T option);
