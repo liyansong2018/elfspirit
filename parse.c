@@ -33,18 +33,31 @@
 
 #define PRINT_HEADER_EXP(key, value, explain) printf ("     %-20s %10p (%s)\n", key, value, explain)
 #define PRINT_HEADER(key, value) printf ("     %-20s %10p\n", key, value)
+/* print section header table */
 #define PRINT_SECTION(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
     printf("     [%2d] %-15s %-15s %8x %6x %6x %2x %4s %3u %3u %3u\n", \
     Nr, name, type, addr, off, size, es, flg, lk, inf, al)
 #define PRINT_SECTION_TITLE(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
     printf("     [%2s] %-15s %-15s %8s %6s %6s %2s %4s %3s %3s %3s\n", \
     Nr, name, type, addr, off, size, es, flg, lk, inf, al)
+
+/* print program header table*/
 #define PRINT_PROGRAM(Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align) \
     printf("     [%2d] %-15s 0x%-8x 0x%-8x 0x%-8x 0x%-6x 0x%-6x %-4s 0x%-5u\n", \
     Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align)
 #define PRINT_PROGRAM_TITLE(Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align) \
     printf("     [%2s] %-15s %-10s %-10s %-10s %-8s %-8s %-4s %-7s\n", \
     Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align)
+
+/* print dynamic symbol table*/
+#define PRINT_DYNSYM(Nr, value, size, type, bind, vis, ndx, name) \
+    printf("     [%2d] %8x %4d %-8s %-8s %-8s %4d %-20s\n", \
+    Nr, value, size, type, bind, vis, ndx, name)
+#define PRINT_DYNSYM_TITLE(Nr, value, size, type, bind, vis, ndx, name) \
+    printf("     [%2s] %8s %4s %-8s %-8s %-8s %4s %-20s\n", \
+    Nr, value, size, type, bind, vis, ndx, name)
+
+/* print dynamic table*/
 #define PRINT_DYN(tag, type, value) \
     printf("     0x%08x   %-15s   %-30s\n", \
     tag, type, value);
@@ -108,6 +121,8 @@ static void display_section32(handle_t32 *);
 static void display_section64(handle_t64 *);
 static void display_segment32(handle_t32 *);
 static void display_segment64(handle_t64 *);
+static void display_dynsym32(handle_t32 *, char *section_name, char *str_tab);
+static void display_dynsym64(handle_t64 *, char *section_name, char *str_tab);
 static void display_dyninfo32(handle_t32 *);
 static void display_dyninfo64(handle_t64 *);
 
@@ -164,6 +179,12 @@ int parse(char *elf, parser_opt_t *po) {
         if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
             display_segment32(&h);
 
+        /* .dynsym and .symtab Information */
+        if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
+            display_dynsym32(&h, ".dynsym", ".dynstr");
+            display_dynsym32(&h, ".symtab", ".strtab");
+        }
+
         /* Dynamic Infomation */
         if (!get_option(po, LINK) || !get_option(po, ALL))
             display_dyninfo32(&h);           
@@ -190,6 +211,12 @@ int parse(char *elf, parser_opt_t *po) {
         /* Segmentation Information */
         if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
             display_segment64(&h);
+
+        /* .dynsym and .symtab Information */
+        if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
+            display_dynsym64(&h, ".dynsym", ".dynstr");
+            display_dynsym64(&h, ".symtab", ".strtab");
+        }
 
         /* Dynamic Infomation */
         if (!get_option(po, LINK) || !get_option(po, ALL))
@@ -824,6 +851,344 @@ static void display_segment64(handle_t64 *h) {
         }
         printf("\n");
     }    
+}
+
+/**
+ * @description: .dynsym information
+ * @param {handle_t32} h
+ * @return {void}
+ */
+static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab) {
+    char *name = NULL;
+    char *type;
+    char *bind;
+    char *other;
+    int dynstr_index;
+    int dynsym_index;
+    size_t count;
+    Elf32_Sym *sym;
+    INFO("%s table\n", section_name);
+    PRINT_DYNSYM_TITLE("Nr", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
+
+        if (!strcmp(name, str_tab)) {
+            dynstr_index = i;
+        }
+
+        if (!strcmp(name, section_name)) {
+            dynsym_index = i;
+        }
+    }
+    
+    name = h->mem + h->shstrtab->sh_offset + h->shdr[dynsym_index].sh_name;
+    /* security check start*/
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        exit(-1);
+    }
+
+    if (!strcmp(section_name, name)) {
+        sym = (Elf32_Sym *)&h->mem[h->shdr[dynsym_index].sh_offset];
+        count = h->shdr[dynsym_index].sh_size / sizeof(Elf32_Sym);
+        for(int i = 0; i < count; i++) {
+            switch (ELF32_ST_TYPE(sym[i].st_info))
+            {
+                case STT_NOTYPE:
+                    type = "NOTYPE";
+                    break;
+                
+                case STT_OBJECT:
+                    type = "OBJECT";
+                    break;
+                
+                case STT_FUNC:
+                    type = "FUNC";
+                    break; 
+                
+                case STT_SECTION:
+                    type = "SECTION";
+                    break;
+                
+                case STT_FILE:
+                    type = "FILE";
+                    break;
+
+                case STT_COMMON:
+                    type = "COMMON";
+                    break;
+
+                case STT_TLS:
+                    type = "TLS";
+                    break;
+
+                case STT_NUM:
+                    type = "NUM";
+                    break;
+                
+                case STT_LOOS:
+                    type = "LOOS|GNU_IFUNC";
+                    break;
+
+                case STT_HIOS:
+                    type = "HIOS";
+                    break;
+
+                case STT_LOPROC:
+                    type = "LOPROC";
+                    break;
+                
+                case STT_HIPROC:
+                    type = "HIPROC";
+                    break;                                                      
+                
+                default:
+                    type = UNKOWN;
+                    break;
+            }
+
+            switch (ELF32_ST_BIND(sym[i].st_info))
+            {
+                case STB_LOCAL:
+                    bind = "LOCAL";
+                    break;
+                
+                case STB_GLOBAL:
+                    bind = "GLOBAL";
+                    break;
+                
+                case STB_WEAK:
+                    bind = "WEAK";
+                    break; 
+                
+                case STB_NUM:
+                    bind = "NUM";
+                    break;
+                
+                case STB_LOOS:
+                    bind = "LOOS|GNU_UNIQUE";
+                    break;
+
+                case STB_HIOS:
+                    bind = "HIOS";
+                    break;
+
+                case STB_LOPROC:
+                    bind = "LOPROC";
+                    break;
+
+                case STB_HIPROC:
+                    bind = "HIPROC";
+                    break;
+                                                    
+                default:
+                    bind = UNKOWN; 
+                    break;
+            }
+
+            switch (ELF32_ST_VISIBILITY(sym[i].st_other))
+            {
+                case STV_DEFAULT:
+                    other = "DEFAULT";
+                    break;
+
+                case STV_INTERNAL:
+                    other = "INTERNAL";
+                    break;
+                
+                case STV_HIDDEN:
+                    other = "HIDDEN";
+                    break;
+                
+                case STV_PROTECTED:
+                    other = "PROTECTED";
+                    break;
+
+                default:
+                    other = UNKOWN;
+                    break;
+            }
+            name = h->mem + h->shdr[dynstr_index].sh_offset + sym[i].st_name;
+            if (strlen(name) > 15) {
+                strcpy(&name[15 - 6], "[...]");
+            }
+            PRINT_DYNSYM(i, sym[i].st_value, sym[i].st_size, type, bind, \
+                other, sym[i].st_shndx, name);
+        }
+    }
+}
+
+/**
+ * @description: .dynsym information
+ * @param {handle_t64} h
+ * @return {void}
+ */
+static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab) {
+    char *name = NULL;
+    char *type;
+    char *bind;
+    char *other;
+    int dynstr_index;
+    int dynsym_index;
+    size_t count;
+    Elf64_Sym *sym;
+    INFO("%s table\n", section_name);
+    PRINT_DYNSYM_TITLE("Nr", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
+
+        if (!strcmp(name, str_tab)) {
+            dynstr_index = i;
+        }
+
+        if (!strcmp(name, section_name)) {
+            dynsym_index = i;
+        }
+    }
+    
+    name = h->mem + h->shstrtab->sh_offset + h->shdr[dynsym_index].sh_name;
+    /* security check start*/
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        exit(-1);
+    }
+
+    if (!strcmp(section_name, name)) {
+        sym = (Elf64_Sym *)&h->mem[h->shdr[dynsym_index].sh_offset];
+        count = h->shdr[dynsym_index].sh_size / sizeof(Elf64_Sym);
+        for(int i = 0; i < count; i++) {
+            switch (ELF64_ST_TYPE(sym[i].st_info))
+            {
+                case STT_NOTYPE:
+                    type = "NOTYPE";
+                    break;
+                
+                case STT_OBJECT:
+                    type = "OBJECT";
+                    break;
+                
+                case STT_FUNC:
+                    type = "FUNC";
+                    break; 
+                
+                case STT_SECTION:
+                    type = "SECTION";
+                    break;
+                
+                case STT_FILE:
+                    type = "FILE";
+                    break;
+
+                case STT_COMMON:
+                    type = "COMMON";
+                    break;
+
+                case STT_TLS:
+                    type = "TLS";
+                    break;
+
+                case STT_NUM:
+                    type = "NUM";
+                    break;
+                
+                case STT_LOOS:
+                    type = "LOOS|GNU_IFUNC";
+                    break;
+
+                case STT_HIOS:
+                    type = "HIOS";
+                    break;
+
+                case STT_LOPROC:
+                    type = "LOPROC";
+                    break;
+                
+                case STT_HIPROC:
+                    type = "HIPROC";
+                    break;                                                      
+                
+                default:
+                    type = UNKOWN;
+                    break;
+            }
+
+            switch (ELF64_ST_BIND(sym[i].st_info))
+            {
+                case STB_LOCAL:
+                    bind = "LOCAL";
+                    break;
+                
+                case STB_GLOBAL:
+                    bind = "GLOBAL";
+                    break;
+                
+                case STB_WEAK:
+                    bind = "WEAK";
+                    break; 
+                
+                case STB_NUM:
+                    bind = "NUM";
+                    break;
+                
+                case STB_LOOS:
+                    bind = "LOOS|GNU_UNIQUE";
+                    break;
+
+                case STB_HIOS:
+                    bind = "HIOS";
+                    break;
+
+                case STB_LOPROC:
+                    bind = "LOPROC";
+                    break;
+
+                case STB_HIPROC:
+                    bind = "HIPROC";
+                    break;
+                                                    
+                default:
+                    bind = UNKOWN; 
+                    break;
+            }
+
+            switch (ELF64_ST_VISIBILITY(sym[i].st_other))
+            {
+                case STV_DEFAULT:
+                    other = "DEFAULT";
+                    break;
+
+                case STV_INTERNAL:
+                    other = "INTERNAL";
+                    break;
+                
+                case STV_HIDDEN:
+                    other = "HIDDEN";
+                    break;
+                
+                case STV_PROTECTED:
+                    other = "PROTECTED";
+                    break;
+
+                default:
+                    other = UNKOWN;
+                    break;
+            }
+            name = h->mem + h->shdr[dynstr_index].sh_offset + sym[i].st_name;
+            if (strlen(name) > 15) {
+                strcpy(&name[15 - 6], "[...]");
+            }
+            PRINT_DYNSYM(i, sym[i].st_value, sym[i].st_size, type, bind, \
+                other, sym[i].st_shndx, name);
+        }
+    }
 }
 
 /**
