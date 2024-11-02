@@ -39,6 +39,21 @@ int set_segment_filesz(char *elf_name, int index, int value);
 int set_segment_memsz(char *elf_name, int index, int value);
 int set_segment_align(char *elf_name, int index, int value);
 
-void set_dynsym_value(char *elf_name, int index, int value);
+/**
+ * @brief Set the dynsym name object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_name(char *elf_name, int index, int value, char *section_name);
+int set_dynsym_value(char *elf_name, int index, int value, char *section_name);
+int set_dynsym_size(char *elf_name, int index, int value, char *section_name);
+int set_dynsym_type(char *elf_name, int index, int value, char *section_name);
+int set_dynsym_bind(char *elf_name, int index, int value, char *section_name);
+int set_dynsym_other(char *elf_name, int index, int value, char *section_name);
+int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name);
 
 int edit(char *elf, parser_opt_t *po, int row, int column, int value);

@@ -2,7 +2,7 @@ TARGET=elfspirit
 OUT=/usr/local/bin/
 CFLAGS = -w -c
 
-ifeq ($(DEBUG), true)
+ifeq ($(debug), true)
 	CXXFLAGS=-g -fsanitize=address
 else
 	CXXFLAGS=-O3

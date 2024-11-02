@@ -44,8 +44,15 @@ enum SegmentLabel {
     P_ALIGN,	    /* Segment alignment */
 };
 
-enum DynsymLabel {
-    D_VAL,          /* Integer value */
+enum SymbolLabel {
+    ST_NAME,        /* Symbol name (string tbl index) */
+    ST_VALUE,       /* Symbol value */
+    ST_SIZE,        /* Symbol size */
+    ST_INFO,        /* Symbol type and binding */
+    ST_TYPE,
+    ST_BIND,
+    ST_OTHER,       /* Symbol visibility */
+    ST_SHNDX,       /* Section index */
 };
 
 /**
@@ -268,18 +275,21 @@ int set_segment_align(char *elf_name, int index, int value) {
 }
 
 /**
- * @brief Set the dynsym information
+ * @brief Set the symbol information
  * 
  * @param elf_name elf file name
- * @param index readelf .dynsym row
+ * @param index readelf symbol row
  * @param value value to be edited
- * @param label readelf .dynsym column
+ * @param label readelf symbol column
+ * @param section_name .dynsym or .symtab
  * @return error code {-1:error,0:sucess}
  */
-int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label) {
+int set_symbol_info(char *elf_name, int index, int value, enum SymbolLabel label, char *section_name) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
+    int type;
+    int bind;
     uint8_t *elf_map;
     uint8_t *tmp_sec_name;
 
@@ -313,7 +323,7 @@ int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
             tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (!strcmp(".dynsym", tmp_sec_name)) {
+            if (!strcmp(section_name, tmp_sec_name)) {
                 int size = 0;
                 /* security check start*/
                 if (shdr[i].sh_entsize != 0)
@@ -326,12 +336,47 @@ int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label
                 sym = (Elf32_Sym *)(elf_map + shdr[i].sh_offset);
                 switch (label)
                 {
-                case D_VAL:
-                    printf("%x->%x\n", sym[index].st_value, value);
-                    sym[index].st_value = value;
-                    break;
-                default:
-                    break;
+                    case ST_NAME:
+                        printf("%x->%x\n", sym[index].st_name, value);
+                        sym[index].st_name = value;
+                        break;
+                    
+                    case ST_VALUE:
+                        printf("%x->%x\n", sym[index].st_value, value);
+                        sym[index].st_value = value;
+                        break;
+                    
+                    case ST_SIZE:
+                        printf("%x->%x\n", sym[index].st_size, value);
+                        sym[index].st_size = value;
+                        break;
+
+                    case ST_TYPE:
+                        type = ELF32_ST_TYPE(sym[index].st_info);
+                        bind = ELF32_ST_BIND(sym[index].st_info);
+                        printf("%x->%x\n", type, value);
+                        sym[index].st_info = ELF32_ST_INFO(bind, value);
+                        break;
+
+                    case ST_BIND:
+                        type = ELF32_ST_TYPE(sym[index].st_info);
+                        bind = ELF32_ST_BIND(sym[index].st_info);
+                        printf("%x->%x\n", bind, value);
+                        sym[index].st_info = ELF32_ST_INFO(value, type);
+                        break;
+
+                    case ST_OTHER:
+                        printf("%x->%x\n", sym[index].st_other, value);
+                        sym[index].st_other = value;
+                        break;
+
+                    case ST_SHNDX:
+                        printf("%x->%x\n", sym[index].st_shndx, value);
+                        sym[index].st_shndx = value;
+                        break;
+                    
+                    default:
+                        break;
                 }
                 break;
             }
@@ -351,7 +396,7 @@ int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
             tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (!strcmp(".dynsym", tmp_sec_name)) {
+            if (!strcmp(section_name, tmp_sec_name)) {
                 int size = 0;
                 /* security check start*/
                 if (shdr[i].sh_entsize != 0)
@@ -364,12 +409,47 @@ int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label
                 sym = (Elf64_Sym *)(elf_map + shdr[i].sh_offset);
                 switch (label)
                 {
-                case D_VAL:
-                    printf("%x->%x\n", sym[index].st_value, value);
-                    sym[index].st_value = value;
-                    break;
-                default:
-                    break;
+                    case ST_NAME:
+                        printf("%x->%x\n", sym[index].st_name, value);
+                        sym[index].st_name = value;
+                        break;
+                    
+                    case ST_VALUE:
+                        printf("%x->%x\n", sym[index].st_value, value);
+                        sym[index].st_value = value;
+                        break;
+                    
+                    case ST_SIZE:
+                        printf("%x->%x\n", sym[index].st_size, value);
+                        sym[index].st_size = value;
+                        break;
+
+                    case ST_TYPE:
+                        type = ELF64_ST_TYPE(sym[index].st_info);
+                        bind = ELF64_ST_BIND(sym[index].st_info);
+                        printf("%x->%x\n", type, value);
+                        sym[index].st_info = ELF64_ST_INFO(bind, value);
+                        break;
+
+                    case ST_BIND:
+                        type = ELF64_ST_TYPE(sym[index].st_info);
+                        bind = ELF64_ST_BIND(sym[index].st_info);
+                        printf("%x->%x\n", bind, value);
+                        sym[index].st_info = ELF64_ST_INFO(value, type);
+                        break;
+
+                    case ST_OTHER:
+                        printf("%x->%x\n", sym[index].st_other, value);
+                        sym[index].st_other = value;
+                        break;
+
+                    case ST_SHNDX:
+                        printf("%x->%x\n", sym[index].st_shndx, value);
+                        sym[index].st_shndx = value;
+                        break;
+                    
+                    default:
+                        break;
                 }
                 break;
             }
@@ -382,15 +462,94 @@ int set_dynsym_info(char *elf_name, int index, int value, enum DynsymLabel label
 };
 
 /**
+ * @brief Set the dynsym name object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_name(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_NAME, section_name);
+}
+
+/**
  * @brief Set the dynsym value object
  * 
  * @param elf_name elf file name
  * @param index readelf .dynsym row
  * @param value value to be edited
+ * @param section_name .dynsym or .symtab
  * @return error code {-1:error,0:sucess}
  */
-int set_dynsym_value(char *elf_name, int index, int value) {
-    return set_dynsym_info(elf_name, index, value, D_VAL);
+int set_dynsym_value(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_VALUE, section_name);
+}
+
+/**
+ * @brief Set the dynsym size object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_size(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_SIZE, section_name);
+}
+
+/**
+ * @brief Set the dynsym type object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_type(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_TYPE, section_name);
+}
+
+/**
+ * @brief Set the dynsym bind object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_bind(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_BIND, section_name);
+}
+
+/**
+ * @brief Set the dynsym other object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_other(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_OTHER, section_name);
+}
+
+/**
+ * @brief Set the dynsym shndx object
+ * 
+ * @param elf_name elf file name
+ * @param index readelf .dynsym row
+ * @param value value to be edited
+ * @param section_name .dynsym or .symtab
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name) {
+    return set_symbol_info(elf_name, index, value, ST_SHNDX, section_name);
 }
 
 /**
@@ -404,19 +563,19 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value) {
     int error_code = 0;
 
     /* edit ELF header information */
-    if (!get_option(po, HEADERS) || !get_option(po, ALL)) {
+    if (!get_option(po, HEADERS)) {
         // TODO:
         ;
     }
 
     /* edit section informtion */
-    if (!get_option(po, SECTIONS) || !get_option(po, ALL)) {
+    if (!get_option(po, SECTIONS)) {
         // TODO:
         ;
     }
     
     /* edit segment information */
-    if (!get_option(po, SEGMENTS) || !get_option(po, ALL)) {
+    if (!get_option(po, SEGMENTS)) {
         switch (column)
         {
             case 0:
@@ -457,9 +616,77 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value) {
     }
 
     /* edit .dynsym informtion */
-    if (!get_option(po, DYNSYM) || !get_option(po, ALL)) {
-        // TODO:
-        ;
+    if (!get_option(po, DYNSYM)) {
+        switch (column)
+        {
+            case 0:
+                error_code = set_dynsym_value(elf, row, value, ".dynsym");
+                break;
+
+            case 1:
+                error_code = set_dynsym_size(elf, row, value, ".dynsym");
+                break;
+
+            case 2:
+                error_code = set_dynsym_type(elf, row, value, ".dynsym");
+                break;
+
+            case 3:
+                error_code = set_dynsym_bind(elf, row, value, ".dynsym");
+                break;
+
+            case 4:
+                error_code = set_dynsym_other(elf, row, value, ".dynsym");
+                break;
+
+            case 5:
+                error_code = set_dynsym_shndx(elf, row, value, ".dynsym");
+                break;
+
+            case 6:
+                error_code = set_dynsym_name(elf, row, value, ".dynsym");
+                break;
+            
+            default:
+                break;
+        }
+    }
+
+    /* edit .symtab informtion */
+    if (!get_option(po, SYMTAB)) {
+        switch (column)
+        {
+            case 0:
+                error_code = set_dynsym_value(elf, row, value, ".symtab");
+                break;
+
+            case 1:
+                error_code = set_dynsym_size(elf, row, value, ".symtab");
+                break;
+
+            case 2:
+                error_code = set_dynsym_type(elf, row, value, ".symtab");
+                break;
+
+            case 3:
+                error_code = set_dynsym_bind(elf, row, value, ".symtab");
+                break;
+
+            case 4:
+                error_code = set_dynsym_other(elf, row, value, ".symtab");
+                break;
+
+            case 5:
+                error_code = set_dynsym_shndx(elf, row, value, ".symtab");
+                break;
+
+            case 6:
+                error_code = set_dynsym_name(elf, row, value, ".symtab");
+                break;
+            
+            default:
+                break;
+        }
     }
 
     return error_code;

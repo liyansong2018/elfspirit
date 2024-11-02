@@ -95,7 +95,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:h::AHSPDL";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:h::AHSPBDL";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -148,8 +148,9 @@ static const char *help =
     "  -A, (no argument)                         Display all ELF file infomation\n"
     "  -H, (no argument)                         Display the ELF file header\n"
     "  -S, (no argument)                         Display the sections' header\n"
-    "  -P, (no argument)                         Display the program headers\n"
-    "  -D, (no argument)                         Display symbol table\n"
+    "  -P, (no argument)                         Display | Edit the program headers\n"
+    "  -B, (no argument)                         Display | Edit .symtab information\n"
+    "  -D, (no argument)                         Display | Edit .dynsym information\n"
     "  -L, (no argument)                         Display the link information\n"
     "Detailed Usage: \n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
@@ -197,8 +198,9 @@ static const char *help_chinese =
     "  -A, 不需要参数                    显示ELF解析器解析的所有信息\n"
     "  -H, 不需要参数                    显示ELF头\n"
     "  -S, 不需要参数                    显示ELF节头\n"
-    "  -P, 不需要参数                    显示ELF程序头\n"
-    "  -D, 不需要参数                    显示ELF符号表信息，包括动态和静态\n"
+    "  -P, 不需要参数                    显示|编辑ELF: 程序头\n"
+    "  -B, 不需要参数                    显示|编辑ELF: 静态符号表\n"
+    "  -D, 不需要参数                    显示|编辑ELF: 动态符号表\n"
     "  -L, 不需要参数                    显示ELF链接\n"
     "细节: \n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
@@ -345,6 +347,10 @@ static void readcmdline(int argc, char *argv[]) {
             case 'P':
                 po.options[po.index++] = SEGMENTS;
                 break;
+            
+            case 'B':
+                po.options[po.index++] = SYMTAB;
+                break;
 
             case 'D':
                 po.options[po.index++] = DYNSYM;
@@ -426,7 +432,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* modify .dynsym information */
     if (!strcmp(function, "mod_dyn_value")) {
-        set_dynsym_value(elf_name, row, value);
+        set_dynsym_value(elf_name, row, value, ".dynsym");
     }
 
     /* edit elf */

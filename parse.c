@@ -179,9 +179,13 @@ int parse(char *elf, parser_opt_t *po) {
         if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
             display_segment32(&h);
 
-        /* .dynsym and .symtab Information */
+        /* .dynsym information */
         if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
             display_dynsym32(&h, ".dynsym", ".dynstr");
+        }
+
+        /* .symtab information */
+        if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
             display_dynsym32(&h, ".symtab", ".strtab");
         }
 
@@ -212,9 +216,13 @@ int parse(char *elf, parser_opt_t *po) {
         if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
             display_segment64(&h);
 
-        /* .dynsym and .symtab Information */
+        /* .dynsym information */
         if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
             display_dynsym64(&h, ".dynsym", ".dynstr");
+        }
+
+        /* .symtab information */
+        if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
             display_dynsym64(&h, ".symtab", ".strtab");
         }
 

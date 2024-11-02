@@ -30,6 +30,7 @@ typedef enum PARSE_OPT {
     HEADERS,
     SECTIONS,
     SEGMENTS,
+    SYMTAB,
     DYNSYM,
     LINK,
     END
