@@ -31,11 +31,11 @@
 #include "common.h"
 #include "parse.h"
 
-#define PRINT_HEADER_EXP(key, value, explain) printf ("     %-20s %10p (%s)\n", key, value, explain)
-#define PRINT_HEADER(key, value) printf ("     %-20s %10p\n", key, value)
+#define PRINT_HEADER_EXP(Nr, key, value, explain) printf ("     [%2d] %-20s %10p (%s)\n", Nr, key, value, explain)
+#define PRINT_HEADER(Nr, key, value) printf ("     [%2d] %-20s %10p\n", Nr, key, value)
 /* print section header table */
 #define PRINT_SECTION(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
-    printf("     [%2d] %-15s %-15s %8x %6x %6x %2x %4s %3u %3u %3u\n", \
+    printf("     [%2d] %-15s %-15s %08x %06x %06x %02x %4s %3u %3u %3u\n", \
     Nr, name, type, addr, off, size, es, flg, lk, inf, al)
 #define PRINT_SECTION_TITLE(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
     printf("     [%2s] %-15s %-15s %8s %6s %6s %2s %4s %3s %3s %3s\n", \
@@ -43,15 +43,15 @@
 
 /* print program header table*/
 #define PRINT_PROGRAM(Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align) \
-    printf("     [%2d] %-15s 0x%-8x 0x%-8x 0x%-8x 0x%-6x 0x%-6x %-4s 0x%-5u\n", \
+    printf("     [%2d] %-15s %08x %08x %08x %08x %08x %-4s %5u\n", \
     Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align)
 #define PRINT_PROGRAM_TITLE(Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align) \
-    printf("     [%2s] %-15s %-10s %-10s %-10s %-8s %-8s %-4s %-7s\n", \
+    printf("     [%2s] %-15s %8s %8s %8s %8s %8s %-4s %5s\n", \
     Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align)
 
 /* print dynamic symbol table*/
 #define PRINT_DYNSYM(Nr, value, size, type, bind, vis, ndx, name) \
-    printf("     [%2d] %8x %4d %-8s %-8s %-8s %4d %-20s\n", \
+    printf("     [%2d] %08x %4d %-8s %-8s %-8s %4d %-20s\n", \
     Nr, value, size, type, bind, vis, ndx, name)
 #define PRINT_DYNSYM_TITLE(Nr, value, size, type, bind, vis, ndx, name) \
     printf("     [%2s] %8s %4s %-8s %-8s %-8s %4s %-20s\n", \
@@ -59,7 +59,7 @@
 
 /* print dynamic table*/
 #define PRINT_DYN(tag, type, value) \
-    printf("     0x%08x   %-15s   %-30s\n", \
+    printf("     %08x   %-15s   %-30s\n", \
     tag, type, value);
 #define PRINT_DYN_TITLE(tag, type, value) \
     printf("     %-10s   %-15s   %-30s\n", \
@@ -241,7 +241,23 @@ int parse(char *elf, parser_opt_t *po) {
  */
 static void display_header32(handle_t32 *h) {
     char *tmp;
-    INFO("ELF32 Header\n");        
+    int nr = 0;
+    INFO("ELF32 Header\n");
+    /* 16bit magic */
+    printf("     0 ~ 15bit ----------------------------------------------\n");
+    printf("     Magic: ");
+    for (int i = 0; i < EI_NIDENT; i++) {
+        printf(" %02x", h->ehdr->e_ident[i]);
+    }    
+    printf("\n");
+    printf("            %3s %c  %c  %c  %c  %c  %c  %c  %c\n", "ELF", 'E', 'L', 'F', '|', '|', '|', '|', '|');
+    printf("            %3s %10s  %c  %c  %c  %c\n", "   ", "32/64bit", '|', '|', '|', '|');
+    printf("            %11s  %c  %c  %c\n", "little/big endian", '|', '|', '|');
+    printf("            %20s  %c  %c\n", "os type", '|', '|');
+    printf("            %23s  %c\n", "ABI version", '|');
+    printf("            %26s\n", "byte index of padding bytes");
+    printf("     16 ~ 63bit ---------------------------------------------\n");
+
     switch (h->ehdr->e_type) {
         case ET_NONE:
             tmp = "An unknown type";
@@ -267,7 +283,7 @@ static void display_header32(handle_t32 *h) {
             tmp = UNKOWN;
             break;
     }
-    PRINT_HEADER_EXP("e_type:", h->ehdr->e_type, tmp);
+    PRINT_HEADER_EXP(nr++, "e_type:", h->ehdr->e_type, tmp);
 
     switch (h->ehdr->e_type) {
         case EM_NONE:
@@ -350,7 +366,7 @@ static void display_header32(handle_t32 *h) {
             tmp = UNKOWN;
             break;
     }
-    PRINT_HEADER_EXP("e_machine:", h->ehdr->e_machine, tmp);
+    PRINT_HEADER_EXP(nr++, "e_machine:", h->ehdr->e_machine, tmp);
 
     switch (h->ehdr->e_version) {
         case EV_NONE:
@@ -365,22 +381,38 @@ static void display_header32(handle_t32 *h) {
             tmp = UNKOWN;
             break;
     }
-    PRINT_HEADER_EXP("e_version:", h->ehdr->e_version, tmp);
-    PRINT_HEADER_EXP("e_entry:", h->ehdr->e_entry, "Entry point address");
-    PRINT_HEADER_EXP("e_phoff:", h->ehdr->e_phoff, "Start of program headers");
-    PRINT_HEADER_EXP("e_shoff:", h->ehdr->e_shoff, "Start of section headers");
-    PRINT_HEADER("e_flags:", h->ehdr->e_flags);
-    PRINT_HEADER_EXP("e_ehsize:", h->ehdr->e_ehsize, "Size of this header");
-    PRINT_HEADER_EXP("e_phentsize:", h->ehdr->e_phentsize, "Size of program headers");
-    PRINT_HEADER_EXP("e_phnum:", h->ehdr->e_phnum, "Number of program headers");
-    PRINT_HEADER_EXP("e_shentsize:", h->ehdr->e_shentsize, "Size of section headers");
-    PRINT_HEADER_EXP("e_shnum:", h->ehdr->e_shnum, "Number of section headers");
-    PRINT_HEADER_EXP("e_shstrndx:", h->ehdr->e_shstrndx, "Section header string table index");
+    PRINT_HEADER_EXP(nr++, "e_version:", h->ehdr->e_version, tmp);
+    PRINT_HEADER_EXP(nr++, "e_entry:", h->ehdr->e_entry, "Entry point address");
+    PRINT_HEADER_EXP(nr++, "e_phoff:", h->ehdr->e_phoff, "Start of program headers");
+    PRINT_HEADER_EXP(nr++, "e_shoff:", h->ehdr->e_shoff, "Start of section headers");
+    PRINT_HEADER(nr++, "e_flags:", h->ehdr->e_flags);
+    PRINT_HEADER_EXP(nr++, "e_ehsize:", h->ehdr->e_ehsize, "Size of this header");
+    PRINT_HEADER_EXP(nr++, "e_phentsize:", h->ehdr->e_phentsize, "Size of program headers");
+    PRINT_HEADER_EXP(nr++, "e_phnum:", h->ehdr->e_phnum, "Number of program headers");
+    PRINT_HEADER_EXP(nr++, "e_shentsize:", h->ehdr->e_shentsize, "Size of section headers");
+    PRINT_HEADER_EXP(nr++, "e_shnum:", h->ehdr->e_shnum, "Number of section headers");
+    PRINT_HEADER_EXP(nr++, "e_shstrndx:", h->ehdr->e_shstrndx, "Section header string table index");
 }
 
 static void display_header64(handle_t64 *h) {
     char *tmp;
-    INFO("ELF64 Header\n");        
+    int nr = 0;
+    INFO("ELF64 Header\n");
+    /* 16bit magic */
+    printf("     0 ~ 15bit ----------------------------------------------\n");
+    printf("     Magic: ");
+    for (int i = 0; i < EI_NIDENT; i++) {
+        printf(" %02x", h->ehdr->e_ident[i]);
+    }   
+    printf("\n");
+    printf("            %3s %c  %c  %c  %c  %c  %c  %c  %c\n", "ELF", 'E', 'L', 'F', '|', '|', '|', '|', '|');
+    printf("            %3s %10s  %c  %c  %c  %c\n", "   ", "32/64bit", '|', '|', '|', '|');
+    printf("            %11s  %c  %c  %c\n", "little/big endian", '|', '|', '|');
+    printf("            %20s  %c  %c\n", "os type", '|', '|');
+    printf("            %23s  %c\n", "ABI version", '|');
+    printf("            %26s\n", "byte index of padding bytes");
+    printf("     16 ~ 63bit ---------------------------------------------\n");
+
     switch (h->ehdr->e_type) {
         case ET_NONE:
             tmp = "An unknown type";
@@ -406,7 +438,7 @@ static void display_header64(handle_t64 *h) {
             tmp = UNKOWN;
             break;
     }
-    PRINT_HEADER_EXP("e_type:", h->ehdr->e_type, tmp);
+    PRINT_HEADER_EXP(nr++, "e_type:", h->ehdr->e_type, tmp);
 
     switch (h->ehdr->e_type) {
         case EM_NONE:
@@ -489,7 +521,7 @@ static void display_header64(handle_t64 *h) {
             tmp = UNKOWN;
             break;
     }
-    PRINT_HEADER_EXP("e_machine:", h->ehdr->e_machine, tmp);
+    PRINT_HEADER_EXP(nr++, "e_machine:", h->ehdr->e_machine, tmp);
 
     switch (h->ehdr->e_version) {
         case EV_NONE:
@@ -504,17 +536,17 @@ static void display_header64(handle_t64 *h) {
             tmp = UNKOWN;
             break;
     }
-    PRINT_HEADER_EXP("e_version:", h->ehdr->e_version, tmp);
-    PRINT_HEADER_EXP("e_entry:", h->ehdr->e_entry, "Entry point address");
-    PRINT_HEADER_EXP("e_phoff:", h->ehdr->e_phoff, "Start of program headers");
-    PRINT_HEADER_EXP("e_shoff:", h->ehdr->e_shoff, "Start of section headers");
-    PRINT_HEADER("e_flags:", h->ehdr->e_flags);
-    PRINT_HEADER_EXP("e_ehsize:", h->ehdr->e_ehsize, "Size of this header");
-    PRINT_HEADER_EXP("e_phentsize:", h->ehdr->e_phentsize, "Size of program headers");
-    PRINT_HEADER_EXP("e_phnum:", h->ehdr->e_phnum, "Number of program headers");
-    PRINT_HEADER_EXP("e_shentsize:", h->ehdr->e_shentsize, "Size of section headers");
-    PRINT_HEADER_EXP("e_shnum:", h->ehdr->e_shnum, "Number of section headers");
-    PRINT_HEADER_EXP("e_shstrndx:", h->ehdr->e_shstrndx, "Section header string table index");
+    PRINT_HEADER_EXP(nr++, "e_version:", h->ehdr->e_version, tmp);
+    PRINT_HEADER_EXP(nr++, "e_entry:", h->ehdr->e_entry, "Entry point address");
+    PRINT_HEADER_EXP(nr++, "e_phoff:", h->ehdr->e_phoff, "Start of program headers");
+    PRINT_HEADER_EXP(nr++, "e_shoff:", h->ehdr->e_shoff, "Start of section headers");
+    PRINT_HEADER(nr++, "e_flags:", h->ehdr->e_flags);
+    PRINT_HEADER_EXP(nr++, "e_ehsize:", h->ehdr->e_ehsize, "Size of this header");
+    PRINT_HEADER_EXP(nr++, "e_phentsize:", h->ehdr->e_phentsize, "Size of program headers");
+    PRINT_HEADER_EXP(nr++, "e_phnum:", h->ehdr->e_phnum, "Number of program headers");
+    PRINT_HEADER_EXP(nr++, "e_shentsize:", h->ehdr->e_shentsize, "Size of section headers");
+    PRINT_HEADER_EXP(nr++, "e_shnum:", h->ehdr->e_shnum, "Number of section headers");
+    PRINT_HEADER_EXP(nr++, "e_shstrndx:", h->ehdr->e_shstrndx, "Section header string table index");
 }
 
 /**
