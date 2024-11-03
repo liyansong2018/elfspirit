@@ -566,7 +566,7 @@ int get_section_size(char *elf_name, char *section_name) {
  * @param value permission
  * @param label 
  */
-void set_section_info(char *elf_name, char *section_name, int value, enum SectionLabel label) {
+void set_section1_info(char *elf_name, char *section_name, int value, enum SectionLabel label) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
@@ -675,6 +675,6 @@ void set_section_info(char *elf_name, char *section_name, int value, enum Sectio
  * @param section_name section name
  * @param value permission
  */
-void set_section_flags(char *elf_name, char *section_name, int value) {
-    set_section_info(elf_name, section_name, value, FLAGS);
+void set_section_flags1(char *elf_name, char *section_name, int value) {
+    set_section1_info(elf_name, section_name, value, FLAGS);
 }

@@ -23,6 +23,46 @@
 */
 
 /**
+ * @brief Set the section name
+ * 
+ * @param elf_name elf file name
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_header_type(char *elf_name, int value);
+int set_header_machine(char *elf_name, int value);
+int set_header_version(char *elf_name, int value);
+int set_header_entry(char *elf_name, int value);
+int set_header_phoff(char *elf_name, int value);
+int set_header_shoff(char *elf_name, int value);
+int set_header_flags(char *elf_name, int value);
+int set_header_ehsize(char *elf_name, int value);
+int set_header_phentsize(char *elf_name, int value);
+int set_header_phnum(char *elf_name, int value);
+int set_header_shentsize(char *elf_name, int value);
+int set_header_shnum(char *elf_name, int value);
+int set_header_shstrndx(char *elf_name, int value);
+
+/**
+ * @brief Set the section name
+ * 
+ * @param elf_name elf file name
+ * @param index readelf section row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_section_name(char *elf_name, int index, int value);
+int set_section_type(char *elf_name, int index, int value);
+int set_section_flags(char *elf_name, int index, int value);
+int set_section_addr(char *elf_name, int index, int value);
+int set_section_off(char *elf_name, int index, int value);
+int set_section_size(char *elf_name, int index, int value);
+int set_section_link(char *elf_name, int index, int value);
+int set_section_info(char *elf_name, int index, int value);
+int set_section_align(char *elf_name, int index, int value);
+int set_section_entsize(char *elf_name, int index, int value);
+
+/**
  * @brief Set the segment type
  * 
  * @param elf_name elf file name
@@ -40,7 +80,7 @@ int set_segment_memsz(char *elf_name, int index, int value);
 int set_segment_align(char *elf_name, int index, int value);
 
 /**
- * @brief Set the dynsym name object
+ * @brief Set the dynsym or symtab object
  * 
  * @param elf_name elf file name
  * @param index readelf .dynsym row

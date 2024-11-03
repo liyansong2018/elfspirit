@@ -184,4 +184,4 @@ int get_section_size(char *elf_name, char *section_name);
  * @param section_name section name
  * @param value permission
  */
-void set_section_flags(char *elf_name, char *section_name, int value);
+void set_section_flags1(char *elf_name, char *section_name, int value);
