@@ -166,8 +166,10 @@ static const char *help =
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
+    "  elfspirit edit [-H|S|P|B|D] [-i]<row> [-j]<column> [-m]<value> FILE_NAME\n"
     "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n"
-    "  elfspirit mod_seg_flags [-i]<row of segment> [-m]<value> ELF\n";
+    "  elfspirit mod_seg_flags [-i]<row of segment> [-m]<value> FILE_NAME\n"
+    "  elfspirit mod_dyn_value [-i]<row of .dynsym> [-m]<value> FILE_NAME\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -214,8 +216,10 @@ static const char *help_chinese =
                             "ELF\n"
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n"
+    "  elfspirit edit [-H|S|P|B|D] [-i]<第几行> [-j]<第几列> [-m]<修改值> FILE_NAME\n"
     "  elfspirit mod_sec_flags [-n]<节的名字> [-m]<权限值> ELF\n"
-    "  elfspirit mod_seg_flags [-i]<第几个段> [-m]<权限值> ELF\n";
+    "  elfspirit mod_seg_flags [-i]<第几个段> [-m]<权限值> ELF\n"
+    "  elfspirit mod_dyn_value [-i]<第几行.dynsym> [-m]<值> FILE_NAME\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
