@@ -7,18 +7,15 @@
 [![ld](https://img.shields.io/badge/ld-3.31%20%7C%203.32-lightgrey)](#)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
-**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering and parse ELF like `readelf`.
+**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering, parse ELF like `readelf` and edit ELF like 010 editor.
 
-不想看英文？没关系，请戳中文简介:yum:
-- [x] :point_right: [elfspirit 适用场景](https://github.com/liyansong2018/elfspirit/wiki/elfspirit-%E9%80%82%E7%94%A8%E5%9C%BA%E6%99%AF)
+不想看英文？没关系，请戳中文简介，**但是如果你想了解工具的最新特性，只需要阅读此readme，因为其他博客没有更新** 😞
+- [x] [elfspirit：Linux平台下的静态分析和注入框架](https://bbs.pediy.com/thread-270194.htm)
 
-- [x] :point_right: [elfspirit：Linux平台下的静态分析和注入框架](https://bbs.pediy.com/thread-270194.htm)
+如果你想深入了解某些特性的细节，请阅读:(More details about static injection)
+- [x] [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/)
 
-但是你想了解静态注入的更多细节目前只有英文:disappointed:(More details about static injection)
-- [x] :point_right: [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/)
-
-But you might like **LIEF** more: [https://github.com/lief-project/LIEF](https://github.com/lief-project/LIEF)
-
+Tips: Only the readme on the project homepage will tell you the latest features of the tool, while other documents will not. But you might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. 😊
 ## Building
 
 **elfspirit** can be installed easily:
@@ -39,76 +36,89 @@ Currently, this is the only supported environment. Other environments may also w
 
 ## Usage
 
-### Demo of patching IoT firmware for IDA
+### Analyze ELF format, like readelf
 
-command
 ```shell
-# # Add elf header for IoT firmware.bin
-$ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
+$ elfspirit parse -H myelf
+ [+] ELF32 Header
+     0 ~ 15bit ----------------------------------------------
+     Magic:  7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00
+            ELF E  L  F  |  |  |  |  |
+                  32/64bit  |  |  |  |
+            little/big endian  |  |  |
+                         os type  |  |
+                        ABI version  |
+            byte index of padding bytes
+     16 ~ 63bit ---------------------------------------------
+     [ 0] e_type:                     0x2 (An executable file)
+     [ 1] e_machine:                  0x3 (Sun Microsystems SPARC)
+     [ 2] e_version:                  0x2 (Unkown)
+     [ 3] e_entry:                 0x1077 (Entry point address)
+     [ 4] e_phoff:                   0x34 (Start of program headers)
+     [ 5] e_shoff:                 0x35d4 (Start of section headers)
+     [ 6] e_flags:                  (nil)
+     [ 7] e_ehsize:                  0x34 (Size of this header)
+     [ 8] e_phentsize:               0x20 (Size of program headers)
+     [ 9] e_phnum:                    0xb (Number of program headers)
+     [10] e_shentsize:               0x28 (Size of section headers)
+     [11] e_shnum:                   0x1d (Number of section headers)
+     [12] e_shstrndx:                0x1c (Section header string table index)
+```
 
-# # Connect multi-bin
+### Freely edit every byte of ELF, like 010 editor
+
+We can easily edit any byte of ELF files using elfspirit, such as removing the stack non executable feature (`-z noexecstack`) of executable binary files.
+
+The original PT_GNU-STACK segment only had read and write permissions (6=rw), as shown below
+
+![1](pictures/1.png)
+
+You can use elfspirit to grant executable permissions to the PT_GNU-STACK segment. Just set the parameters (i, j) to the coordinates of the target.
+
+```shell
+$ elfspirit edit -P -i11 -j6 -m7 myelf 
+6->7
+```
+
+Wasn't this process a piece of cake?
+
+![2](pictures/2.png)
+
+
+### Patch IoT firmware for IDA
+
+As is well known, the firmware of many embedded devices is bare metal programs without ELF header. Therefore, elfspirit can be used to add ELF header information, making it convenient to use reverse engineering tools such as IDA to decompile it.
+
+```shell
+# Add elf header for IoT firmware.bin
+$ ./elfspirit addelfinfo -a arm -m 32 -e big -b 0x18308000 ~/Documents/app.bin
+```
+
+In addition, elfspirit also has the function of splicing firmware. A common situation we encounter is that IoT firmware has many bins stored in different partitions. They share an address space, and if you only analyze a single bin, you will find that the function jumps to an unfamiliar address. At this point, we need to use `elfspirit join`
+
+```shell
+# Connect multi-bin
 $ ./elfspirit joinelf -a arm -m 32 -e big -c ./configure/bininfo.json ~/Documents/app.bin
 ```
 
-output: add ELF info to firmware for IDA
-```shell
- [+] source file length is 0xdd748
- [+] base address is 0x18308000                                              
- [+] create /home/kali/Documents/app.bin.new 
-```
+### Add or delete a section
 
-### Demo of static analysis
-
-command
-```shell
-./elfspirit parse -A hello_x86
-```
-
-output: details of elf
+Sometimes we need to limit the size of an ELF file, so deleting a useless section (such as. eh_frame) is a good solution.
 
 ```shell
-[+] ELF Header
-     e_type:                       2 -> An executable file                                    
-     e_machine:                   62 -> Sun Microsystems SPARC
-     e_version:                    1 -> Current version
-     e_entry:                   4208
-     ...
-[+] Section Header Table
-     [Nr] Name            Type                Addr    Off   Size Es  Flg  Lk Inf  Al          
-     [ 0]                 SHT_NULL               0      0      0  0        0   0   0
-     [ 1] .interp         SHT_PROGBITS      4002a8    2a8     1c  0   A    0   0   1
-     [ 2] .note.gnu[...]  SHT_NOTE          4002c4    2c4     24  0   A    0   0   4
-     ...
-[+] Program Header Table
-     [Nr] Type            Offset     Virtaddr   Physaddr   Filesiz  Memsiz   Flg  Align       
-     [ 0] PT_PHDR         0x40       0x400040   0x400040   0x268    0x268    R    0x8    
-     [ 1] PT_INTERP       0x2a8      0x4002a8   0x4002a8   0x1c     0x1c     R    0x1    
-     [ 2] PT_LOAD         0x0        0x400000   0x400000   0x4e8    0x4e8    R    0x4096
-	 ...
-[+] Section to segment mapping
-     [ 0]                                                                                     
-     [ 1] .interp
-     [ 2] .interp .note.gnu[...] .note.ABI-tag .gnu.hash .dynsym .dynstr
-     ...
-[+] Dynamic link information
-[+] Dynamic section at offset 0x2e20 contains 29 entries                                     
-     Tag          Type              Name/Value                                                
-     0x00000001   DT_NEEDED         Shared library: [libc.so.6]   
-     0x0000000c   DT_INIT           0x401000
-     ...
-```
-
-### Demo of deleting section
-```shell
-# # delete one section
+# delete one section
 $ ./elfspirit delsec -n .eh_frame_hdr hello
-# # delete multi-sections
+# delete multi-sections
 $ ./elfspirit delsec -c configure/multi_sec_name hello
 ```
 
-### Demo of static injection
+### ELF file infection or static injection
 
-command
+ELF file infection is a broad concept, which may only involve modifying specific bytes or modifying the entire section. Let's take a static injection as an example.
+
+How to make a Linux program load a malicious *.so file? Perhaps you would say that hijacking through DLL/SO is sufficient. If you have debugging permissions for the target program, this method is indeed feasible. But the environment is not always so friendly.
+
+**elfspirit** provides the ability for static injection, injecting a piece of code (commonly known as shellcode) through file infection to load a so.
 
 ```shell
 $ ./elfspirit injectso -n .eh_frame -f libdemo_x32.so -c offset.json -v 2.31 ./testcase/hello_x86
@@ -120,31 +130,22 @@ $ ./elfspirit injectso -n .eh_frame -f libdemo_x32.so -c offset.json -v 2.31 ./t
  [+] LOAD flag: 0x4 -> 0x5
  [+] create ./testcase/hello_x86_new
 ```
-output: process load libdemo_x32.so
+We can see that the target process has already loaded the `libdemo_x32.so` 
 ```shell
 $ cat /proc/2507769/maps
 565c9000-565ca000 r--p 00000000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
-565ca000-565cc000 r-xp 00001000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
-565cc000-565cd000 r--p 00002000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
-565cd000-565ce000 rw-p 00003000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
+...
 56709000-5672b000 rw-p 00000000 00:00 0            [heap]
 f7da5000-f7dc2000 r--p 00000000 08:01 3155369      /usr/lib32/libc-2.32.so
 f7dc2000-f7f1a000 r-xp 0001d000 08:01 3155369      /usr/lib32/libc-2.32.so
-f7f1a000-f7f8c000 r--p 00175000 08:01 3155369      /usr/lib32/libc-2.32.so
-f7f8c000-f7f8d000 ---p 001e7000 08:01 3155369      /usr/lib32/libc-2.32.so
-f7f8d000-f7f8f000 r--p 001e7000 08:01 3155369      /usr/lib32/libc-2.32.so
-f7f8f000-f7f91000 rw-p 001e9000 08:01 3155369      /usr/lib32/libc-2.32.so
+...
 f7f91000-f7f93000 rw-p 00000000 00:00 0
 f7fa7000-f7fa8000 r--p 00000000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
 f7fa8000-f7fa9000 r-xp 00001000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
 f7fa9000-f7faa000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
-f7faa000-f7fab000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
-f7fab000-f7fac000 rw-p 00003000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
 ```
 
-## Upcoming updates
-
-🚀 Modify any field of the ELF file, just like the 010 editor.
+Unfortunately, the static injection feature provided by elfspirit may depend on a specific version of the Linux loader, so we have provided some configuration files: configure/offsetjson, in preparation for future gcc/ld versions.
 
 ## Limitations
 
