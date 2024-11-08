@@ -65,6 +65,14 @@
     printf("     %-10s   %-15s   %-30s\n", \
     tag, type, value);
 
+/* print .rela */
+#define PRINT_RELA(Nr, offset, info, type, value, name) \
+    printf("     [%2d] %016x %016x %-18s %-10x %-16s\n", \
+    Nr, offset, info, type, value, name);
+#define PRINT_RELA_TITLE(Nr, offset, info, type, value, name) \
+    printf("     [%2s] %-16s %-16s %-18s %-10s %-16s\n", \
+    Nr, offset, info, type, value, name);
+
 int flag2str(int flag, char *flag_str) {
     if (flag & 0x1)
         flag_str[2] = 'E';
@@ -115,16 +123,22 @@ int get_option(parser_opt_t *po, PARSE_OPT_T option){
     return -1;
 }
 
+#define SYMBOL_LENGTH 0x100
+char g_dynsym[SYMBOL_LENGTH][SYMBOL_LENGTH];      /* dynamic symobl table */
+char g_symtab[SYMBOL_LENGTH][SYMBOL_LENGTH];      /* symobl table */
+
 static void display_header32(handle_t32 *);
 static void display_header64(handle_t64 *);
 static void display_section32(handle_t32 *);
 static void display_section64(handle_t64 *);
 static void display_segment32(handle_t32 *);
 static void display_segment64(handle_t64 *);
-static void display_dynsym32(handle_t32 *, char *section_name, char *str_tab);
-static void display_dynsym64(handle_t64 *, char *section_name, char *str_tab);
+static void display_dynsym32(handle_t32 *, char *section_name, char *str_tab, int is_display);
+static void display_dynsym64(handle_t64 *, char *section_name, char *str_tab, int is_display);
 static void display_dyninfo32(handle_t32 *);
 static void display_dyninfo64(handle_t64 *);
+static int display_rela32(handle_t32 *, char *section_name);
+static int display_rela64(handle_t64 *, char *section_name);
 
 int parse(char *elf, parser_opt_t *po) {
     int fd;
@@ -181,17 +195,28 @@ int parse(char *elf, parser_opt_t *po) {
 
         /* .dynsym information */
         if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
-            display_dynsym32(&h, ".dynsym", ".dynstr");
+            display_dynsym32(&h, ".dynsym", ".dynstr", 1);
         }
 
         /* .symtab information */
         if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
-            display_dynsym32(&h, ".symtab", ".strtab");
+            display_dynsym32(&h, ".symtab", ".strtab", 1);
         }
 
-        /* Dynamic Infomation */
+        /* .dynamic Infomation */
         if (!get_option(po, LINK) || !get_option(po, ALL))
-            display_dyninfo32(&h);           
+            display_dyninfo32(&h);  
+
+        /* .rela.dyn .rela.plt Infomation */
+        if (!get_option(po, RELA) || !get_option(po, ALL)) {
+            display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
+            display_rela32(&h, ".rela.dyn");
+            display_rela32(&h, ".rela.plt");
+            display_rela32(&h, ".rela.text");
+            display_rela32(&h, ".rela.data");
+            display_rela32(&h, ".rela.eh_frame");
+        }         
     }
 
     /* 64bit */
@@ -218,17 +243,28 @@ int parse(char *elf, parser_opt_t *po) {
 
         /* .dynsym information */
         if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
-            display_dynsym64(&h, ".dynsym", ".dynstr");
+            display_dynsym64(&h, ".dynsym", ".dynstr", 1);
         }
 
         /* .symtab information */
         if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
-            display_dynsym64(&h, ".symtab", ".strtab");
+            display_dynsym64(&h, ".symtab", ".strtab", 1);
         }
 
-        /* Dynamic Infomation */
+        /* .dynamic Infomation */
         if (!get_option(po, LINK) || !get_option(po, ALL))
-            display_dyninfo64(&h);              
+            display_dyninfo64(&h);      
+
+        /* .rela.dyn .rela.plt Infomation */
+        if (!get_option(po, RELA) || !get_option(po, ALL)) {
+            display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
+            display_rela64(&h, ".rela.dyn");
+            display_rela64(&h, ".rela.plt");
+            display_rela64(&h, ".rela.text");
+            display_rela64(&h, ".rela.data");
+            display_rela64(&h, ".rela.eh_frame");
+        }
     }
 
     return 0;
@@ -898,7 +934,7 @@ static void display_segment64(handle_t64 *h) {
  * @param {handle_t32} h
  * @return {void}
  */
-static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab) {
+static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, int is_display) {
     char *name = NULL;
     char *type;
     char *bind;
@@ -907,8 +943,8 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab) {
     int dynsym_index;
     size_t count;
     Elf32_Sym *sym;
-    INFO("%s table\n", section_name);
-    PRINT_DYNSYM_TITLE("Nr", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
+    int has_component = 0;
+
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
         if (validated_offset(name, h->mem, h->mem + h->size)) {
@@ -922,7 +958,18 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab) {
 
         if (!strcmp(name, section_name)) {
             dynsym_index = i;
+            has_component = 1;
         }
+    }
+
+    if (!has_component) {
+        WARNING("This file does not have a %s\n", section_name);
+        return -1;
+    }
+
+    if (is_display) {
+        INFO("%s table\n", section_name);
+        PRINT_DYNSYM_TITLE("Nr", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
     }
     
     name = h->mem + h->shstrtab->sh_offset + h->shdr[dynsym_index].sh_name;
@@ -1056,6 +1103,7 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab) {
             if (strlen(name) > 15) {
                 strcpy(&name[15 - 6], "[...]");
             }
+            if (is_display)
             PRINT_DYNSYM(i, sym[i].st_value, sym[i].st_size, type, bind, \
                 other, sym[i].st_shndx, name);
         }
@@ -1067,7 +1115,7 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab) {
  * @param {handle_t64} h
  * @return {void}
  */
-static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab) {
+static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, int is_display) {
     char *name = NULL;
     char *type;
     char *bind;
@@ -1076,8 +1124,8 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab) {
     int dynsym_index;
     size_t count;
     Elf64_Sym *sym;
-    INFO("%s table\n", section_name);
-    PRINT_DYNSYM_TITLE("Nr", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
+    int has_component = 0;
+
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
         if (validated_offset(name, h->mem, h->mem + h->size)) {
@@ -1091,7 +1139,18 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab) {
 
         if (!strcmp(name, section_name)) {
             dynsym_index = i;
+            has_component = 1;
         }
+    }
+
+    if (!has_component) {
+        WARNING("This file does not have a %s\n", section_name);
+        return -1;
+    }
+
+    if (is_display) {
+        INFO("%s table\n", section_name);
+        PRINT_DYNSYM_TITLE("Nr", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
     }
     
     name = h->mem + h->shstrtab->sh_offset + h->shdr[dynsym_index].sh_name;
@@ -1222,9 +1281,18 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab) {
                     break;
             }
             name = h->mem + h->shdr[dynstr_index].sh_offset + sym[i].st_name;
+            /* store */
+            if (!strcmp(".symtab", section_name) && i < SYMBOL_LENGTH && strlen(name) < SYMBOL_LENGTH) {
+                strcpy(g_symtab[i], name);
+            } 
+            else if (!strcmp(".dynsym", section_name) &&  i < SYMBOL_LENGTH && strlen(name) < SYMBOL_LENGTH){
+                strcpy(g_dynsym[i], name);
+            }
+            /* hide long strings */
             if (strlen(name) > 15) {
                 strcpy(&name[15 - 6], "[...]");
             }
+            if (is_display)
             PRINT_DYNSYM(i, sym[i].st_value, sym[i].st_size, type, bind, \
                 other, sym[i].st_shndx, name);
         }
@@ -1947,4 +2015,462 @@ static void display_dyninfo64(handle_t64 *h) {
         }
         PRINT_DYN(dyn[i].d_tag, tmp, value);
     }
+}
+
+/** 
+ * @brief .relation information
+ * 
+ * @param h 
+ * @param section_name 
+ * @return int error code {-1:error,0:sucess}
+ */
+static int display_rela32(handle_t32 *h, char *section_name) {
+    char *name = NULL;
+    char *type;
+    char *bind;
+    char *other;
+    int str_index;
+    int rela_dyn_index;
+    size_t count;
+    Elf32_Rela *rela_dyn;
+    int has_component = 0;
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            return -1;
+        }
+
+        if (!strcmp(name, section_name)) {
+            rela_dyn_index = i;
+            has_component = 1;
+        }
+    }
+
+    if (!has_component) {
+        WARNING("This file does not have a %s\n", section_name);
+        return -1;
+    }
+    
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        return -1;
+    }
+    
+    rela_dyn = (Elf32_Rela *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
+    count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf32_Rela);
+    INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
+    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
+    for (int i = 0; i < count; i++) {
+        switch (ELF32_R_TYPE(rela_dyn[i].r_info))
+        {
+            case R_X86_64_NONE:
+                type = "R_X86_64_NONE";
+                break;
+
+            case R_X86_64_64:
+                type = "R_X86_64_64";
+                break;
+
+            case R_X86_64_PC32:
+                type = "R_X86_64_PC32";
+                break;
+
+            case R_X86_64_GOT32:
+                type = "R_X86_64_GOT32";
+                break;
+
+            case R_X86_64_PLT32:
+                type = "R_X86_64_PLT32";
+                break;
+
+            case R_X86_64_COPY:
+                type = "R_X86_64_COPY";
+                break;
+
+            case R_X86_64_GLOB_DAT:
+                type = "R_X86_64_GLOB_DAT";
+                break;
+
+            case R_X86_64_JUMP_SLOT:
+                type = "R_X86_64_JUMP_SLOT";
+                break;
+
+            case R_X86_64_RELATIVE:
+                type = "R_X86_64_RELATIVE";
+                break;
+
+            case R_X86_64_GOTPCREL:
+                type = "R_X86_64_GOTPCREL";
+                break;
+
+            case R_X86_64_32:
+                type = "R_X86_64_32";
+                break;
+
+            case R_X86_64_32S:
+                type = "R_X86_64_32S";
+                break;
+
+            case R_X86_64_16:
+                type = "R_X86_64_16";
+                break;
+
+            case R_X86_64_PC16:
+                type = "R_X86_64_PC16";
+                break;
+
+            case R_X86_64_8:
+                type = "R_X86_64_8";
+                break;
+
+            case R_X86_64_PC8:
+                type = "R_X86_64_PC8";
+                break;
+
+            case R_X86_64_DTPMOD64:
+                type = "R_X86_64_DTPMOD64";
+                break;
+
+            case R_X86_64_DTPOFF64:
+                type = "R_X86_64_DTPOFF64";
+                break;
+
+            case R_X86_64_TPOFF64:
+                type = "R_X86_64_TPOFF64";
+                break;
+
+            case R_X86_64_TLSGD:
+                type = "R_X86_64_TLSGD";
+                break;
+
+            case R_X86_64_TLSLD:
+                type = "R_X86_64_TLSLD";
+                break;
+
+            case R_X86_64_DTPOFF32:
+                type = "R_X86_64_DTPOFF32";
+                break;
+
+            case R_X86_64_GOTTPOFF:
+                type = "R_X86_64_GOTTPOFF";
+                break;
+
+            case R_X86_64_TPOFF32:
+                type = "R_X86_64_TPOFF32";
+                break;
+
+            case R_X86_64_PC64:
+                type = "R_X86_64_PC64";
+                break;
+
+            case R_X86_64_GOTOFF64:
+                type = "R_X86_64_GOTOFF64";
+                break;
+
+            case R_X86_64_GOTPC32:
+                type = "R_X86_64_GOTPC32";
+                break;
+
+            case R_X86_64_GOT64:
+                type = "R_X86_64_GOT64";
+                break;
+
+            case R_X86_64_GOTPCREL64:
+                type = "R_X86_64_GOTPCREL64";
+                break;
+
+            case R_X86_64_GOTPC64:
+                type = "R_X86_64_GOTPC64";
+                break;
+
+            case R_X86_64_GOTPLT64:
+                type = "R_X86_64_GOTPLT64";
+                break;
+
+            case R_X86_64_PLTOFF64:
+                type = "R_X86_64_PLTOFF64";
+                break;
+
+            case R_X86_64_SIZE32:
+                type = "R_X86_64_SIZE32";
+                break;
+
+            case R_X86_64_SIZE64:
+                type = "R_X86_64_SIZE64";
+                break;
+
+            case R_X86_64_GOTPC32_TLSDESC:
+                type = "R_X86_64_GOTPC32_TLSDESC";
+                break;
+
+            case R_X86_64_TLSDESC_CALL:
+                type = "R_X86_64_TLSDESC_CALL";
+                break;
+
+            case R_X86_64_TLSDESC:
+                type = "R_X86_64_TLSDESC";
+                break;
+
+            case R_X86_64_IRELATIVE:
+                type = "R_X86_64_IRELATIVE";
+                break;
+
+            case R_X86_64_RELATIVE64:
+                type = "R_X86_64_RELATIVE64";
+                break;
+
+            case R_X86_64_GOTPCRELX:
+                type = "R_X86_64_GOTPCRELX";
+                break;
+
+            case R_X86_64_REX_GOTPCRELX:
+                type = "R_X86_64_REX_GOTPCRELX";
+                break;
+
+            case R_X86_64_NUM:
+                type = "R_X86_64_NUM";
+                break;
+            
+            default:
+                break;
+        }
+        
+        str_index = ELF32_R_SYM(rela_dyn[i].r_info);
+        if (rela_dyn[i].r_addend >= 0)
+            snprintf(name, SYMBOL_LENGTH, "%s + %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+        else
+            snprintf(name, SYMBOL_LENGTH, "%s %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+        PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
+    }
+    printf("\n");
+}
+
+/** 
+ * @brief .relation information
+ * 
+ * @param h 
+ * @param section_name 
+ * @return int error code {-1:error,0:sucess}
+ */
+static int display_rela64(handle_t64 *h, char *section_name) {
+    char *name = NULL;
+    char *type;
+    char *bind;
+    char *other;
+    int str_index;
+    int rela_dyn_index;
+    size_t count;
+    Elf64_Rela *rela_dyn;
+    int has_component = 0;
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            return -1;
+        }
+
+        if (!strcmp(name, section_name)) {
+            rela_dyn_index = i;
+            has_component = 1;
+        }
+    }
+
+    if (!has_component) {
+        WARNING("This file does not have a %s\n", section_name);
+        return -1;
+    }
+    
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        return -1;
+    }
+    
+    rela_dyn = (Elf64_Rela *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
+    count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf64_Rela);
+    INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
+    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
+    for (int i = 0; i < count; i++) {
+        switch (ELF64_R_TYPE(rela_dyn[i].r_info))
+        {
+            case R_X86_64_NONE:
+                type = "R_X86_64_NONE";
+                break;
+
+            case R_X86_64_64:
+                type = "R_X86_64_64";
+                break;
+
+            case R_X86_64_PC32:
+                type = "R_X86_64_PC32";
+                break;
+
+            case R_X86_64_GOT32:
+                type = "R_X86_64_GOT32";
+                break;
+
+            case R_X86_64_PLT32:
+                type = "R_X86_64_PLT32";
+                break;
+
+            case R_X86_64_COPY:
+                type = "R_X86_64_COPY";
+                break;
+
+            case R_X86_64_GLOB_DAT:
+                type = "R_X86_64_GLOB_DAT";
+                break;
+
+            case R_X86_64_JUMP_SLOT:
+                type = "R_X86_64_JUMP_SLOT";
+                break;
+
+            case R_X86_64_RELATIVE:
+                type = "R_X86_64_RELATIVE";
+                break;
+
+            case R_X86_64_GOTPCREL:
+                type = "R_X86_64_GOTPCREL";
+                break;
+
+            case R_X86_64_32:
+                type = "R_X86_64_32";
+                break;
+
+            case R_X86_64_32S:
+                type = "R_X86_64_32S";
+                break;
+
+            case R_X86_64_16:
+                type = "R_X86_64_16";
+                break;
+
+            case R_X86_64_PC16:
+                type = "R_X86_64_PC16";
+                break;
+
+            case R_X86_64_8:
+                type = "R_X86_64_8";
+                break;
+
+            case R_X86_64_PC8:
+                type = "R_X86_64_PC8";
+                break;
+
+            case R_X86_64_DTPMOD64:
+                type = "R_X86_64_DTPMOD64";
+                break;
+
+            case R_X86_64_DTPOFF64:
+                type = "R_X86_64_DTPOFF64";
+                break;
+
+            case R_X86_64_TPOFF64:
+                type = "R_X86_64_TPOFF64";
+                break;
+
+            case R_X86_64_TLSGD:
+                type = "R_X86_64_TLSGD";
+                break;
+
+            case R_X86_64_TLSLD:
+                type = "R_X86_64_TLSLD";
+                break;
+
+            case R_X86_64_DTPOFF32:
+                type = "R_X86_64_DTPOFF32";
+                break;
+
+            case R_X86_64_GOTTPOFF:
+                type = "R_X86_64_GOTTPOFF";
+                break;
+
+            case R_X86_64_TPOFF32:
+                type = "R_X86_64_TPOFF32";
+                break;
+
+            case R_X86_64_PC64:
+                type = "R_X86_64_PC64";
+                break;
+
+            case R_X86_64_GOTOFF64:
+                type = "R_X86_64_GOTOFF64";
+                break;
+
+            case R_X86_64_GOTPC32:
+                type = "R_X86_64_GOTPC32";
+                break;
+
+            case R_X86_64_GOT64:
+                type = "R_X86_64_GOT64";
+                break;
+
+            case R_X86_64_GOTPCREL64:
+                type = "R_X86_64_GOTPCREL64";
+                break;
+
+            case R_X86_64_GOTPC64:
+                type = "R_X86_64_GOTPC64";
+                break;
+
+            case R_X86_64_GOTPLT64:
+                type = "R_X86_64_GOTPLT64";
+                break;
+
+            case R_X86_64_PLTOFF64:
+                type = "R_X86_64_PLTOFF64";
+                break;
+
+            case R_X86_64_SIZE32:
+                type = "R_X86_64_SIZE32";
+                break;
+
+            case R_X86_64_SIZE64:
+                type = "R_X86_64_SIZE64";
+                break;
+
+            case R_X86_64_GOTPC32_TLSDESC:
+                type = "R_X86_64_GOTPC32_TLSDESC";
+                break;
+
+            case R_X86_64_TLSDESC_CALL:
+                type = "R_X86_64_TLSDESC_CALL";
+                break;
+
+            case R_X86_64_TLSDESC:
+                type = "R_X86_64_TLSDESC";
+                break;
+
+            case R_X86_64_IRELATIVE:
+                type = "R_X86_64_IRELATIVE";
+                break;
+
+            case R_X86_64_RELATIVE64:
+                type = "R_X86_64_RELATIVE64";
+                break;
+
+            case R_X86_64_GOTPCRELX:
+                type = "R_X86_64_GOTPCRELX";
+                break;
+
+            case R_X86_64_REX_GOTPCRELX:
+                type = "R_X86_64_REX_GOTPCRELX";
+                break;
+
+            case R_X86_64_NUM:
+                type = "R_X86_64_NUM";
+                break;
+            
+            default:
+                break;
+        }
+        
+        str_index = ELF64_R_SYM(rela_dyn[i].r_info);
+        if (rela_dyn[i].r_addend >= 0)
+            snprintf(name, SYMBOL_LENGTH, "%s + %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+        else
+            snprintf(name, SYMBOL_LENGTH, "%s %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+        PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
+    }
+    printf("\n");
 }

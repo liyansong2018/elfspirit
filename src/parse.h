@@ -33,6 +33,7 @@ typedef enum PARSE_OPT {
     SYMTAB,
     DYNSYM,
     LINK,
+    RELA,
     END
 } PARSE_OPT_T;
 

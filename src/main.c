@@ -95,7 +95,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:h::AHSPBDL";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:h::AHSPBDLR";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -152,6 +152,7 @@ static const char *help =
     "  -B, (no argument)                         Display | Edit .symtab information\n"
     "  -D, (no argument)                         Display | Edit .dynsym information\n"
     "  -L, (no argument)                         Display the link information\n"
+    "  -R, (no argument)                         Display relocation section\n"
     "Detailed Usage: \n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
@@ -204,6 +205,7 @@ static const char *help_chinese =
     "  -B, 不需要参数                    显示|编辑ELF: 静态符号表\n"
     "  -D, 不需要参数                    显示|编辑ELF: 动态符号表\n"
     "  -L, 不需要参数                    显示ELF链接\n"
+    "  -R, 不需要参数                    显示ELF重定位表\n"
     "细节: \n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
     "  elfspirit injectso [-n]<节的名字> [-f]<so的名字> [-c]<配置文件>\n"
@@ -362,6 +364,10 @@ static void readcmdline(int argc, char *argv[]) {
 
             case 'L':
                 po.options[po.index++] = LINK;
+                break;
+
+            case 'R':
+                po.options[po.index++] = RELA;
                 break;
             
             default:
