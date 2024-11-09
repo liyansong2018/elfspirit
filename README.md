@@ -9,13 +9,7 @@
 
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering, parse ELF like `readelf` and edit ELF like 010 editor.
 
-不想看英文？没关系，请戳中文简介，**但是如果你想了解工具的最新特性，只需要阅读此readme，因为其他博客没有更新** 😞
-- [x] [elfspirit：Linux平台下的静态分析和注入框架](https://bbs.pediy.com/thread-270194.htm)
-
-如果你想深入了解某些特性的细节，请阅读:(More details about static injection)
-- [x] [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/)
-
-Tips: Only the readme on the project homepage will tell you the latest features of the tool, while other documents will not. But you might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. 😊
+More details about static injection: [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/). Tips: Only the readme on the project homepage will tell you the latest features of the tool, while other documents will not. But you might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. 😊
 ## Building
 
 **elfspirit** can be installed easily:

@@ -123,14 +123,22 @@ int get_option(parser_opt_t *po, PARSE_OPT_T option){
     return -1;
 }
 
-#define SYMBOL_LENGTH 0x100
-char g_dynsym[SYMBOL_LENGTH][SYMBOL_LENGTH];      /* dynamic symobl table */
-char g_symtab[SYMBOL_LENGTH][SYMBOL_LENGTH];      /* symobl table */
+#define STR_NUM 0x4096
+#define STR_LENGTH 0x1024
+struct MyStr {
+    size_t count;
+    char name[STR_NUM][STR_LENGTH];
+};
+struct MyStr g_dynsym;
+struct MyStr g_symtab;
+struct MyStr g_secname;
+//char g_symtab[STR_NUM][STR_LENGTH];      /* symobl table */
+//char g_secname[STR_NUM][STR_LENGTH];     /* section name */   
 
 static void display_header32(handle_t32 *);
 static void display_header64(handle_t64 *);
-static void display_section32(handle_t32 *);
-static void display_section64(handle_t64 *);
+static void display_section32(handle_t32 *, int is_display);
+static void display_section64(handle_t64 *, int is_display);
 static void display_segment32(handle_t32 *);
 static void display_segment64(handle_t64 *);
 static void display_dynsym32(handle_t32 *, char *section_name, char *str_tab, int is_display);
@@ -187,7 +195,7 @@ int parse(char *elf, parser_opt_t *po) {
         
         /* Section Information */
         if (!get_option(po, SECTIONS) || !get_option(po, ALL))
-            display_section32(&h);
+            display_section32(&h, 1);
 
         /* Segmentation Information */
         if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
@@ -209,8 +217,10 @@ int parse(char *elf, parser_opt_t *po) {
 
         /* .rela.dyn .rela.plt Infomation */
         if (!get_option(po, RELA) || !get_option(po, ALL)) {
-            display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
-            display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
+            if (g_dynsym.count == 0)
+                display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            if (g_secname.count == 0)
+                display_section32(&h, 0);                       // get section name
             display_rela32(&h, ".rela.dyn");
             display_rela32(&h, ".rela.plt");
             display_rela32(&h, ".rela.text");
@@ -235,7 +245,7 @@ int parse(char *elf, parser_opt_t *po) {
 
         /* Section Information */
         if (!get_option(po, SECTIONS) || !get_option(po, ALL))
-            display_section64(&h);
+            display_section64(&h, 1);
 
         /* Segmentation Information */
         if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
@@ -257,8 +267,10 @@ int parse(char *elf, parser_opt_t *po) {
 
         /* .rela.dyn .rela.plt Infomation */
         if (!get_option(po, RELA) || !get_option(po, ALL)) {
-            display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
-            display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
+            if (g_dynsym.count == 0)
+                display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            if (g_secname.count == 0)
+                display_section64(&h, 0);                       // get section name
             display_rela64(&h, ".rela.dyn");
             display_rela64(&h, ".rela.plt");
             display_rela64(&h, ".rela.text");
@@ -590,14 +602,22 @@ static void display_header64(handle_t64 *h) {
  * @param {handle_t32} h
  * @return {void}
  */
-static void display_section32(handle_t32 *h) {
+static void display_section32(handle_t32 *h, int is_display) {
     char *name;
     char *tmp;
     char flag[4];
-    INFO("Section Header Table\n");
-    PRINT_SECTION_TITLE("Nr", "Name", "Type", "Addr", "Off", "Size", "Es", "Flg", "Lk", "Inf", "Al");
+    if (is_display) {
+        INFO("Section Header Table\n");
+        PRINT_SECTION_TITLE("Nr", "Name", "Type", "Addr", "Off", "Size", "Es", "Flg", "Lk", "Inf", "Al");
+    }
+
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        /* store section name */
+        if (i < STR_NUM && strlen(name) < STR_LENGTH){
+            g_secname.count++;
+            strcpy(g_secname.name[i], name);
+        }
         if (validated_offset(name, h->mem, h->mem + h->size)) {
             ERROR("Corrupt file format\n");
             exit(-1);
@@ -678,19 +698,28 @@ static void display_section32(handle_t32 *h) {
         }
         strcpy(flag, "   ");
         flag2str_sh(h->shdr[i].sh_flags, flag);
+        if (is_display)
         PRINT_SECTION(i, name, tmp, h->shdr[i].sh_addr, h->shdr[i].sh_offset, h->shdr[i].sh_size, h->shdr[i].sh_entsize, \
                         flag, h->shdr[i].sh_link, h->shdr[i].sh_info, h->shdr[i].sh_addralign);
     }
 }
 
-static void display_section64(handle_t64 *h) {
+static void display_section64(handle_t64 *h, int is_display) {
     char *name;
     char *tmp;
     char flag[4];
-    INFO("Section Header Table\n");
-    PRINT_SECTION_TITLE("Nr", "Name", "Type", "Addr", "Off", "Size", "Es", "Flg", "Lk", "Inf", "Al");
+    if (is_display) {
+        INFO("Section Header Table\n");
+        PRINT_SECTION_TITLE("Nr", "Name", "Type", "Addr", "Off", "Size", "Es", "Flg", "Lk", "Inf", "Al");
+    }
+    
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        /* store section name */
+        if (i < STR_NUM && strlen(name) < STR_LENGTH){
+            g_secname.count++;
+            strcpy(g_secname.name[i], name);
+        }
         if (validated_offset(name, h->mem, h->mem + h->size)) {
             ERROR("Corrupt file format\n");
             exit(-1);
@@ -771,6 +800,7 @@ static void display_section64(handle_t64 *h) {
         }
         strcpy(flag, "   ");
         flag2str_sh(h->shdr[i].sh_flags, flag);
+        if (is_display)
         PRINT_SECTION(i, name, tmp, h->shdr[i].sh_addr, h->shdr[i].sh_offset, h->shdr[i].sh_size, h->shdr[i].sh_entsize, \
                         flag, h->shdr[i].sh_link, h->shdr[i].sh_info, h->shdr[i].sh_addralign);
     }
@@ -1100,6 +1130,16 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, i
                     break;
             }
             name = h->mem + h->shdr[dynstr_index].sh_offset + sym[i].st_name;
+            /* store */
+            if (!strcmp(".symtab", section_name) && i < STR_NUM && strlen(name) < STR_LENGTH) {
+                g_symtab.count++;
+                strcpy(g_symtab.name[i], name);
+            } 
+            else if (!strcmp(".dynsym", section_name) &&  i < STR_NUM && strlen(name) < STR_LENGTH){
+                g_dynsym.count++;
+                strcpy(g_dynsym.name[i], name);
+            }
+            /* hide long strings */
             if (strlen(name) > 15) {
                 strcpy(&name[15 - 6], "[...]");
             }
@@ -1282,11 +1322,13 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, i
             }
             name = h->mem + h->shdr[dynstr_index].sh_offset + sym[i].st_name;
             /* store */
-            if (!strcmp(".symtab", section_name) && i < SYMBOL_LENGTH && strlen(name) < SYMBOL_LENGTH) {
-                strcpy(g_symtab[i], name);
+            if (!strcmp(".symtab", section_name) && i < STR_NUM && strlen(name) < STR_LENGTH) {
+                g_symtab.count++;
+                strcpy(g_symtab.name[i], name);
             } 
-            else if (!strcmp(".dynsym", section_name) &&  i < SYMBOL_LENGTH && strlen(name) < SYMBOL_LENGTH){
-                strcpy(g_dynsym[i], name);
+            else if (!strcmp(".dynsym", section_name) &&  i < STR_NUM && strlen(name) < STR_LENGTH){
+                g_dynsym.count++;
+                strcpy(g_dynsym.name[i], name);
             }
             /* hide long strings */
             if (strlen(name) > 15) {
@@ -2238,9 +2280,9 @@ static int display_rela32(handle_t32 *h, char *section_name) {
         
         str_index = ELF32_R_SYM(rela_dyn[i].r_info);
         if (rela_dyn[i].r_addend >= 0)
-            snprintf(name, SYMBOL_LENGTH, "%s + %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+            snprintf(name, STR_LENGTH, "%s + %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         else
-            snprintf(name, SYMBOL_LENGTH, "%s %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+            snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
     }
     printf("\n");
@@ -2467,9 +2509,9 @@ static int display_rela64(handle_t64 *h, char *section_name) {
         
         str_index = ELF64_R_SYM(rela_dyn[i].r_info);
         if (rela_dyn[i].r_addend >= 0)
-            snprintf(name, SYMBOL_LENGTH, "%s + %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+            snprintf(name, STR_LENGTH, "%s + %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         else
-            snprintf(name, SYMBOL_LENGTH, "%s %d", g_dynsym[str_index], rela_dyn[i].r_addend);
+            snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
     }
     printf("\n");
