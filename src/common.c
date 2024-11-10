@@ -168,6 +168,24 @@ int hex2str(unsigned int hex, char *ret, unsigned int len) {
 }
 
 /**
+ * @brief Compare string
+ * 
+ * @param str1 
+ * @param str2 
+ * @param n 
+ * @return int 
+ */
+int compare_firstN_chars(const char *str1, const char *str2, int n) {
+    // 检查字符串长度是否小于n，如果是，则返回0（不相同）
+    if (strlen(str1) < n || strlen(str2) < n) {
+        return 0;
+    }
+
+    // 比较两个字符串的前n位是否相同
+    return strncmp(str1, str2, n) == 0;
+}
+
+/**
  * @description: Determine whether elf is in 32-bit mode or 64-bit mode. (判断elf是32位还是64位)
  * @param {char} *elf_name
  * @return {*}

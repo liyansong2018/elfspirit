@@ -221,11 +221,11 @@ int parse(char *elf, parser_opt_t *po) {
                 display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
             if (g_secname.count == 0)
                 display_section32(&h, 0);                       // get section name
-            display_rela32(&h, ".rela.dyn");
-            display_rela32(&h, ".rela.plt");
-            display_rela32(&h, ".rela.text");
-            display_rela32(&h, ".rela.data");
-            display_rela32(&h, ".rela.eh_frame");
+            for (int i = 0; i < g_secname.count; i++) {
+                if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
+                    display_rela32(&h, g_secname.name[i]);
+                }
+            }
         }         
     }
 
@@ -271,11 +271,11 @@ int parse(char *elf, parser_opt_t *po) {
                 display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
             if (g_secname.count == 0)
                 display_section64(&h, 0);                       // get section name
-            display_rela64(&h, ".rela.dyn");
-            display_rela64(&h, ".rela.plt");
-            display_rela64(&h, ".rela.text");
-            display_rela64(&h, ".rela.data");
-            display_rela64(&h, ".rela.eh_frame");
+            for (int i = 0; i < g_secname.count; i++) {
+                if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
+                    display_rela64(&h, g_secname.name[i]);
+                }
+            }
         }
     }
 

@@ -101,6 +101,16 @@ int hex2str(unsigned int hex, char *ret, unsigned int len);
 char *str_reverse(char *str, int offset, int length);
 
 /**
+ * @brief Compare string
+ * 
+ * @param str1 
+ * @param str2 
+ * @param n 
+ * @return int 
+ */
+compare_firstN_Chars(const char *str1, const char *str2, int n);
+
+/**
  * @description: Determine whether elf is in 32-bit mode or 64-bit mode (判断elf是32位还是64位)
  * @param {char} *elf_name
  * @return {*}
