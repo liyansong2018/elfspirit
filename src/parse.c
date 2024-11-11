@@ -145,6 +145,8 @@ static void display_dynsym32(handle_t32 *, char *section_name, char *str_tab, in
 static void display_dynsym64(handle_t64 *, char *section_name, char *str_tab, int is_display);
 static void display_dyninfo32(handle_t32 *);
 static void display_dyninfo64(handle_t64 *);
+static int display_rel32(handle_t32 *, char *section_name);
+static int display_rel64(handle_t64 *, char *section_name);
 static int display_rela32(handle_t32 *, char *section_name);
 static int display_rela64(handle_t64 *, char *section_name);
 
@@ -219,11 +221,15 @@ int parse(char *elf, parser_opt_t *po) {
         if (!get_option(po, RELA) || !get_option(po, ALL)) {
             if (g_dynsym.count == 0)
                 display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            if (g_symtab.count == 0)
+                display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
             if (g_secname.count == 0)
                 display_section32(&h, 0);                       // get section name
             for (int i = 0; i < g_secname.count; i++) {
                 if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
                     display_rela32(&h, g_secname.name[i]);
+                } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
+                    display_rel32(&h, g_secname.name[i]);
                 }
             }
         }         
@@ -269,11 +275,15 @@ int parse(char *elf, parser_opt_t *po) {
         if (!get_option(po, RELA) || !get_option(po, ALL)) {
             if (g_dynsym.count == 0)
                 display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            if (g_symtab.count == 0)
+                display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
             if (g_secname.count == 0)
                 display_section64(&h, 0);                       // get section name
             for (int i = 0; i < g_secname.count; i++) {
                 if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
                     display_rela64(&h, g_secname.name[i]);
+                } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
+                    display_rel64(&h, g_secname.name[i]);
                 }
             }
         }
@@ -2060,7 +2070,457 @@ static void display_dyninfo64(handle_t64 *h) {
 }
 
 /** 
- * @brief .relation information
+ * @brief .relation information (.rel.*)
+ * 
+ * @param h 
+ * @param section_name 
+ * @return int error code {-1:error,0:sucess}
+ */
+static int display_rel32(handle_t32 *h, char *section_name) {
+    char *name = NULL;
+    char *type;
+    char *bind;
+    char *other;
+    int str_index;
+    int rela_dyn_index;
+    size_t count;
+    Elf32_Rel *rel_section;
+    int has_component = 0;
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            return -1;
+        }
+
+        if (!strcmp(name, section_name)) {
+            rela_dyn_index = i;
+            has_component = 1;
+        }
+    }
+
+    if (!has_component) {
+        WARNING("This file does not have a %s\n", section_name);
+        return -1;
+    }
+    
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        return -1;
+    }
+    
+    rel_section = (Elf32_Rel *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
+    count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf32_Rel);
+    INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
+    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name(.symtab)");
+    for (int i = 0; i < count; i++) {
+        switch (ELF32_R_TYPE(rel_section[i].r_info))
+        {
+            case R_X86_64_NONE:
+                type = "R_X86_64_NONE";
+                break;
+
+            case R_X86_64_64:
+                type = "R_X86_64_64";
+                break;
+
+            case R_X86_64_PC32:
+                type = "R_X86_64_PC32";
+                break;
+
+            case R_X86_64_GOT32:
+                type = "R_X86_64_GOT32";
+                break;
+
+            case R_X86_64_PLT32:
+                type = "R_X86_64_PLT32";
+                break;
+
+            case R_X86_64_COPY:
+                type = "R_X86_64_COPY";
+                break;
+
+            case R_X86_64_GLOB_DAT:
+                type = "R_X86_64_GLOB_DAT";
+                break;
+
+            case R_X86_64_JUMP_SLOT:
+                type = "R_X86_64_JUMP_SLOT";
+                break;
+
+            case R_X86_64_RELATIVE:
+                type = "R_X86_64_RELATIVE";
+                break;
+
+            case R_X86_64_GOTPCREL:
+                type = "R_X86_64_GOTPCREL";
+                break;
+
+            case R_X86_64_32:
+                type = "R_X86_64_32";
+                break;
+
+            case R_X86_64_32S:
+                type = "R_X86_64_32S";
+                break;
+
+            case R_X86_64_16:
+                type = "R_X86_64_16";
+                break;
+
+            case R_X86_64_PC16:
+                type = "R_X86_64_PC16";
+                break;
+
+            case R_X86_64_8:
+                type = "R_X86_64_8";
+                break;
+
+            case R_X86_64_PC8:
+                type = "R_X86_64_PC8";
+                break;
+
+            case R_X86_64_DTPMOD64:
+                type = "R_X86_64_DTPMOD64";
+                break;
+
+            case R_X86_64_DTPOFF64:
+                type = "R_X86_64_DTPOFF64";
+                break;
+
+            case R_X86_64_TPOFF64:
+                type = "R_X86_64_TPOFF64";
+                break;
+
+            case R_X86_64_TLSGD:
+                type = "R_X86_64_TLSGD";
+                break;
+
+            case R_X86_64_TLSLD:
+                type = "R_X86_64_TLSLD";
+                break;
+
+            case R_X86_64_DTPOFF32:
+                type = "R_X86_64_DTPOFF32";
+                break;
+
+            case R_X86_64_GOTTPOFF:
+                type = "R_X86_64_GOTTPOFF";
+                break;
+
+            case R_X86_64_TPOFF32:
+                type = "R_X86_64_TPOFF32";
+                break;
+
+            case R_X86_64_PC64:
+                type = "R_X86_64_PC64";
+                break;
+
+            case R_X86_64_GOTOFF64:
+                type = "R_X86_64_GOTOFF64";
+                break;
+
+            case R_X86_64_GOTPC32:
+                type = "R_X86_64_GOTPC32";
+                break;
+
+            case R_X86_64_GOT64:
+                type = "R_X86_64_GOT64";
+                break;
+
+            case R_X86_64_GOTPCREL64:
+                type = "R_X86_64_GOTPCREL64";
+                break;
+
+            case R_X86_64_GOTPC64:
+                type = "R_X86_64_GOTPC64";
+                break;
+
+            case R_X86_64_GOTPLT64:
+                type = "R_X86_64_GOTPLT64";
+                break;
+
+            case R_X86_64_PLTOFF64:
+                type = "R_X86_64_PLTOFF64";
+                break;
+
+            case R_X86_64_SIZE32:
+                type = "R_X86_64_SIZE32";
+                break;
+
+            case R_X86_64_SIZE64:
+                type = "R_X86_64_SIZE64";
+                break;
+
+            case R_X86_64_GOTPC32_TLSDESC:
+                type = "R_X86_64_GOTPC32_TLSDESC";
+                break;
+
+            case R_X86_64_TLSDESC_CALL:
+                type = "R_X86_64_TLSDESC_CALL";
+                break;
+
+            case R_X86_64_TLSDESC:
+                type = "R_X86_64_TLSDESC";
+                break;
+
+            case R_X86_64_IRELATIVE:
+                type = "R_X86_64_IRELATIVE";
+                break;
+
+            case R_X86_64_RELATIVE64:
+                type = "R_X86_64_RELATIVE64";
+                break;
+
+            case R_X86_64_GOTPCRELX:
+                type = "R_X86_64_GOTPCRELX";
+                break;
+
+            case R_X86_64_REX_GOTPCRELX:
+                type = "R_X86_64_REX_GOTPCRELX";
+                break;
+
+            case R_X86_64_NUM:
+                type = "R_X86_64_NUM";
+                break;
+            
+            default:
+                break;
+        }
+        
+        str_index = ELF32_R_SYM(rel_section[i].r_info);
+        PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+    }
+    printf("\n");
+}
+
+/** 
+ * @brief .relation information (.rel.*)
+ * 
+ * @param h 
+ * @param section_name 
+ * @return int error code {-1:error,0:sucess}
+ */
+static int display_rel64(handle_t64 *h, char *section_name) {
+    char *name = NULL;
+    char *type;
+    char *bind;
+    char *other;
+    int str_index;
+    int rela_dyn_index;
+    size_t count;
+    Elf64_Rel *rel_section;
+    int has_component = 0;
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            return -1;
+        }
+
+        if (!strcmp(name, section_name)) {
+            rela_dyn_index = i;
+            has_component = 1;
+        }
+    }
+
+    if (!has_component) {
+        WARNING("This file does not have a %s\n", section_name);
+        return -1;
+    }
+    
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        return -1;
+    }
+    
+    rel_section = (Elf64_Rel *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
+    count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf64_Rel);
+    INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
+    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name (.symtab)");
+    for (int i = 0; i < count; i++) {
+        switch (ELF64_R_TYPE(rel_section[i].r_info))
+        {
+            case R_X86_64_NONE:
+                type = "R_X86_64_NONE";
+                break;
+
+            case R_X86_64_64:
+                type = "R_X86_64_64";
+                break;
+
+            case R_X86_64_PC32:
+                type = "R_X86_64_PC32";
+                break;
+
+            case R_X86_64_GOT32:
+                type = "R_X86_64_GOT32";
+                break;
+
+            case R_X86_64_PLT32:
+                type = "R_X86_64_PLT32";
+                break;
+
+            case R_X86_64_COPY:
+                type = "R_X86_64_COPY";
+                break;
+
+            case R_X86_64_GLOB_DAT:
+                type = "R_X86_64_GLOB_DAT";
+                break;
+
+            case R_X86_64_JUMP_SLOT:
+                type = "R_X86_64_JUMP_SLOT";
+                break;
+
+            case R_X86_64_RELATIVE:
+                type = "R_X86_64_RELATIVE";
+                break;
+
+            case R_X86_64_GOTPCREL:
+                type = "R_X86_64_GOTPCREL";
+                break;
+
+            case R_X86_64_32:
+                type = "R_X86_64_32";
+                break;
+
+            case R_X86_64_32S:
+                type = "R_X86_64_32S";
+                break;
+
+            case R_X86_64_16:
+                type = "R_X86_64_16";
+                break;
+
+            case R_X86_64_PC16:
+                type = "R_X86_64_PC16";
+                break;
+
+            case R_X86_64_8:
+                type = "R_X86_64_8";
+                break;
+
+            case R_X86_64_PC8:
+                type = "R_X86_64_PC8";
+                break;
+
+            case R_X86_64_DTPMOD64:
+                type = "R_X86_64_DTPMOD64";
+                break;
+
+            case R_X86_64_DTPOFF64:
+                type = "R_X86_64_DTPOFF64";
+                break;
+
+            case R_X86_64_TPOFF64:
+                type = "R_X86_64_TPOFF64";
+                break;
+
+            case R_X86_64_TLSGD:
+                type = "R_X86_64_TLSGD";
+                break;
+
+            case R_X86_64_TLSLD:
+                type = "R_X86_64_TLSLD";
+                break;
+
+            case R_X86_64_DTPOFF32:
+                type = "R_X86_64_DTPOFF32";
+                break;
+
+            case R_X86_64_GOTTPOFF:
+                type = "R_X86_64_GOTTPOFF";
+                break;
+
+            case R_X86_64_TPOFF32:
+                type = "R_X86_64_TPOFF32";
+                break;
+
+            case R_X86_64_PC64:
+                type = "R_X86_64_PC64";
+                break;
+
+            case R_X86_64_GOTOFF64:
+                type = "R_X86_64_GOTOFF64";
+                break;
+
+            case R_X86_64_GOTPC32:
+                type = "R_X86_64_GOTPC32";
+                break;
+
+            case R_X86_64_GOT64:
+                type = "R_X86_64_GOT64";
+                break;
+
+            case R_X86_64_GOTPCREL64:
+                type = "R_X86_64_GOTPCREL64";
+                break;
+
+            case R_X86_64_GOTPC64:
+                type = "R_X86_64_GOTPC64";
+                break;
+
+            case R_X86_64_GOTPLT64:
+                type = "R_X86_64_GOTPLT64";
+                break;
+
+            case R_X86_64_PLTOFF64:
+                type = "R_X86_64_PLTOFF64";
+                break;
+
+            case R_X86_64_SIZE32:
+                type = "R_X86_64_SIZE32";
+                break;
+
+            case R_X86_64_SIZE64:
+                type = "R_X86_64_SIZE64";
+                break;
+
+            case R_X86_64_GOTPC32_TLSDESC:
+                type = "R_X86_64_GOTPC32_TLSDESC";
+                break;
+
+            case R_X86_64_TLSDESC_CALL:
+                type = "R_X86_64_TLSDESC_CALL";
+                break;
+
+            case R_X86_64_TLSDESC:
+                type = "R_X86_64_TLSDESC";
+                break;
+
+            case R_X86_64_IRELATIVE:
+                type = "R_X86_64_IRELATIVE";
+                break;
+
+            case R_X86_64_RELATIVE64:
+                type = "R_X86_64_RELATIVE64";
+                break;
+
+            case R_X86_64_GOTPCRELX:
+                type = "R_X86_64_GOTPCRELX";
+                break;
+
+            case R_X86_64_REX_GOTPCRELX:
+                type = "R_X86_64_REX_GOTPCRELX";
+                break;
+
+            case R_X86_64_NUM:
+                type = "R_X86_64_NUM";
+                break;
+            
+            default:
+                break;
+        }
+        
+        str_index = ELF64_R_SYM(rel_section[i].r_info);
+        PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+    }
+    printf("\n");
+}
+
+/** 
+ * @brief .relation information (.rela.*)
  * 
  * @param h 
  * @param section_name 
