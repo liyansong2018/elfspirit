@@ -96,4 +96,23 @@ int set_dynsym_bind(char *elf_name, int index, int value, char *section_name);
 int set_dynsym_other(char *elf_name, int index, int value, char *section_name);
 int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name);
 
-int edit(char *elf, parser_opt_t *po, int row, int column, int value);
+/**
+ * @brief Set the .rela section offset
+ * 
+ * @param elf_name elf file name
+ * @param index readelf section row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_rela_offset(char *elf_name, int index, int value, char *section_name);
+int set_rela_info(char *elf_name, int index, int value, char *section_name);
+int set_rela_type(char *elf_name, int index, int value, char *section_name);
+int set_rela_index(char *elf_name, int index, int value, char *section_name);
+int set_rela_addend(char *elf_name, int index, int value, char *section_name);
+/* .rel.* */
+int set_rel_offset(char *elf_name, int index, int value, char *section_name);
+int set_rel_info(char *elf_name, int index, int value, char *section_name);
+int set_rel_type(char *elf_name, int index, int value, char *section_name);
+int set_rel_index(char *elf_name, int index, int value, char *section_name);
+
+int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name);

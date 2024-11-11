@@ -85,6 +85,14 @@ enum SymbolLabel {
     ST_SHNDX,       /* Section index */
 };
 
+enum RelocationLabel {
+    R_OFFSET,       /* Address */
+    R_INFO,         /* Relocation type and symbol index */
+    R_TYPE,
+    R_INDEX,
+    R_ADDEND,       /* Addend */
+};
+
 /**
  * @brief Set the elf header information object
  * 
@@ -1069,14 +1077,346 @@ int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name) {
     return set_symbol_info(elf_name, index, value, ST_SHNDX, section_name);
 }
 
+int set_rel(char *elf_name, int index, int value, enum RelocationLabel label, char *section_name)  {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    int type;
+    int bind;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        Elf32_Rel *rel;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else
+                    return -1;
+                if (index >= size)
+                    return -1;
+                /* security check end*/
+                rel = (Elf32_Rel *)(elf_map + shdr[i].sh_offset);
+                switch (label)
+                {
+                    case R_OFFSET:
+                        printf("0x%x->0x%x\n", rel[index].r_offset, value);
+                        rel[index].r_offset = value;
+                        break;
+                    
+                    case R_INFO:
+                        printf("0x%x->0x%x\n", rel[index].r_info, value);
+                        rel[index].r_info = value;
+                        break;
+
+                    case R_TYPE:
+                        printf("0x%x->0x%x\n", ELF32_R_TYPE(rel[index].r_info), value);
+                        rel[index].r_info = ELF32_R_INFO(ELF32_R_SYM(rel[index].r_info), value);
+                        break;
+
+                    case R_INDEX:
+                        printf("0x%x->0x%x\n", ELF32_R_SYM(rel[index].r_info), value);
+                        rel[index].r_info = ELF32_R_INFO(value, ELF32_R_TYPE(rel[index].r_info));
+                        break;
+                    
+                    default:
+                        break;
+                }
+                break;
+            }
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        Elf64_Rel *rel;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else
+                    return -1;
+                if (index >= size)
+                    return -1;
+                /* security check end*/
+                rel = (Elf64_Rel *)(elf_map + shdr[i].sh_offset);
+                switch (label)
+                {
+                    case R_OFFSET:
+                        printf("0x%x->0x%x\n", rel[index].r_offset, value);
+                        rel[index].r_offset = value;
+                        break;
+                    
+                    case R_INFO:
+                        printf("0x%x->0x%x\n", rel[index].r_info, value);
+                        rel[index].r_info = value;
+                        break;
+
+                    case R_TYPE:
+                        printf("0x%x->0x%x\n", ELF64_R_TYPE(rel[index].r_info), value);
+                        rel[index].r_info = ELF64_R_INFO(ELF64_R_SYM(rel[index].r_info), value);
+                        break;
+
+                    case R_INDEX:
+                        printf("0x%x->0x%x\n", ELF64_R_SYM(rel[index].r_info), value);
+                        rel[index].r_info = ELF64_R_INFO(value, ELF64_R_TYPE(rel[index].r_info));
+                        break;
+                    
+                    default:
+                        break;
+                }
+                break;
+            }
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+}
+
+int set_rela(char *elf_name, int index, int value, enum RelocationLabel label, char *section_name)  {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    int type;
+    int bind;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        Elf32_Rela *rela;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else
+                    return -1;
+                if (index >= size)
+                    return -1;
+                /* security check end*/
+                rela = (Elf32_Rela *)(elf_map + shdr[i].sh_offset);
+                switch (label)
+                {
+                    case R_OFFSET:
+                        printf("0x%x->0x%x\n", rela[index].r_offset, value);
+                        rela[index].r_offset = value;
+                        break;
+                    
+                    case R_INFO:
+                        printf("0x%x->0x%x\n", rela[index].r_info, value);
+                        rela[index].r_info = value;
+                        break;
+
+                    case R_TYPE:
+                        printf("0x%x->0x%x\n", ELF32_R_TYPE(rela[index].r_info), value);
+                        rela[index].r_info = ELF32_R_INFO(ELF32_R_SYM(rela[index].r_info), value);
+                        break;
+
+                    case R_INDEX:
+                        printf("0x%x->0x%x\n", ELF32_R_SYM(rela[index].r_info), value);
+                        rela[index].r_info = ELF32_R_INFO(value, ELF32_R_TYPE(rela[index].r_info));
+                        break;
+
+                    case R_ADDEND:
+                        printf("%d->%d\n", rela[index].r_addend, value);
+                        rela[index].r_addend = value;
+                    
+                    default:
+                        break;
+                }
+                break;
+            }
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        Elf64_Rela *rela;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else
+                    return -1;
+                if (index >= size)
+                    return -1;
+                /* security check end*/
+                rela = (Elf64_Rela *)(elf_map + shdr[i].sh_offset);
+                switch (label)
+                {
+                    case R_OFFSET:
+                        printf("0x%x->0x%x\n", rela[index].r_offset, value);
+                        rela[index].r_offset = value;
+                        break;
+                    
+                    case R_INFO:
+                        printf("0x%x->0x%x\n", rela[index].r_info, value);
+                        rela[index].r_info = value;
+                        break;
+
+                    case R_TYPE:
+                        printf("0x%x->0x%x\n", ELF64_R_TYPE(rela[index].r_info), value);
+                        rela[index].r_info = ELF64_R_INFO(ELF64_R_SYM(rela[index].r_info), value);
+                        break;
+
+                    case R_INDEX:
+                        printf("0x%x->0x%x\n", ELF64_R_SYM(rela[index].r_info), value);
+                        rela[index].r_info = ELF64_R_INFO(value, ELF64_R_TYPE(rela[index].r_info));
+                        break;
+
+                    case R_ADDEND:
+                        printf("%d->%d\n", rela[index].r_addend, value);
+                        rela[index].r_addend = value;
+                    
+                    default:
+                        break;
+                }
+                break;
+            }
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+}
+
+/**
+ * @brief Set the .rela section offset
+ * 
+ * @param elf_name elf file name
+ * @param index readelf section row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_rela_offset(char *elf_name, int index, int value, char *section_name) {
+    return set_rela(elf_name, index, value, R_OFFSET, section_name);
+}
+
+int set_rela_info(char *elf_name, int index, int value, char *section_name) {
+    return set_rela(elf_name, index, value, R_INFO, section_name);
+}
+
+int set_rela_type(char *elf_name, int index, int value, char *section_name) {
+    return set_rela(elf_name, index, value, R_TYPE, section_name);
+}
+
+int set_rela_index(char *elf_name, int index, int value, char *section_name) {
+    return set_rela(elf_name, index, value, R_INDEX, section_name);
+}
+
+int set_rela_addend(char *elf_name, int index, int value, char *section_name) {
+    return set_rela(elf_name, index, value, R_ADDEND, section_name);
+}
+
+/* .rel.* */
+int set_rel_offset(char *elf_name, int index, int value, char *section_name) {
+    return set_rel(elf_name, index, value, R_OFFSET, section_name);
+}
+
+int set_rel_info(char *elf_name, int index, int value, char *section_name) {
+    return set_rel(elf_name, index, value, R_INFO, section_name);
+}
+
+int set_rel_type(char *elf_name, int index, int value, char *section_name) {
+    return set_rel(elf_name, index, value, R_TYPE, section_name);
+}
+
+int set_rel_index(char *elf_name, int index, int value, char *section_name) {
+    return set_rel(elf_name, index, value, R_INDEX, section_name);
+}
+
 /**
  * @brief entry function
  * 
  * @param elf elf file name
  * @param po selection
+ * @param section_name only for rela section
  * @return error code {-1:error,0:sucess} 
  */
-int edit(char *elf, parser_opt_t *po, int row, int column, int value) {
+int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name) {
     int error_code = 0;
 
     /* edit ELF header information */
@@ -1302,6 +1642,61 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value) {
             default:
                 break;
         }
+    }
+
+    /* edit .rel and .rela informtion */
+    if (!get_option(po, RELA)) {
+        if (compare_firstN_chars(section_name, ".rel.", 5)) {
+            switch (column)
+            {
+                case 0:
+                    error_code = set_rel_offset(elf, row, value, section_name);
+                    break;
+
+                case 1:
+                    error_code = set_rel_info(elf, row, value, section_name);
+                    break;
+
+                case 2:
+                    error_code = set_rel_type(elf, row, value, section_name);
+                    break;
+
+                case 3:
+                    error_code = set_rel_index(elf, row, value, section_name);
+                    break;
+                
+                default:
+                    break;
+            }
+        }
+        if (compare_firstN_chars(section_name, ".rela", 5)) {
+            switch (column)
+            {
+                case 0:
+                    error_code = set_rela_offset(elf, row, value, section_name);
+                    break;
+
+                case 1:
+                    error_code = set_rela_info(elf, row, value, section_name);
+                    break;
+
+                case 2:
+                    error_code = set_rela_type(elf, row, value, section_name);
+                    break;
+
+                case 3:
+                    error_code = set_rela_index(elf, row, value, section_name);
+                    break;
+
+                case 4:
+                    error_code = set_rela_addend(elf, row, value, section_name);
+                    break;
+                
+                default:
+                    break;
+            }
+        }
+
     }
 
     return error_code;

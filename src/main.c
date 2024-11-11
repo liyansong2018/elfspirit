@@ -152,7 +152,7 @@ static const char *help =
     "  -B, (no argument)                         Display | Edit .symtab information\n"
     "  -D, (no argument)                         Display | Edit .dynsym information\n"
     "  -L, (no argument)                         Display the link information\n"
-    "  -R, (no argument)                         Display relocation section\n"
+    "  -R, (no argument)                         Display | Edit relocation section\n"
     "Detailed Usage: \n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
@@ -167,7 +167,7 @@ static const char *help =
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
-    "  elfspirit edit [-H|S|P|B|D] [-i]<row> [-j]<column> [-m]<value> FILE_NAME\n"
+    "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m]<value> FILE_NAME\n"
     "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n"
     "  elfspirit mod_seg_flags [-i]<row of segment> [-m]<value> FILE_NAME\n"
     "  elfspirit mod_dyn_value [-i]<row of .dynsym> [-m]<value> FILE_NAME\n";
@@ -205,7 +205,7 @@ static const char *help_chinese =
     "  -B, 不需要参数                    显示|编辑ELF: 静态符号表\n"
     "  -D, 不需要参数                    显示|编辑ELF: 动态符号表\n"
     "  -L, 不需要参数                    显示ELF链接\n"
-    "  -R, 不需要参数                    显示ELF重定位表\n"
+    "  -R, 不需要参数                    显示|编辑ELF: 重定位表\n"
     "细节: \n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
     "  elfspirit injectso [-n]<节的名字> [-f]<so的名字> [-c]<配置文件>\n"
@@ -218,7 +218,7 @@ static const char *help_chinese =
                             "ELF\n"
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n"
-    "  elfspirit edit [-H|S|P|B|D] [-i]<第几行> [-j]<第几列> [-m]<修改值> FILE_NAME\n"
+    "  elfspirit edit [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m]<修改值> FILE_NAME\n"
     "  elfspirit mod_sec_flags [-n]<节的名字> [-m]<权限值> ELF\n"
     "  elfspirit mod_seg_flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit mod_dyn_value [-i]<第几行.dynsym> [-m]<值> FILE_NAME\n";
@@ -447,7 +447,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* edit elf */
     if (!strcmp(function, "edit")) {
-        edit(elf_name, &po, row, column, value);
+        edit(elf_name, &po, row, column, value, section_name);
     }
 
 #ifdef DEBUG
