@@ -115,4 +115,16 @@ int set_rel_info(char *elf_name, int index, int value, char *section_name);
 int set_rel_type(char *elf_name, int index, int value, char *section_name);
 int set_rel_index(char *elf_name, int index, int value, char *section_name);
 
-int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name);
+/**
+ * @brief Set the .dynamic section offset
+ * 
+ * @param elf_name elf file name
+ * @param index readelf section row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dyn_tag(char *elf_name, int index, int value);
+int set_dyn_value(char *elf_name, int index, int value);
+int set_dyn_value_by_name(char *elf_name, int index, char *name);
+
+int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name, char *file_name);

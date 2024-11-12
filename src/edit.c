@@ -93,6 +93,11 @@ enum RelocationLabel {
     R_ADDEND,       /* Addend */
 };
 
+enum DynamicLabel {
+    D_TAG,
+    D_VALUE,
+};
+
 /**
  * @brief Set the elf header information object
  * 
@@ -1408,6 +1413,245 @@ int set_rel_index(char *elf_name, int index, int value, char *section_name) {
     return set_rel(elf_name, index, value, R_INDEX, section_name);
 }
 
+static int set_dyn(char *elf_name, int index, int value, enum DynamicLabel label)  {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        Elf32_Dyn *dyn;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(".dynamic", tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else {
+                    close(fd);
+                    return -1;
+                }
+                if (index >= size) {
+                    close(fd);
+                    return -1;
+                }
+                /* security check end*/
+                dyn = (Elf32_Dyn *)(elf_map + shdr[i].sh_offset);
+                break;
+            }
+        }
+
+        if (!dyn) {
+            close(fd);
+            WARNING("This file does not have %s\n", ".dynamic");
+            return -1;
+        }
+
+        switch (label)
+        {
+            case D_TAG:
+                printf("%d->%d\n", dyn[index].d_tag, value);
+                dyn[index].d_tag = value;
+                break;
+
+            case D_VALUE:
+                printf("0x%x->0x%x\n", dyn[index].d_un.d_val, value);
+                dyn[index].d_un.d_val = value;
+            
+            default:
+                break;
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        Elf64_Dyn *dyn;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(".dynamic", tmp_sec_name)) {
+                int size = 0;
+                /* security check start*/
+                if (shdr[i].sh_entsize != 0)
+                    size = shdr[i].sh_size / shdr[i].sh_entsize;
+                else {
+                    close(fd);
+                    return -1;
+                }
+                if (index >= size) {
+                    close(fd);
+                    return -1;
+                }
+                /* security check end*/
+                dyn = (Elf64_Dyn *)(elf_map + shdr[i].sh_offset);
+                break;
+            }
+        }
+
+        if (!dyn) {
+            close(fd);
+            WARNING("This file does not have %s\n", ".dynamic");
+            return -1;
+        }
+
+        switch (label)
+        {
+            case D_TAG:
+                printf("%d->%d\n", dyn[index].d_tag, value);
+                dyn[index].d_tag = value;
+                break;
+
+            case D_VALUE:
+                printf("0x%x->0x%x\n", dyn[index].d_un.d_val, value);
+                dyn[index].d_un.d_val = value;
+            
+            default:
+                break;
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+}
+
+/**
+ * @brief Set the .dynamic section offset
+ * 
+ * @param elf_name elf file name
+ * @param index readelf section row
+ * @param value 
+ * @return error code {-1:error,0:sucess}
+ */
+int set_dyn_tag(char *elf_name, int index, int value) {
+    return set_dyn(elf_name, index, value, D_TAG);
+}
+
+int set_dyn_value(char *elf_name, int index, int value) {
+    return set_dyn(elf_name, index, value, D_VALUE);
+}
+
+int set_dyn_value_by_name(char *elf_name, int index, char *name) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    int eh_frame_offset;
+    int dynstr_offset;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(".eh_frame", tmp_sec_name)) {
+                eh_frame_offset = shdr[i].sh_offset;
+            } else if (!strcmp(".dynstr", tmp_sec_name)) {
+                dynstr_offset = shdr[i].sh_offset;
+            }
+        }
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(".eh_frame", tmp_sec_name)) {
+                eh_frame_offset = shdr[i].sh_offset;
+            } else if (!strcmp(".dynstr", tmp_sec_name)) {
+                dynstr_offset = shdr[i].sh_offset;
+            }
+        }
+    }
+
+    if (!eh_frame_offset) {
+        WARNING("This file does not have %s\n", ".eh_frame");
+        close(fd);
+        return -1;
+    } else if (!dynstr_offset) {
+        WARNING("This file does not have %s\n", ".dynstr");
+        close(fd);
+        return -1;
+    }
+
+    // 1. copy name
+    strcpy(elf_map + eh_frame_offset, name);
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+
+    // 2. set offset
+    return set_dyn(elf_name, index, eh_frame_offset - dynstr_offset, D_VALUE);
+}
+
 /**
  * @brief entry function
  * 
@@ -1416,7 +1660,7 @@ int set_rel_index(char *elf_name, int index, int value, char *section_name) {
  * @param section_name only for rela section
  * @return error code {-1:error,0:sucess} 
  */
-int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name) {
+int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name, char *str_name) {
     int error_code = 0;
 
     /* edit ELF header information */
@@ -1697,6 +1941,31 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
             }
         }
 
+    }
+
+    /* edit .dynamic informtion */
+    if (!get_option(po, LINK)) {
+        switch (column)
+        {
+            case 0:
+                error_code = set_dyn_tag(elf, row, value);
+                break;
+
+            case 1:
+                error_code = set_dyn_tag(elf, row, value);
+                break;
+
+            case 2:
+                if (!strlen(str_name)) {
+                    error_code = set_dyn_value(elf, row, value);
+                } else {
+                    error_code = set_dyn_value_by_name(elf, row, str_name);
+                }
+                break;
+            
+            default:
+                break;
+        }
     }
 
     return error_code;

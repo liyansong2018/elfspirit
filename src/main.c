@@ -447,7 +447,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* edit elf */
     if (!strcmp(function, "edit")) {
-        edit(elf_name, &po, row, column, value, section_name);
+        edit(elf_name, &po, row, column, value, section_name, file_name);
     }
 
 #ifdef DEBUG
