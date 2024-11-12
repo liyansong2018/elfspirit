@@ -110,6 +110,8 @@ $ ./elfspirit delsec -c configure/multi_sec_name hello
 
 ELF file infection is a broad concept, which may only involve modifying specific bytes or modifying the entire section. Let's take a static injection as an example.
 
+#### Scheme 1
+
 How to make a Linux program load a malicious *.so file? Perhaps you would say that hijacking through DLL/SO is sufficient. If you have debugging permissions for the target program, this method is indeed feasible. But the environment is not always so friendly.
 
 **elfspirit** provides the ability for static injection, injecting a piece of code (commonly known as shellcode) through file infection to load a so.
@@ -139,7 +141,26 @@ f7fa8000-f7fa9000 r-xp 00001000 08:01 2726661      /home/lys/Documents/elf/testc
 f7fa9000-f7faa000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
 ```
 
-Unfortunately, the static injection feature provided by elfspirit may depend on a specific version of the Linux loader, so we have provided some configuration files: configure/offsetjson, in preparation for future gcc/ld versions.
+#### Scheme 2
+
+The static injection feature provided by elfspirit may depend on a specific version of the Linux loader, so we have provided some configuration files: configure/offsetjson, in preparation for future gcc/ld versions.
+
+Fortunately, we have an alternative solution. Directly load malicious so by modifying the .dynamic section. For example, we can add so directly in the .dynamic section through the edit module provided by elfspirit.
+
+![3](pictures/3.png)
+
+Edit `main`
+
+```shell
+$ elfspirit edit -L -i27 -j0 -m1 main
+0->1
+$ elfspirit edit -L -i27 -j2 -ftest.so main
+0x0->0x1ba8
+```
+
+We have successfully linked a new so!
+
+![4](pictures/4.png)
 
 ## Limitations
 
