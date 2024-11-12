@@ -58,12 +58,12 @@
     Nr, value, size, type, bind, vis, ndx, name)
 
 /* print dynamic table*/
-#define PRINT_DYN(tag, type, value) \
-    printf("     %08x   %-15s   %-30s\n", \
-    tag, type, value);
-#define PRINT_DYN_TITLE(tag, type, value) \
-    printf("     %-10s   %-15s   %-30s\n", \
-    tag, type, value);
+#define PRINT_DYN(Nr, tag, type, value) \
+    printf("     [%2d] %08x   %-15s   %-30s\n", \
+    Nr, tag, type, value);
+#define PRINT_DYN_TITLE(Nr, tag, type, value) \
+    printf("     [%2s] %-10s   %-15s   %-30s\n", \
+    Nr, tag, type, value);
 
 /* print .rela */
 #define PRINT_RELA(Nr, offset, info, type, value, name) \
@@ -1386,7 +1386,7 @@ static void display_dyninfo32(handle_t32 *h) {
     dyn = (Elf32_Dyn *)&h->mem[h->shdr[dynamic].sh_offset];
     count = h->shdr[dynamic].sh_size / sizeof(Elf32_Dyn);
     INFO("Dynamic section at offset 0x%x contains %d entries\n", h->shdr[dynamic].sh_offset, count);
-    PRINT_DYN_TITLE("Tag", "Type", "Name/Value");
+    PRINT_DYN_TITLE("Nr", "Tag", "Type", "Name/Value");
     
     for(int i = 0; i < count; i++) {
         memset(value, 0, 50);
@@ -1709,7 +1709,7 @@ static void display_dyninfo32(handle_t32 *h) {
                 tmp = UNKOWN;
                 break;
         }
-        PRINT_DYN(dyn[i].d_tag, tmp, value);
+        PRINT_DYN(i, dyn[i].d_tag, tmp, value);
     }
 }
 
@@ -1742,7 +1742,7 @@ static void display_dyninfo64(handle_t64 *h) {
     dyn = (Elf64_Dyn *)&h->mem[h->shdr[dynamic].sh_offset];
     count = h->shdr[dynamic].sh_size / sizeof(Elf64_Dyn);
     INFO("Dynamic section at offset 0x%x contains %d entries\n", h->shdr[dynamic].sh_offset, count);
-    PRINT_DYN_TITLE("Tag", "Type", "Name/Value");
+    PRINT_DYN_TITLE("Nr", "Tag", "Type", "Name/Value");
     
     for(int i = 0; i < count; i++) {
         memset(value, 0, 50);
@@ -2065,7 +2065,7 @@ static void display_dyninfo64(handle_t64 *h) {
                 tmp = UNKOWN;
                 break;
         }
-        PRINT_DYN(dyn[i].d_tag, tmp, value);
+        PRINT_DYN(i, dyn[i].d_tag, tmp, value);
     }
 }
 
