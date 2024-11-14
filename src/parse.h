@@ -43,7 +43,7 @@ typedef struct parser_opt {
 } parser_opt_t;
 #endif
 
-int parse(char *elf, parser_opt_t *po);
+int parse(char *elf, parser_opt_t *po, uint32_t length);
 
 /**
  * @description: Judge whether the option is true

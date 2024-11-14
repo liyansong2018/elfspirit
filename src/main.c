@@ -60,6 +60,7 @@ uint32_t class;
 uint32_t value;
 uint32_t row;
 uint32_t column;
+uint32_t length;
 parser_opt_t po;
 
 /**
@@ -95,7 +96,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:h::AHSPBDLR";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLR";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -113,6 +114,7 @@ static const struct option longopts[] = {
     {"index", required_argument, NULL, 'i'},
     {"row", required_argument, NULL, 'i'},
     {"column", required_argument, NULL, 'j'},
+    {"length", required_argument, NULL, 'l'},
     {0, 0, 0, 0}
 };
 
@@ -143,6 +145,8 @@ static const char *help =
     "  -b, --base=<ELF base address>             ELF base address\n"
     "  -o, --offset=<injection offset>           Offset of injection point\n"
     "  -i, --row=<object index>                  Index of the object to be read or written\n"
+    "  -j, --column=<vertical axis>              The vertical axis of the object to be read or written\n"
+    "  -l, --length=<string length>              Display the maximum length of the string\n"
     "  -v, --version-libc=<libc version>         Libc.so or ld.so version\n"
     "  -h, --help[={none|English|Chinese}]       Display this output\n"
     "  -A, (no argument)                         Display all ELF file infomation\n"
@@ -196,6 +200,8 @@ static const char *help_chinese =
     "  -b, --base=<ELF base address>             设置ELF入口地址\n"
     "  -o, --offset=<injection offset>           注入点的偏移位置(预留选项，非必须)\n"
     "  -i, --row=<object index>                  待读出或者写入的对象的下标\n"
+    "  -j, --column=<vertical axis>              待读出或者写入的对象的纵坐标\n"
+    "  -l, --length=<string length>              解析ELF文件时，显示字符串的最大长度\n"
     "  -v, --version-libc=<libc version>         libc或者ld的版本\n"
     "  -h, --help[={none|English|Chinese}]       帮助\n"
     "  -A, 不需要参数                    显示ELF解析器解析的所有信息\n"
@@ -338,6 +344,15 @@ static void readcmdline(int argc, char *argv[]) {
                 }                
                 break;
 
+            case 'l':
+                if (strlen(optarg) > 1 && optarg[0] == '0' && optarg[1] == 'x') {
+                    length = hex2int(optarg);
+                }
+                else{
+                    length = atoi(optarg);
+                }                
+                break;
+
             /* ELF parser's options */
             case 'A':
                 po.options[po.index++] = ALL;
@@ -406,7 +421,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* ELF parser */
     if (!strcmp(function, "parse")) {
-        parse(elf_name, &po);
+        parse(elf_name, &po, length);
     }
 
     /* add elf info to firmware for IDA */

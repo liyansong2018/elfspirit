@@ -132,6 +132,7 @@ struct MyStr {
 struct MyStr g_dynsym;
 struct MyStr g_symtab;
 struct MyStr g_secname;
+uint32_t g_strlength;
 //char g_symtab[STR_NUM][STR_LENGTH];      /* symobl table */
 //char g_secname[STR_NUM][STR_LENGTH];     /* section name */   
 
@@ -150,7 +151,7 @@ static int display_rel64(handle_t64 *, char *section_name);
 static int display_rela32(handle_t32 *, char *section_name);
 static int display_rela64(handle_t64 *, char *section_name);
 
-int parse(char *elf, parser_opt_t *po) {
+int parse(char *elf, parser_opt_t *po, uint32_t length) {
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -158,6 +159,12 @@ int parse(char *elf, parser_opt_t *po) {
     char *tmp;
     char *name;
     char flag[4];
+
+    if (!length) {
+        g_strlength = 15;
+    } else {
+        g_strlength = length;
+    }
 
     MODE = get_elf_class(elf);
     if (MODE == -1) {
@@ -703,8 +710,8 @@ static void display_section32(handle_t32 *h, int is_display) {
                 break;
         }
 
-        if (strlen(name) > 15) {
-            strcpy(&name[15 - 6], "[...]");
+        if (strlen(name) > g_strlength) {
+            strcpy(&name[g_strlength - 6], "[...]");
         }
         strcpy(flag, "   ");
         flag2str_sh(h->shdr[i].sh_flags, flag);
@@ -805,8 +812,8 @@ static void display_section64(handle_t64 *h, int is_display) {
                 break;
         }
 
-        if (strlen(name) > 15) {
-            strcpy(&name[15 - 6], "[...]");
+        if (strlen(name) > g_strlength) {
+            strcpy(&name[g_strlength - 6], "[...]");
         }
         strcpy(flag, "   ");
         flag2str_sh(h->shdr[i].sh_flags, flag);
@@ -1150,8 +1157,8 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, i
                 strcpy(g_dynsym.name[i], name);
             }
             /* hide long strings */
-            if (strlen(name) > 15) {
-                strcpy(&name[15 - 6], "[...]");
+            if (strlen(name) > g_strlength) {
+                strcpy(&name[g_strlength - 6], "[...]");
             }
             if (is_display)
             PRINT_DYNSYM(i, sym[i].st_value, sym[i].st_size, type, bind, \
@@ -1341,8 +1348,8 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, i
                 strcpy(g_dynsym.name[i], name);
             }
             /* hide long strings */
-            if (strlen(name) > 15) {
-                strcpy(&name[15 - 6], "[...]");
+            if (strlen(name) > g_strlength) {
+                strcpy(&name[g_strlength - 6], "[...]");
             }
             if (is_display)
             PRINT_DYNSYM(i, sym[i].st_value, sym[i].st_size, type, bind, \
