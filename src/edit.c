@@ -995,13 +995,133 @@ int set_symbol_info(char *elf_name, int index, int value, enum SymbolLabel label
  * @brief Set the dynsym name object
  * 
  * @param elf_name elf file name
- * @param index readelf .dynsym row
+ * @param index elf file name
  * @param value value to be edited
  * @param section_name .dynsym or .symtab
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_name(char *elf_name, int index, int value, char *section_name) {
     return set_symbol_info(elf_name, index, value, ST_NAME, section_name);
+}
+
+/**
+ * @brief Set the dynsym name by str object
+ * 
+ * @param elf_name elf file name
+ * @param index elf file name
+ * @param str_value string value to be edited
+ * @param section_name .dynsym or .symtab
+ * @param str_section_name .dynstr or .strtab
+ * @return int 
+ */
+int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *section_name, char *str_section_name) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    int has_component;
+    int sym_index;
+    int str_index;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        Elf32_Sym *sym;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(tmp_sec_name, str_section_name)) {
+                str_index = i;
+            }
+
+            if (!strcmp(tmp_sec_name, section_name)) {
+                sym_index = i;
+                has_component = 1;
+            }
+        }
+
+        if (!str_index) {
+            WARNING("This file does not have %s\n", str_section_name);
+            return -1;
+        }
+
+        if (!sym_index) {
+            WARNING("This file does not have %s\n", section_name);
+            return -1;
+        }
+
+        sym = (Elf32_Sym *)(elf_map + shdr[sym_index].sh_offset);
+        tmp_sec_name = elf_map + shdr[str_index].sh_offset + sym[index].st_name;
+        printf("%s->%s\n", tmp_sec_name, str_value);
+        strcpy(tmp_sec_name, str_value);
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        Elf64_Sym *sym;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(tmp_sec_name, str_section_name)) {
+                str_index = i;
+            }
+
+            if (!strcmp(tmp_sec_name, section_name)) {
+                sym_index = i;
+                has_component = 1;
+            }
+        }
+
+        if (!str_index) {
+            WARNING("This file does not have %s\n", str_section_name);
+            return -1;
+        }
+
+        if (!sym_index) {
+            WARNING("This file does not have %s\n", section_name);
+            return -1;
+        }
+
+        sym = (Elf64_Sym *)(elf_map + shdr[sym_index].sh_offset);
+        tmp_sec_name = elf_map + shdr[str_index].sh_offset + sym[index].st_name;
+        printf("%s->%s\n", tmp_sec_name, str_value);
+        strcpy(tmp_sec_name, str_value);
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
 }
 
 /**
@@ -1843,7 +1963,11 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
                 break;
 
             case 6:
-                error_code = set_dynsym_name(elf, row, value, ".dynsym");
+                if (!strlen(str_name)) {
+                    error_code = set_dynsym_name(elf, row, value, ".dynsym");
+                } else {
+                    error_code = set_dynsym_name_by_str(elf, row, str_name, ".dynsym", ".dynstr");
+                }
                 break;
             
             default:
@@ -1856,8 +1980,11 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
         switch (column)
         {
             case 0:
-                error_code = set_dynsym_value(elf, row, value, ".symtab");
-                break;
+                if (!strlen(str_name)) {
+                    error_code = set_dynsym_name(elf, row, value, ".symtab");
+                } else {
+                    error_code = set_dynsym_name_by_str(elf, row, str_name, ".symtab", ".strtab");
+                }
 
             case 1:
                 error_code = set_dynsym_size(elf, row, value, ".symtab");
