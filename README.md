@@ -9,7 +9,7 @@
 
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering, parse ELF like `readelf` and edit ELF like 010 editor.
 
-More details about static injection: [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/). Tips: Only the readme on the project homepage will tell you the latest features of the tool, while other documents will not. But you might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more.
+More details about static injection: [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/). Tips: Only the readme on the project homepage will tell you the latest features of the tool, while other documents will not. But you might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. Compared to [patchelf](https://github.com/NixOS/patchelf), elfspirit provides a more flexible editing environment.
 ## Building
 
 **elfspirit** can be installed easily:
@@ -17,16 +17,6 @@ More details about static injection: [ELF Static Injection to Load Malicious Dyn
 ```shell
 make
 ```
-
-## Dependencies
-
-We run **elfspirit** using:
-
-- Ubuntu 20.04 / Kali Linux 2020.4
-- gcc 10.2.1
-- libc-2.31/2.32
-
-Currently, this is the only supported environment. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. 
 
 ## Usage
 
@@ -59,7 +49,7 @@ $ elfspirit parse -H myelf
      [12] e_shstrndx:                0x1c (Section header string table index)
 ```
 
-### Freely edit every byte of ELF, like 010 editor
+### Freely edit every byte of ELF, not just 010 editor
 
 We can easily edit any byte of ELF files using elfspirit, such as removing the stack non executable feature (`-z noexecstack`) of executable binary files.
 
@@ -104,6 +94,10 @@ Sometimes we need to limit the size of an ELF file, so deleting a useless sectio
 $ ./elfspirit delsec -n .eh_frame_hdr hello
 # delete multi-sections
 $ ./elfspirit delsec -c configure/multi_sec_name hello
+```
+Strip
+```
+$ ./elfspirit delsec -n .strtab hello
 ```
 
 ### ELF file infection or static injection
@@ -168,6 +162,16 @@ We have successfully linked a new so!
 
 -  `addsec`  The location of the added section only supports a specific offset address of ELF file, such as existing section offset, section header table offset and the end of the file. This is because if we add a section in another location, the program may not work properly.
 -  `injectso` is an experimental binary, which mainly implements the idea of static injection. The current version only passes the verification test on libc-2.31/2.32. Therefore, we specially provided a JSON file to load the relevant offset addresses of other versions of libc.
+
+We run **elfspirit** using:
+
+- Ubuntu 20.04 / Kali Linux 2020.4
+- gcc 10.2.1
+- libc-2.31/2.32
+
+Currently, this is the only supported environment in elfspirit injection module. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues.
+
+**The other functional modules of elfspirit are not limited by the environment.**
 
 ## License
 

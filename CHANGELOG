@@ -1,3 +1,9 @@
+[2024-11-19]
+    elfspirit 1.5
+        - Add the more ability to parse and modify ELF, such as .rel*. and .dynamic section
+        - Allow users to set the length of the string to be displayed themselves
+        - Fix some errors
+
 [2024-11-04]
     elfspirit 1.4
         - Add the ability to modify any byte of ELF
