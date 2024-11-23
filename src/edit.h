@@ -62,6 +62,8 @@ int set_section_info(char *elf_name, int index, int value);
 int set_section_align(char *elf_name, int index, int value);
 int set_section_entsize(char *elf_name, int index, int value);
 
+int set_section_name_by_str(char *elf_name, int index, char *value);
+
 /**
  * @brief Set the segment type
  * 

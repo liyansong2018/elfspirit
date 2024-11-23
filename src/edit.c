@@ -571,6 +571,89 @@ int set_section_entsize(char *elf_name, int index, int value) {
     return set_section(elf_name, index, value, S_ENTSIZE);
 }
 
+int set_section_name_by_str(char *elf_name, int index, char *value) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *sec_name;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+
+        shstrtab = shdr[ehdr->e_shstrndx];
+        sec_name = elf_map + shstrtab.sh_offset + shdr[index].sh_name;
+        if (validated_offset(sec_name, elf_map, elf_map + st.st_size)) {
+            ERROR("Corrupt file format\n");
+            goto ERR_EXIT;
+        }
+        if (validated_offset(sec_name + strlen(value), elf_map, elf_map + st.st_size)) {
+            ERROR("The input string is too long\n");
+            goto ERR_EXIT;
+        }
+        printf("%s->%s\n", sec_name, value);
+        strcpy(sec_name, value);
+    }
+
+    /* 64bit */
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        
+        shstrtab = shdr[ehdr->e_shstrndx];
+        sec_name = elf_map + shstrtab.sh_offset + shdr[index].sh_name;
+        if (validated_offset(sec_name, elf_map, elf_map + st.st_size)) {
+            ERROR("Corrupt file format\n");
+            goto ERR_EXIT;
+        }
+        if (validated_offset(sec_name + strlen(value), elf_map, elf_map + st.st_size)) {
+            ERROR("The input string is too long\n");
+            goto ERR_EXIT;
+        }
+        printf("%s->%s\n", sec_name, value);
+        strcpy(sec_name, value);
+    }
+
+    else {
+        ERROR("Invalid ELF class");
+        goto ERR_EXIT;
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
+}
+
 /**
  * @brief Set the segment information
  * 
@@ -814,7 +897,7 @@ int set_segment_align(char *elf_name, int index, int value) {
  * @param section_name .dynsym or .symtab
  * @return error code {-1:error,0:sucess}
  */
-int set_symbol_info(char *elf_name, int index, int value, enum SymbolLabel label, char *section_name) {
+static int set_symbol(char *elf_name, int index, int value, enum SymbolLabel label, char *section_name) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
@@ -1001,7 +1084,7 @@ int set_symbol_info(char *elf_name, int index, int value, enum SymbolLabel label
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_name(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_NAME, section_name);
+    return set_symbol(elf_name, index, value, ST_NAME, section_name);
 }
 
 /**
@@ -1054,6 +1137,14 @@ int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *sec
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
             tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(tmp_sec_name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (validated_offset(tmp_sec_name + strlen(str_value), elf_map, elf_map + st.st_size)) {
+                ERROR("The input string is too long\n");
+                goto ERR_EXIT;
+            }
             if (!strcmp(tmp_sec_name, str_section_name)) {
                 str_index = i;
             }
@@ -1066,12 +1157,12 @@ int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *sec
 
         if (!str_index) {
             WARNING("This file does not have %s\n", str_section_name);
-            return -1;
+            goto ERR_EXIT;
         }
 
         if (!sym_index) {
             WARNING("This file does not have %s\n", section_name);
-            return -1;
+            goto ERR_EXIT;
         }
 
         sym = (Elf32_Sym *)(elf_map + shdr[sym_index].sh_offset);
@@ -1093,6 +1184,14 @@ int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *sec
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
             tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(tmp_sec_name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (validated_offset(tmp_sec_name + strlen(str_value), elf_map, elf_map + st.st_size)) {
+                ERROR("The input string is too long\n");
+                goto ERR_EXIT;
+            }
             if (!strcmp(tmp_sec_name, str_section_name)) {
                 str_index = i;
             }
@@ -1105,12 +1204,12 @@ int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *sec
 
         if (!str_index) {
             WARNING("This file does not have %s\n", str_section_name);
-            return -1;
+            goto ERR_EXIT;
         }
 
         if (!sym_index) {
             WARNING("This file does not have %s\n", section_name);
-            return -1;
+            goto ERR_EXIT;
         }
 
         sym = (Elf64_Sym *)(elf_map + shdr[sym_index].sh_offset);
@@ -1122,6 +1221,11 @@ int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *sec
     close(fd);
     munmap(elf_map, st.st_size);
     return 0;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
 }
 
 /**
@@ -1134,7 +1238,7 @@ int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *sec
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_value(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_VALUE, section_name);
+    return set_symbol(elf_name, index, value, ST_VALUE, section_name);
 }
 
 /**
@@ -1147,7 +1251,7 @@ int set_dynsym_value(char *elf_name, int index, int value, char *section_name) {
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_size(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_SIZE, section_name);
+    return set_symbol(elf_name, index, value, ST_SIZE, section_name);
 }
 
 /**
@@ -1160,7 +1264,7 @@ int set_dynsym_size(char *elf_name, int index, int value, char *section_name) {
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_type(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_TYPE, section_name);
+    return set_symbol(elf_name, index, value, ST_TYPE, section_name);
 }
 
 /**
@@ -1173,7 +1277,7 @@ int set_dynsym_type(char *elf_name, int index, int value, char *section_name) {
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_bind(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_BIND, section_name);
+    return set_symbol(elf_name, index, value, ST_BIND, section_name);
 }
 
 /**
@@ -1186,7 +1290,7 @@ int set_dynsym_bind(char *elf_name, int index, int value, char *section_name) {
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_other(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_OTHER, section_name);
+    return set_symbol(elf_name, index, value, ST_OTHER, section_name);
 }
 
 /**
@@ -1199,7 +1303,7 @@ int set_dynsym_other(char *elf_name, int index, int value, char *section_name) {
  * @return error code {-1:error,0:sucess}
  */
 int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name) {
-    return set_symbol_info(elf_name, index, value, ST_SHNDX, section_name);
+    return set_symbol(elf_name, index, value, ST_SHNDX, section_name);
 }
 
 int set_rel(char *elf_name, int index, int value, enum RelocationLabel label, char *section_name)  {
@@ -1849,7 +1953,11 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
         switch (column)
         {
             case 0:
-                error_code = set_section_name(elf, row, value);
+                if (!strlen(str_name)) {
+                    error_code = set_section_name(elf, row, value);
+                } else {
+                    error_code = set_section_name_by_str(elf, row, str_name);
+                }
                 break;
 
             case 1:

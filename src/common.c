@@ -50,6 +50,17 @@ enum SectionLabel {
 };
 
 /**
+ * @description: Judge whether the memory address is legal
+ * @param {uint64_t} addr
+ * @param {uint64_t} start
+ * @param {uint64_t} end
+ * @return {*}
+ */
+int validated_offset(uint64_t addr, uint64_t start, uint64_t end){
+    return addr <= end && addr >= start? 0:-1;
+}
+
+/**
  * @description: get name from path. (从路径中得到文件名)
  * @param {char} *file
  * @param {char} *file_name

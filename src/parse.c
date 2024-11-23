@@ -96,17 +96,6 @@ int flag2str_sh(int flag, char *flag_str) {
 }
 
 /**
- * @description: Judge whether the memory address is legal
- * @param {uint32_t} addr
- * @param {uint32_t} start
- * @param {uint32_t} end
- * @return {*}
- */
-int validated_offset(uint32_t addr, uint32_t start, uint32_t end){
-    return addr <= end && addr >= start? 0:-1;
-}
-
-/**
  * @description: Judge whether the option is true
  * @param {parser_opt_t} po
  * @param {PARSE_OPT_T} option
