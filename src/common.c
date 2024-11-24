@@ -586,3 +586,127 @@ int get_section_size(char *elf_name, char *section_name) {
         return section_info.sh_size;
     }
 }
+
+static int set_section_content(char *elf_name, char *sec_name, char *value) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+    uint8_t *start_addr;
+    int sec_index;
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(tmp_sec_name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (validated_offset(tmp_sec_name + strlen(value) + 1, elf_map, elf_map + st.st_size)) {
+                ERROR("The input string is too long\n");
+                goto ERR_EXIT;
+            }
+            if (!strcmp(tmp_sec_name, sec_name)) {
+                sec_index = i;
+                break;
+            }
+        }
+
+        if (!sec_index) {
+            WARNING("This file does not have %s\n", sec_name);
+            goto ERR_EXIT;
+        }
+
+        start_addr = (char *)(elf_map + shdr[sec_index].sh_offset);
+    }
+
+    /* 64bit */
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(tmp_sec_name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (validated_offset(tmp_sec_name + strlen(value) + 1, elf_map, elf_map + st.st_size)) {
+                ERROR("The input string is too long\n");
+                goto ERR_EXIT;
+            }
+            if (!strcmp(tmp_sec_name, sec_name)) {
+                sec_index = i;
+                break;
+            }
+        }
+
+        if (!sec_index) {
+            WARNING("This file does not have %s\n", sec_name);
+            goto ERR_EXIT;
+        }
+
+        start_addr = (char *)(elf_map + shdr[sec_index].sh_offset);
+    }
+
+    else {
+        ERROR("Invalid ELF class");
+        goto ERR_EXIT;
+    }
+
+    printf("%s->%s\n", start_addr, value);
+    strcpy(start_addr, value);
+    memset(start_addr + strlen(value), '\0', 1);
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
+}
+
+/**
+ * @brief Set the interpreter object
+ * 
+ * @param elf_name elf file name
+ * @param new_interpreter string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_interpreter(char *elf_name, char *new_interpreter) {
+    return set_section_content(elf_name, ".interp", new_interpreter);
+}

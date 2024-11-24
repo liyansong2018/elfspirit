@@ -195,3 +195,12 @@ int get_section_size(char *elf_name, char *section_name);
  * @return {*}
  */
 int validated_offset(uint64_t addr, uint64_t start, uint64_t end);
+
+/**
+ * @brief Set the interpreter object
+ * 
+ * @param elf_name elf file name
+ * @param new_interpreter string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_interpreter(char *elf_name, char *new_interpreter);
