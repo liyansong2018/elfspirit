@@ -108,7 +108,7 @@ char *str_reverse(char *str, int offset, int length);
  * @param n 
  * @return int 
  */
-compare_firstN_chars(const char *str1, const char *str2, int n);
+int compare_firstN_chars(const char *str1, const char *str2, int n);
 
 /**
  * @description: Determine whether elf is in 32-bit mode or 64-bit mode (判断elf是32位还是64位)
@@ -186,15 +186,6 @@ int get_section_offset(char *elf_name, char *section_name);
  * @return section 
  */
 int get_section_size(char *elf_name, char *section_name);
-
-/**
- * @brief Set the section flags
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @param value permission
- */
-void set_section_flags1(char *elf_name, char *section_name, int value);
 
 /**
  * @description: Judge whether the memory address is legal

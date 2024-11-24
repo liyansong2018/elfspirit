@@ -62,6 +62,12 @@ uint32_t row;
 uint32_t column;
 uint32_t length;
 parser_opt_t po;
+/* Additional long parameters */
+static int g_long_option;
+enum LONG_OPTION {
+    SET_SEC_FLAGS = 1,
+    SET_SEG_FLAGS,
+};
 
 /**
  * @description: obtain tool version
@@ -115,6 +121,8 @@ static const struct option longopts[] = {
     {"row", required_argument, NULL, 'i'},
     {"column", required_argument, NULL, 'j'},
     {"length", required_argument, NULL, 'l'},
+    {"set-sec-flags", no_argument, &g_long_option, SET_SEC_FLAGS},
+    {"set-seg-flags", no_argument, &g_long_option, SET_SEG_FLAGS},
     {0, 0, 0, 0}
 };
 
@@ -173,9 +181,8 @@ static const char *help =
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
     "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m|-f]<int|string value> FILE_NAME\n"
-    "  elfspirit mod_sec_flags [-n]<section name> [-m]<permission> FILE_NAME\n"
-    "  elfspirit mod_seg_flags [-i]<row of segment> [-m]<value> FILE_NAME\n"
-    "  elfspirit mod_dyn_value [-i]<row of .dynsym> [-m]<value> FILE_NAME\n";
+    "  elfspirit --set-sec-flags [-i]<row of section> [-m]<permission> FILE_NAME\n"
+    "  elfspirit --set-seg-flags [-i]<row of segment> [-m]<permission> FILE_NAME\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -227,9 +234,8 @@ static const char *help_chinese =
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n"
     "  elfspirit edit [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-f]<int|str修改值> FILE_NAME\n"
-    "  elfspirit mod_sec_flags [-n]<节的名字> [-m]<权限值> ELF\n"
-    "  elfspirit mod_seg_flags [-i]<第几个段> [-m]<权限值> ELF\n"
-    "  elfspirit mod_dyn_value [-i]<第几行.dynsym> [-m]<值> FILE_NAME\n";
+    "  elfspirit --set-sec-flags [-i]<第几个节> [-m]<权限值> ELF\n"
+    "  elfspirit --set-seg-flags [-i]<第几个段> [-m]<权限值> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -392,9 +398,33 @@ static void readcmdline(int argc, char *argv[]) {
         }
     }
 
-    if (optind != argc - 2) {
+    /* handle additional long parameters */
+    if (optind == argc - 1) {
+        memcpy(elf_name, argv[optind], LENGTH);
+        if (g_long_option) {
+            switch (g_long_option)
+            {
+                case SET_SEC_FLAGS:
+                    /* modify section information */
+                    set_section_flags(elf_name, row, value);
+                    break;
+
+                case SET_SEG_FLAGS:
+                    /* modify segment information */
+                    set_segment_flags(elf_name, row, value);
+                    break;
+                
+                default:
+                    break;
+            }
+        }
         exit(-1);
     }
+
+    else if (optind != argc - 2) {
+        exit(-1);
+    }
+    /* handle additional function parameters */
     else {
         memcpy(function, argv[optind], LENGTH);
         memcpy(elf_name, argv[++optind], LENGTH);
@@ -445,21 +475,6 @@ static void readcmdline(int argc, char *argv[]) {
         } else if (size != 0) {
             extract_fragment(elf_name, off, size);
         }
-    }
-
-    /* modify section information */
-    if (!strcmp(function, "mod_sec_flags")) {
-        set_section_flags(elf_name, section_name, value);
-    }
-
-    /* modify segment information */
-    if (!strcmp(function, "mod_seg_flags")) {
-        set_segment_flags(elf_name, row, value);
-    }
-
-    /* modify .dynsym information */
-    if (!strcmp(function, "mod_dyn_value")) {
-        set_dynsym_value(elf_name, row, value, ".dynsym");
     }
 
     /* edit elf */
