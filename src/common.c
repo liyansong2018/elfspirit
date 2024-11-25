@@ -36,19 +36,6 @@
 int MODE;
 int ARCH;
 
-enum SectionLabel {
-    NAME,	        /* Section name (string tbl index) */
-    TYPE,           /* Section type */
-    FLAGS,		    /* Section flags */
-    ADDR,		    /* Section virtual addr at execution */
-    OFF,		    /* Section file offset */
-    SIZE,		    /* Section size in bytes */
-    LINK,		    /* Link to another section */
-    INFO,		    /* Additional section information */
-    ALIGN,		    /* Section alignment */
-    ENTSIZE,	    /* Entry size if section holds table */
-};
-
 /**
  * @description: Judge whether the memory address is legal
  * @param {uint64_t} addr
@@ -173,7 +160,7 @@ char *str_reverse(char *str, int offset, int length) {
  */
 int hex2str(unsigned int hex, char *ret, unsigned int len) {
     for (int i = 0; i < len; i++) {
-    	ret[i] = (hex >> 8 * i) & 0xff;
+        ret[i] = (hex >> 8 * i) & 0xff;
     }
     return 0;
 }
@@ -454,18 +441,20 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
 }
 
 /**
- * @brief Get the section information
+ * @brief Get the section content
  * 
  * @param elf_name original file name
  * @param section_name input argument: section name
- * @param section_info output argument: section information
+ * @param section_info output argument: section content
+ * @return error code {-1:error,0:sucess}
  */
-void get_section_info(char *elf_name, char *section_name, char *section_info) {
+int get_section(char *elf_name, char *section_name, char *section_info) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint8_t *elf_map;
-    uint8_t *tmp_sec_name;
+    uint8_t *name;
+    int flag = 0;
 
     fd = open(elf_name, O_RDONLY);
     if (fd < 0) {
@@ -495,8 +484,13 @@ void get_section_info(char *elf_name, char *section_name, char *section_info) {
         shstrtab = shdr[ehdr->e_shstrndx];
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
-            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (!strcmp(section_name, tmp_sec_name)) {
+            name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (!strcmp(name, section_name)) {
+                flag = 1;
                 memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
                 break;
             }
@@ -504,7 +498,7 @@ void get_section_info(char *elf_name, char *section_name, char *section_info) {
     }
 
     /* 64bit */
-    if (MODE == ELFCLASS64) {
+    else if (MODE == ELFCLASS64) {
         Elf64_Ehdr *ehdr;
         Elf64_Shdr *shdr;
         Elf64_Shdr shstrtab;
@@ -514,17 +508,37 @@ void get_section_info(char *elf_name, char *section_name, char *section_info) {
         shstrtab = shdr[ehdr->e_shstrndx];
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
-            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (!strcmp(section_name, tmp_sec_name)) {
-                memcpy(section_info, &shdr[i], sizeof(Elf64_Shdr));          
+            name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (!strcmp(name, section_name)) {
+                flag = 1;
+                memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
                 break;
             }
         }
     }
 
+    else {
+        ERROR("Invalid ELF class");
+        goto ERR_EXIT;
+    }
+
+    if (!flag) {
+        ERROR("This file does not have %s\n", section_name);
+        goto ERR_EXIT;
+    }
+
     close(fd);
     munmap(elf_map, st.st_size);
     return 0;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
 };
 
 /**
@@ -538,11 +552,11 @@ int get_section_addr(char *elf_name, char *section_name) {
     MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
-        get_section_info(elf_name, section_name, &section_info);
+        get_section(elf_name, section_name, &section_info);
         return section_info.sh_addr;
     } else if (MODE == ELFCLASS64) {
         Elf64_Shdr section_info;
-        get_section_info(elf_name, section_name, &section_info);
+        get_section(elf_name, section_name, &section_info);
         return section_info.sh_addr;
     }
 }
@@ -558,11 +572,11 @@ int get_section_offset(char *elf_name, char *section_name) {
     MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
-        get_section_info(elf_name, section_name, &section_info);
+        get_section(elf_name, section_name, &section_info);
         return section_info.sh_offset;
     } else if (MODE == ELFCLASS64) {
         Elf64_Shdr section_info;
-        get_section_info(elf_name, section_name, &section_info);
+        get_section(elf_name, section_name, &section_info);
         return section_info.sh_offset;
     }
 }
@@ -578,23 +592,29 @@ int get_section_size(char *elf_name, char *section_name) {
     MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
-        get_section_info(elf_name, section_name, &section_info);
+        get_section(elf_name, section_name, &section_info);
         return section_info.sh_size;
     } else if (MODE == ELFCLASS64) {
         Elf64_Shdr section_info;
-        get_section_info(elf_name, section_name, &section_info);
+        get_section(elf_name, section_name, &section_info);
         return section_info.sh_size;
     }
 }
 
-static int set_section_content(char *elf_name, char *sec_name, char *value) {
-    MODE = get_elf_class(elf_name);
+/**
+ * @brief Set content
+ * 
+ * @param elf_name elf file name
+ * @param offset start elf file offset
+ * @param content new value string value to be edited
+ * @param size content size
+ * @return int error code {-1:error,0:sucess}
+ */
+static int set_content(char *elf_name, uint64_t offset, char *content, size_t size) {
     int fd;
     struct stat st;
     uint8_t *elf_map;
-    uint8_t *tmp_sec_name;
     uint8_t *start_addr;
-    int sec_index;
 
     fd = open(elf_name, O_RDWR);
     if (fd < 0) {
@@ -612,83 +632,21 @@ static int set_section_content(char *elf_name, char *sec_name, char *value) {
         perror("mmap");
         return -1;
     }
-    
-    /* 32bit */
-    if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr;
-        Elf32_Shdr *shdr;
-        Elf32_Shdr shstrtab;
 
-        ehdr = (Elf32_Ehdr *)elf_map;
-        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
-        shstrtab = shdr[ehdr->e_shstrndx];
-
-        for (int i = 0; i < ehdr->e_shnum; i++) {
-            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (validated_offset(tmp_sec_name, elf_map, elf_map + st.st_size)) {
-                ERROR("Corrupt file format\n");
-                goto ERR_EXIT;
-            }
-            if (validated_offset(tmp_sec_name + strlen(value) + 1, elf_map, elf_map + st.st_size)) {
-                ERROR("The input string is too long\n");
-                goto ERR_EXIT;
-            }
-            if (!strcmp(tmp_sec_name, sec_name)) {
-                sec_index = i;
-                break;
-            }
-        }
-
-        if (!sec_index) {
-            WARNING("This file does not have %s\n", sec_name);
-            goto ERR_EXIT;
-        }
-
-        start_addr = (char *)(elf_map + shdr[sec_index].sh_offset);
+    start_addr = elf_map + offset;
+    if (!start_addr) {
+        goto ERR_EXIT;
     }
-
-    /* 64bit */
-    else if (MODE == ELFCLASS64) {
-        Elf64_Ehdr *ehdr;
-        Elf64_Shdr *shdr;
-        Elf64_Shdr shstrtab;
-
-        ehdr = (Elf64_Ehdr *)elf_map;
-        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
-        shstrtab = shdr[ehdr->e_shstrndx];
-
-        for (int i = 0; i < ehdr->e_shnum; i++) {
-            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (validated_offset(tmp_sec_name, elf_map, elf_map + st.st_size)) {
-                ERROR("Corrupt file format\n");
-                goto ERR_EXIT;
-            }
-            if (validated_offset(tmp_sec_name + strlen(value) + 1, elf_map, elf_map + st.st_size)) {
-                ERROR("The input string is too long\n");
-                goto ERR_EXIT;
-            }
-            if (!strcmp(tmp_sec_name, sec_name)) {
-                sec_index = i;
-                break;
-            }
-        }
-
-        if (!sec_index) {
-            WARNING("This file does not have %s\n", sec_name);
-            goto ERR_EXIT;
-        }
-
-        start_addr = (char *)(elf_map + shdr[sec_index].sh_offset);
-    }
-
-    else {
-        ERROR("Invalid ELF class");
+    if (
+        validated_offset(start_addr, elf_map, elf_map + st.st_size) ||
+        validated_offset(start_addr + size, elf_map, elf_map + st.st_size)
+    ) {
         goto ERR_EXIT;
     }
 
-    printf("%s->%s\n", start_addr, value);
-    strcpy(start_addr, value);
-    memset(start_addr + strlen(value), '\0', 1);
+    printf("%s->%s\n", start_addr, content);
+    memset(start_addr, 0, size);
+    memcpy(start_addr, content, size);
 
     close(fd);
     munmap(elf_map, st.st_size);
@@ -708,5 +666,7 @@ ERR_EXIT:
  * @return int error code {-1:error,0:sucess}
  */
 int set_interpreter(char *elf_name, char *new_interpreter) {
-    return set_section_content(elf_name, ".interp", new_interpreter);
+    // get offset and update elf class
+    uint64_t offset = get_section_offset(elf_name, ".interp");
+    return set_content(elf_name, offset, new_interpreter, strlen(new_interpreter) + 1);
 }

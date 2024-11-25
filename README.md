@@ -169,9 +169,9 @@ We run **elfspirit** using:
 - gcc 10.2.1
 - libc-2.31/2.32
 
-Currently, this is the only supported environment in elfspirit injection module. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues.
+Currently, this is the only supported environment in elfspirit injection module. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. **The other functional modules of elfspirit are not limited by the environment.** 
 
-**The other functional modules of elfspirit are not limited by the environment.**
+Due to the lack of support for object-oriented programming in C language and limited personal abilities, there may be some redundant code in this project. Please understand.
 
 ## License
 

@@ -90,13 +90,13 @@ int set_segment_align(char *elf_name, int index, int value);
  * @param section_name .dynsym or .symtab
  * @return error code {-1:error,0:sucess}
  */
-int set_dynsym_name(char *elf_name, int index, int value, char *section_name);
-int set_dynsym_value(char *elf_name, int index, int value, char *section_name);
-int set_dynsym_size(char *elf_name, int index, int value, char *section_name);
-int set_dynsym_type(char *elf_name, int index, int value, char *section_name);
-int set_dynsym_bind(char *elf_name, int index, int value, char *section_name);
-int set_dynsym_other(char *elf_name, int index, int value, char *section_name);
-int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name);
+int set_sym_name(char *elf_name, int index, int value, char *section_name);
+int set_sym_value(char *elf_name, int index, int value, char *section_name);
+int set_sym_size(char *elf_name, int index, int value, char *section_name);
+int set_sym_type(char *elf_name, int index, int value, char *section_name);
+int set_sym_bind(char *elf_name, int index, int value, char *section_name);
+int set_sym_other(char *elf_name, int index, int value, char *section_name);
+int set_sym_shndx(char *elf_name, int index, int value, char *section_name);
 /**
  * @brief Set the dynsym name by str object
  * 
@@ -107,7 +107,7 @@ int set_dynsym_shndx(char *elf_name, int index, int value, char *section_name);
  * @param str_section_name .dynstr or .strtab
  * @return int 
  */
-int set_dynsym_name_by_str(char *elf_name, int index, char *str_value, char *section_name, char *str_section_name);
+int set_sym_name_by_str(char *elf_name, int index, char *str_value, char *section_name, char *str_section_name);
 
 /**
  * @brief Set the .rela section offset
