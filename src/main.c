@@ -65,9 +65,10 @@ parser_opt_t po;
 /* Additional long parameters */
 static int g_long_option;
 enum LONG_OPTION {
-    SET_SEC_FLAGS = 1,
-    SET_SEG_FLAGS,
+    SET_SECTION_FLAGS = 1,
+    SET_SEGMENT_FLAGS,
     SET_INTERPRETER,
+    ADD_SEGMENT,
 };
 
 /**
@@ -122,9 +123,10 @@ static const struct option longopts[] = {
     {"row", required_argument, NULL, 'i'},
     {"column", required_argument, NULL, 'j'},
     {"length", required_argument, NULL, 'l'},
-    {"set-sec-flags", no_argument, &g_long_option, SET_SEC_FLAGS},
-    {"set-seg-flags", no_argument, &g_long_option, SET_SEG_FLAGS},
+    {"set-section-flags", no_argument, &g_long_option, SET_SECTION_FLAGS},
+    {"set-segment-flags", no_argument, &g_long_option, SET_SEGMENT_FLAGS},
     {"set-interpreter", no_argument, &g_long_option, SET_INTERPRETER},
+    {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
     {0, 0, 0, 0}
 };
 
@@ -183,8 +185,8 @@ static const char *help =
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
     "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m|-f]<int|string value> FILE_NAME\n"
-    "  elfspirit --set-sec-flags [-i]<row of section> [-m]<permission> FILE_NAME\n"
-    "  elfspirit --set-seg-flags [-i]<row of segment> [-m]<permission> FILE_NAME\n"
+    "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> FILE_NAME\n"
+    "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> FILE_NAME\n"
     "  elfspirit --set-interpreter [-f]<new interpreter> FILE_NAME\n";
 
 static const char *help_chinese = 
@@ -237,8 +239,8 @@ static const char *help_chinese =
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n"
     "  elfspirit edit [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-f]<int|str修改值> FILE_NAME\n"
-    "  elfspirit --set-sec-flags [-i]<第几个节> [-m]<权限值> ELF\n"
-    "  elfspirit --set-seg-flags [-i]<第几个段> [-m]<权限值> ELF\n"
+    "  elfspirit --set-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
+    "  elfspirit --set-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
@@ -408,12 +410,12 @@ static void readcmdline(int argc, char *argv[]) {
         if (g_long_option) {
             switch (g_long_option)
             {
-                case SET_SEC_FLAGS:
+                case SET_SECTION_FLAGS:
                     /* modify section information */
                     set_section_flags(elf_name, row, value);
                     break;
 
-                case SET_SEG_FLAGS:
+                case SET_SEGMENT_FLAGS:
                     /* modify segment information */
                     set_segment_flags(elf_name, row, value);
                     break;
@@ -421,6 +423,11 @@ static void readcmdline(int argc, char *argv[]) {
                 case SET_INTERPRETER:
                     /* set new interpreter */
                     set_interpreter(elf_name, file_name);
+                    break;
+
+                case ADD_SEGMENT:
+                    /* add a segment */
+                    add_segment(elf_name, PT_LOAD, size);
                     break;
                 
                 default:

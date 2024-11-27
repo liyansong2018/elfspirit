@@ -43,6 +43,7 @@
 #define INFO(format, ...) printf (""L_GREEN" [+] "format""NONE"", ##__VA_ARGS__)
 
 #define UNKOWN "Unkown"
+#define PAGE_SIZE 4096 // 4K的大小
 
 /* ELF class */
 extern int MODE;
@@ -109,6 +110,14 @@ char *str_reverse(char *str, int offset, int length);
  * @return int 
  */
 int compare_firstN_chars(const char *str1, const char *str2, int n);
+
+/**
+ * @brief 计算一个地址的4K对齐地址
+ * align 4k address
+ * @param address input address
+ * @return uint64_t output 4k address
+ */
+uint64_t align_to_4k(uint64_t address);
 
 /**
  * @description: Determine whether elf is in 32-bit mode or 64-bit mode (判断elf是32位还是64位)
@@ -204,3 +213,13 @@ int validated_offset(uint64_t addr, uint64_t start, uint64_t end);
  * @return int error code {-1:error,0:sucess}
  */
 int set_interpreter(char *elf_name, char *new_interpreter);
+
+/**
+ * @brief 增加一个段
+ * add a segment
+ * @param elf_name 
+ * @param type segment type
+ * @param start segment size
+ * @return int segment offset
+ */
+int add_segment(char *elf_name, int type, size_t size);
