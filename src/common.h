@@ -41,6 +41,12 @@
 #define WARNING(format, ...) printf (""YELLOW" [!] "format""NONE"", ##__VA_ARGS__)
 #define ERROR(format, ...) printf (""L_RED" [-] "format""NONE"", ##__VA_ARGS__)
 #define INFO(format, ...) printf (""L_GREEN" [+] "format""NONE"", ##__VA_ARGS__)
+#define VERBOSE(format, ...) printf (""YELLOW"[*] "format""NONE"", ##__VA_ARGS__)
+#ifdef debug
+    #define DEBUG(format, ...) printf (""YELLOW"[d] "format""NONE"", ##__VA_ARGS__)
+#else
+    #define DEBUG(format, ...)
+#endif
 
 #define UNKOWN "Unkown"
 #define PAGE_SIZE 4096 // 4K的大小
@@ -213,13 +219,3 @@ int validated_offset(uint64_t addr, uint64_t start, uint64_t end);
  * @return int error code {-1:error,0:sucess}
  */
 int set_interpreter(char *elf_name, char *new_interpreter);
-
-/**
- * @brief 增加一个段
- * add a segment
- * @param elf_name 
- * @param type segment type
- * @param start segment size
- * @return int segment offset
- */
-int add_segment(char *elf_name, int type, size_t size);

@@ -4,12 +4,13 @@ CFLAGS = -w -c
 
 ifeq ($(debug), true)
 	CXXFLAGS=-g -fsanitize=address
+	CXXFLAGS+=-Ddebug
 else
 	CXXFLAGS=-O3
 endif
 
-$(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o
-	$(CC) $(CXXFLAGS) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o -o $(TARGET)
+$(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o segment.o
+	$(CC) $(CXXFLAGS) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o segment.o -o $(TARGET)
 %.o: %.c
 	$(CC) $(CFLAGS) $(CXXFLAGS) $< -o $@
 

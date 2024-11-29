@@ -22,6 +22,7 @@
  SOFTWARE.
 */
 
+#define _GNU_SOURCE 1
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -191,6 +192,22 @@ int compare_firstN_chars(const char *str1, const char *str2, int n) {
  */
 uint64_t align_to_4k(uint64_t address) {
     return ((address + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1));
+}
+
+/**
+ * @brief 获取文件大小
+ * obtain file size
+ * @param filename file name
+ * @return uint64_t file size
+ */
+uint64_t get_file_size(const char *filename) {
+    struct stat st;
+    if (stat(filename, &st) == 0) {
+        return st.st_size;
+    } else {
+        // 如果获取文件大小失败，返回-1或其他错误代码
+        return -1;
+    }
 }
 
 /**
@@ -690,202 +707,4 @@ int set_interpreter(char *elf_name, char *new_interpreter) {
         //offset = add_segment(elf_name, PT_LOAD, strlen(new_interpreter) + 1);
         //set_segment_offset(elf_name, offset);
     }
-}
-
-/**
- * @brief 得到段的映射地址范围
- * Obtain the mapping address range of the segment
- * @param elf_name 
- * @param type segment type
- * @param start output args
- * @param end output args
- * @return int error code {-1:error,0:sucess}
- */
-static int get_segment_range(char *elf_name, int type, uint64_t *start, uint64_t *end) {
-    MODE = get_elf_class(elf_name);
-    int fd;
-    struct stat st;
-    uint8_t *elf_map;
-    uint64_t low = 0xffffffff;
-    uint64_t high = 0;
-
-    fd = open(elf_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
-    if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        Elf32_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        // 计算地址的最大值和最小值
-        // calculate the maximum and minimum values of the virtual address
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == type) {
-                if (phdr[i].p_vaddr < low)
-                    low = phdr[i].p_vaddr;
-                if (phdr[i].p_vaddr + phdr[i].p_memsz > high)
-                    high = phdr[i].p_vaddr + phdr[i].p_memsz;
-            }
-        }
-    }
-
-    *start = low;
-    *end = high; 
-
-    close(fd);
-    munmap(elf_map, st.st_size);
-    return 0;
-}
-
-/**
- * @brief 增加一个段
- * add a segment
- * @param elf_name 
- * @param type segment type
- * @param start segment size
- * @return int segment offset
- */
-int add_segment(char *elf_name, int type, size_t size) {
-    int fd;
-    struct stat st;
-    uint8_t *mapped;
-    uint64_t phdr_start;
-    uint64_t phdr_end;
-    size_t phdr_size;
-    size_t file_size;
-
-    // 计算LOAD段的地址空间范围
-    // calculate the address space range of the LOAD segment
-    uint64_t vstart, vend;
-    get_segment_range(elf_name, type, &vstart, &vend);
-
-    fd = open(elf_name, O_RDWR);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    mapped = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mapped == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
-    file_size = st.st_size;
-
-    /* 32bit */
-    if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr;
-        Elf32_Phdr *phdr;
-        ehdr = (Elf32_Ehdr *)mapped;
-        phdr_size = ehdr->e_phnum * sizeof(Elf32_Phdr);
-        phdr_start = ehdr->e_phoff;
-        phdr_end = ehdr->e_phoff + phdr_size;
-        
-        // 一个正常的ELF文件，程序头会紧挨着ELF头
-        // 将程序头移动到文件末尾
-        // a normal ELF file, the program header will be next to the ELF header
-        // move the program header to the end of the file
-        if (phdr_end != file_size) {
-            // 扩展文件大小
-            file_size += phdr_size;
-            file_size += sizeof(Elf32_Phdr);    // 同时需要增加一个LOAD段
-            ftruncate(fd, file_size);
-            // 更新内存映射
-            mremap(mapped, st.st_size, file_size, 1);
-            if (!mapped) {
-                perror("mremap");
-                goto ERR_EXIT;
-            }
-            ehdr = (Elf32_Ehdr *)mapped;
-            // 拷贝程序头
-            char *phdr_tmp = malloc(phdr_size);
-            memcpy(phdr_tmp, mapped + ehdr->e_phoff, phdr_size);
-            memcpy(mapped + st.st_size, phdr_tmp, phdr_size);   // 移动到文件末尾
-            free(phdr_tmp);
-            // 更新程序头的偏移
-            phdr_start = st.st_size;
-            phdr_size += sizeof(Elf32_Phdr);   // 同时需要增加一个LOAD段
-            phdr_end = phdr_start + phdr_size;
-            ehdr->e_phoff = phdr_start;
-            ehdr->e_phnum += 1;                // 同时需要增加一个LOAD段
-            // PHDR的第一个表项，指向PHDR本身，主要是为了告诉加载器，PHDR本身应该映射到进程地址空间，以便程序本身可以访问它们
-            // The PHDR pointing to the PHDRs tells the loader that the PHDRs themselves should be mapped 
-            // to the process address space, in order to make them accessible to the program itself.
-            phdr = (Elf32_Phdr *)&mapped[ehdr->e_phoff];
-            phdr[0].p_offset = ehdr->e_phoff;
-            phdr[0].p_vaddr = align_to_4k(vend);                     // 需要设置4K对齐
-            phdr[0].p_paddr = align_to_4k(vend);
-            phdr[0].p_filesz = phdr_size;
-            phdr[0].p_memsz = phdr_size;
-            // 设置增加的段的参数
-            phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
-            phdr[ehdr->e_phnum - 1].p_offset = ehdr->e_phoff;
-            phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend);     // 需要设置4K对齐
-            phdr[ehdr->e_phnum - 1].p_paddr = align_to_4k(vend);
-            phdr[ehdr->e_phnum - 1].p_filesz = phdr_size;
-            phdr[ehdr->e_phnum - 1].p_memsz = phdr_size;
-            phdr[ehdr->e_phnum - 1].p_flags = 4;
-            phdr[ehdr->e_phnum - 1].p_align = 4096;
-        }
-
-        // 如果程序头在ELF文件末尾处，直接增加一个段
-        // if program header is at the end of elf
-        /*
-        if (phdr_end == file_size) {
-            // 扩展文件大小
-            file_size += size;
-            file_size += sizeof(Elf32_Phdr);
-            ftruncate(fd, file_size);
-            // 更新内存映射
-            mremap(mapped, file_size - size - sizeof(Elf32_Phdr), file_size, 1);
-            if (!mapped) {
-                perror("mremap");
-                goto ERR_EXIT;
-            }
-            ehdr = (Elf32_Ehdr *)mapped;
-            // 拷贝程序头
-            char *phdr_tmp = malloc(phdr_size);
-            memcpy(phdr_tmp, mapped + ehdr->e_phoff, phdr_size);
-            memcpy(mapped + ehdr->e_phoff + size, phdr_tmp, phdr_size);
-            free(phdr_tmp);
-            // 修改ELF头部信息
-            ehdr->e_phoff += size;
-            ehdr->e_phnum += 1;
-            phdr_size += sizeof(Elf32_Phdr);
-            // 设置新增的程序头内容
-            phdr = (Elf32_Phdr *)(mapped + ehdr->e_phoff);
-            phdr[ehdr->e_phnum - 1].p_type = type;
-            phdr[ehdr->e_phnum - 1].p_filesz = size;
-            phdr[ehdr->e_phnum - 1].p_memsz = size;
-            phdr[ehdr->e_phnum - 1].p_offset = phdr_start;  // 原始地址
-            phdr[ehdr->e_phnum - 1].p_vaddr = vend;         // 加载地址
-        }*/
-    }
-
-    close(fd);
-    munmap(mapped, file_size);
-    return phdr_start;
-
-ERR_EXIT:
-    close(fd);
-    munmap(mapped, file_size);
-    return -1;
 }

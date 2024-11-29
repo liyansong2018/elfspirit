@@ -40,6 +40,7 @@
 #include "addelfinfo.h"
 #include "joinelf.h"
 #include "edit.h"
+#include "segment.h"
 
 #define VERSION "1.5"
 #define CONTENT_LENGTH 1024 * 1024
@@ -187,7 +188,8 @@ static const char *help =
     "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m|-f]<int|string value> FILE_NAME\n"
     "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> FILE_NAME\n"
     "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> FILE_NAME\n"
-    "  elfspirit --set-interpreter [-f]<new interpreter> FILE_NAME\n";
+    "  elfspirit --set-interpreter [-f]<new interpreter> FILE_NAME\n"
+    "  elfspirit --add-segment [-z]<size> FILE_NAME\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -238,10 +240,11 @@ static const char *help_chinese =
                             "ELF\n"
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
     "                     OUT_ELF\n"
-    "  elfspirit edit [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-f]<int|str修改值> FILE_NAME\n"
+    "  elfspirit edit [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-f]<int|str修改值> ELF\n"
     "  elfspirit --set-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --set-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
-    "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n";
+    "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
+    "  elfspirit --add-segment [-z]<size> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -428,6 +431,7 @@ static void readcmdline(int argc, char *argv[]) {
                 case ADD_SEGMENT:
                     /* add a segment */
                     add_segment(elf_name, PT_LOAD, size);
+                    //mov_phdr(elf_name);
                     break;
                 
                 default:
@@ -498,11 +502,9 @@ static void readcmdline(int argc, char *argv[]) {
         edit(elf_name, &po, row, column, value, section_name, file_name);
     }
 
-#ifdef DEBUG
-    printf("%s\n", function);
-    printf("%s\n", elf_name);
-    printf("name:%s, size: %u\n", section_name, size);
-#endif
+    DEBUG("function: %s\n", function);
+    DEBUG("elf: %s\n", elf_name);
+    DEBUG("name:%s, size: %u\n", section_name, size);
 }
 
 int main(int argc, char *argv[]) {
