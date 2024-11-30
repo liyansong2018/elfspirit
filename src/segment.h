@@ -30,6 +30,22 @@
  * @param elf_name 
  * @param type segment type
  * @param start segment size
- * @return int segment offset
+ * @return int segment index
  */
 int add_segment(char *elf_name, int type, size_t size);
+
+/**
+ * @brief 根据段的下标，获取段的偏移
+ * obtain the offset of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment offset
+ */
+uint64_t get_segment_offset(char *elfname, int i);
+uint64_t get_segment_vaddr(char *elfname, int i);
+uint64_t get_segment_paddr(char *elfname, int i);
+uint64_t get_segment_filesz(char *elfname, int i);
+uint64_t get_segment_memsz(char *elfname, int i);
+uint64_t get_segment_type(char *elfname, int i);
+uint64_t get_segment_flags(char *elfname, int i);
+uint64_t get_segment_align(char *elfname, int i);

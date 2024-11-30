@@ -715,6 +715,11 @@ static int set_segment(char *elf_name, int index, int value, enum SegmentLabel l
                 phdr[index].p_vaddr = value;
                 break;
 
+            case P_PADDR:
+                printf("%x->%x\n", phdr[index].p_paddr, value);
+                phdr[index].p_paddr = value;
+                break;
+
             case P_FILESZ:
                 printf("%x->%x\n", phdr[index].p_filesz, value);
                 phdr[index].p_filesz = value;
@@ -763,6 +768,11 @@ static int set_segment(char *elf_name, int index, int value, enum SegmentLabel l
             case P_VADDR:
                 printf("%x->%x\n", phdr[index].p_vaddr, value);
                 phdr[index].p_vaddr = value;
+                break;
+            
+            case P_PADDR:
+                printf("%x->%x\n", phdr[index].p_paddr, value);
+                phdr[index].p_paddr = value;
                 break;
 
             case P_FILESZ:

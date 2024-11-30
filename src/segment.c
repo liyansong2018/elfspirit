@@ -116,7 +116,7 @@ int get_phdr_offset(char *elf_name) {
  * get program header table load index
  * @return section address
  */
-int get_phdr_load(char *elf_name) {
+static int get_phdr_load(char *elf_name) {
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -253,7 +253,7 @@ static int get_segment_range(char *elf_name, int type, uint64_t *start, uint64_t
  * determine if PHDR is at the end of the file
  * @param elf_name elf file name
  */
-int is_phdr_end(char *elf_name) {
+static int is_phdr_end(char *elf_name) {
     int fd;
     struct stat st;
     uint8_t *mapped;
@@ -310,7 +310,7 @@ TRUE:
  * @param need_load add a paragraph pointing to PHDR itself
  * @return int error code {-1:error,0:sucess}
  */
-int mov_phdr(char *elf_name, uint64_t offset, int need_load) {
+static int mov_phdr(char *elf_name, uint64_t offset, int need_load) {
     int fd;
     struct stat st;
     void *mapped;
@@ -550,7 +550,7 @@ int add_hpdr(char *elf_name) {
  * @param elf_name 
  * @param type segment type
  * @param start segment size
- * @return int segment offset
+ * @return int segment index
  */
 int add_segment(char *elf_name, int type, size_t size) {
     int fd;
@@ -615,6 +615,7 @@ int add_segment(char *elf_name, int type, size_t size) {
         phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend) + segoffset % PAGE_SIZE;
         phdr[ehdr->e_phnum - 1].p_paddr = phdr[ehdr->e_phnum - 1].p_vaddr;
         phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
+        index = ehdr->e_phnum - 1;
     }
 
     if (MODE == ELFCLASS64) {
@@ -628,10 +629,213 @@ int add_segment(char *elf_name, int type, size_t size) {
         phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend) + segoffset % PAGE_SIZE;
         phdr[ehdr->e_phnum - 1].p_paddr = phdr[ehdr->e_phnum - 1].p_vaddr;
         phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
+        index = ehdr->e_phnum - 1;
     }
 
-    VERBOSE("Add segment successfully: 0x%x\n", segoffset);
+    VERBOSE("add segment successfully: [%d]\n", index);
     close(fd);
     munmap(mapped, st.st_size);
-    return segoffset;
+    return index;
+}
+
+/**
+ * @brief 根据段的下标，获取段表头
+ * obtain the program header table based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return int error code {-1:error,0:sucess}
+ */
+static int get_segment(char *elfname, int i, char *segment_info) {
+    int fd;
+    struct stat st;
+    uint8_t *mapped;
+
+    fd = open(elfname, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    mapped = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (mapped == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Phdr *phdr;
+        ehdr = (Elf32_Ehdr *)mapped;
+        phdr = (Elf32_Phdr *)&mapped[ehdr->e_phoff];
+        memcpy(segment_info, &phdr[i], sizeof(Elf32_Phdr));
+    }
+
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Phdr *phdr;
+        ehdr = (Elf64_Ehdr *)mapped;
+        phdr = (Elf64_Phdr *)&mapped[ehdr->e_phoff];
+        memcpy(segment_info, &phdr[i], sizeof(Elf64_Phdr));
+    }
+
+    close(fd);
+    munmap(mapped, st.st_size);
+    return 0;
+}
+
+/**
+ * @brief 根据段的下标，获取段的偏移
+ * obtain the offset of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment offset
+ */
+uint64_t get_segment_offset(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_offset;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_offset;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的虚拟地址
+ * obtain the vaddr of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment vaddr
+ */
+uint64_t get_segment_vaddr(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_vaddr;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_vaddr;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的物理地址
+ * obtain the paddr of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment vaddr
+ */
+uint64_t get_segment_paddr(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_paddr;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_paddr;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的文件大小
+ * obtain the filesz of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment filesz
+ */
+uint64_t get_segment_filesz(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_filesz;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_filesz;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的内存大小
+ * obtain the memsz of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment memsz
+ */
+uint64_t get_segment_memsz(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_memsz;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_memsz;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的类型
+ * obtain the type of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment type
+ */
+uint64_t get_segment_type(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_type;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_type;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的权限标志
+ * obtain the permission of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment flags
+ */
+uint64_t get_segment_flags(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_flags;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_flags;
+    }
+}
+
+/**
+ * @brief 根据段的下标，获取段的对齐方式
+ * obtain the align of the segment based on its index
+ * @param elfname 
+ * @param i segment index
+ * @return uint64_t segment align
+ */
+uint64_t get_segment_align(char *elfname, int i) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_align;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Phdr segment_info;
+        get_segment(elfname, i, &segment_info);
+        return segment_info.p_align;
+    }
 }
