@@ -63,7 +63,7 @@ int add_data(uint8_t *elf, uint32_t elf_size, uint32_t offset, uint32_t data_siz
  * @param {uint32_t} sec_size
  * @return {*}
  */
-int add_section(uint8_t *elf, uint32_t offset, uint8_t *new_sec, uint32_t sec_size) {
+int add_section_bak(uint8_t *elf, uint32_t offset, uint8_t *new_sec, uint32_t sec_size) {
     int fd;
     struct stat st;
     int range;              /* indicate the range of offset */

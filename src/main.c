@@ -70,6 +70,7 @@ enum LONG_OPTION {
     SET_SEGMENT_FLAGS,
     SET_INTERPRETER,
     ADD_SEGMENT,
+    ADD_SECTION,
 };
 
 /**
@@ -128,6 +129,7 @@ static const struct option longopts[] = {
     {"set-segment-flags", no_argument, &g_long_option, SET_SEGMENT_FLAGS},
     {"set-interpreter", no_argument, &g_long_option, SET_INTERPRETER},
     {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
+    {"add-section", no_argument, &g_long_option, ADD_SECTION},
     {0, 0, 0, 0}
 };
 
@@ -189,6 +191,7 @@ static const char *help =
     "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> FILE_NAME\n"
     "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> FILE_NAME\n"
     "  elfspirit --set-interpreter [-f]<new interpreter> FILE_NAME\n"
+    "  elfspirit --add-section [-z]<size> FILE_NAME\n"
     "  elfspirit --add-segment [-z]<size> FILE_NAME\n";
 
 static const char *help_chinese = 
@@ -244,6 +247,7 @@ static const char *help_chinese =
     "  elfspirit --set-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --set-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
+    "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
@@ -410,6 +414,7 @@ static void readcmdline(int argc, char *argv[]) {
     /* handle additional long parameters */
     if (optind == argc - 1) {
         memcpy(elf_name, argv[optind], LENGTH);
+        MODE = get_elf_class(elf_name);
         if (g_long_option) {
             switch (g_long_option)
             {
@@ -431,7 +436,11 @@ static void readcmdline(int argc, char *argv[]) {
                 case ADD_SEGMENT:
                     /* add a segment */
                     add_segment(elf_name, PT_LOAD, size);
-                    //mov_phdr(elf_name);
+                    break;
+
+                case ADD_SECTION:
+                    /* add a section */
+                    add_section(elf_name, size);
                     break;
                 
                 default:
@@ -452,7 +461,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* add a section */
     if (!strcmp(function, "addsec")) {
-        add_section(elf_name, off, section_name, size);
+        add_section_bak(elf_name, off, section_name, size);
     }
 
     /* inject so */

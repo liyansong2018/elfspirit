@@ -165,6 +165,20 @@ int create_file(char *elf_name, char *elf_map, uint32_t map_size, uint32_t is_ne
 cJSON *get_json_object(char *name);
 
 /**
+ * @brief 获取节头表的偏移
+ * get program header table offset
+ * @return uint64_t section address
+ */
+uint64_t get_shdr_offset(char *elf_name);
+
+/**
+ * @brief 获取程序头表的偏移
+ * get program header table offset
+ * @return uint64_t segment address
+ */
+uint64_t get_phdr_offset(char *elf_name);
+
+/**
  * @brief Extract binary fragments from the target file
  * 
  * @param input_file original file name

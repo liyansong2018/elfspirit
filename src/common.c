@@ -417,6 +417,102 @@ cJSON *get_json_object(char *name) {
 }
 
 /**
+ * @brief 获取elf头
+ * get elf header
+ * @param elf_name original file name
+ * @param header output argument: elf header
+ * @return error code {-1:error,0:sucess}
+ */
+static int get_header(char *elf_name, char *header) {
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+
+    fd = open(elf_name, O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        ehdr = (Elf32_Ehdr *)elf_map;
+        memcpy(header, ehdr, sizeof(Elf32_Ehdr));
+    }
+
+    /* 64bit */
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        ehdr = (Elf64_Ehdr *)elf_map;
+        memcpy(header, ehdr, sizeof(Elf64_Ehdr));
+    }
+
+    else {
+        ERROR("Invalid ELF class");
+        goto ERR_EXIT;
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
+};
+
+/**
+ * @brief 获取节头表的偏移
+ * get program header table offset
+ * @return uint64_t section address
+ */
+uint64_t get_shdr_offset(char *elf_name) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr ehdr;
+        get_header(elf_name, &ehdr);
+        return ehdr.e_shoff;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr ehdr;
+        get_header(elf_name, &ehdr);
+        return ehdr.e_shoff;
+    } else {
+        return -1;
+    }
+}
+
+/**
+ * @brief 获取程序头表的偏移
+ * get program header table offset
+ * @return uint64_t segment address
+ */
+uint64_t get_phdr_offset(char *elf_name) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr ehdr;
+        get_header(elf_name, &ehdr);
+        return ehdr.e_phoff;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr ehdr;
+        get_header(elf_name, &ehdr);
+        return ehdr.e_phoff;
+    } else {
+        return -1;
+    }
+}
+
+/**
  * @brief Extract binary fragments from the target file
  * 
  * @param input_file original file name

@@ -31,4 +31,4 @@
  * @param {uint32_t} sec_size
  * @return {*}
  */
-int add_section(uint8_t *elf, uint32_t offset, uint8_t *new_sec, uint32_t sec_size);
+int add_section_bak(uint8_t *elf, uint32_t offset, uint8_t *new_sec, uint32_t sec_size);
