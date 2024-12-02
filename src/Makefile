@@ -1,5 +1,7 @@
 TARGET=elfspirit
 OUT=/usr/local/bin/
+SRCS = $(wildcard *.c cJSON/*.c)
+OBJS = $(SRCS:.c=.o)
 CFLAGS = -w -c
 
 ifeq ($(debug), true)
@@ -9,8 +11,8 @@ else
 	CXXFLAGS=-O3
 endif
 
-$(TARGET) : addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o segment.o section.o
-	$(CC) $(CXXFLAGS) addsec.o injectso.o main.o common.o cJSON/cJSON.o delsec.o delshtab.o parse.o addelfinfo.o joinelf.o edit.o segment.o section.o -o $(TARGET)
+$(TARGET) : $(OBJS)
+	$(CC) $(CXXFLAGS) $(OBJS) -o $(TARGET)
 %.o: %.c
 	$(CC) $(CFLAGS) $(CXXFLAGS) $< -o $@
 
