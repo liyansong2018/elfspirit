@@ -42,12 +42,12 @@
 #include "edit.h"
 #include "segment.h"
 
-#define VERSION "1.5"
+#define VERSION "1.6"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];
-char file_name[LENGTH];
-char config_name[LENGTH];
+char string[PAGE_SIZE];
+char config_name[PAGE_SIZE];
 char arch[LENGTH];
 char endian[LENGTH];
 char ver[LENGTH];
@@ -71,6 +71,7 @@ enum LONG_OPTION {
     SET_INTERPRETER,
     ADD_SEGMENT,
     ADD_SECTION,
+    INFECT_SILVIO,
 };
 
 /**
@@ -96,7 +97,7 @@ static int get_version(char *ver, size_t len) {
  */
 static void init() {
     memset(section_name, 0, LENGTH);
-    memset(file_name, 0, LENGTH);
+    memset(string, 0, LENGTH);
     memset(config_name, 0, LENGTH);
     memset(elf_name, 0, LENGTH);
     memset(function, 0, LENGTH);
@@ -130,6 +131,7 @@ static const struct option longopts[] = {
     {"set-interpreter", no_argument, &g_long_option, SET_INTERPRETER},
     {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
     {"add-section", no_argument, &g_long_option, ADD_SECTION},
+    {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
     {0, 0, 0, 0}
 };
 
@@ -186,13 +188,14 @@ static const char *help =
     "  elfspirit joinelf [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file>\n"
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
-    "  elfspirit extract  [-o]<file offset> [-z]<size> FILE_NAME\n"
-    "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m|-f]<int|string value> FILE_NAME\n"
-    "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> FILE_NAME\n"
-    "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> FILE_NAME\n"
-    "  elfspirit --set-interpreter [-f]<new interpreter> FILE_NAME\n"
-    "  elfspirit --add-section [-z]<size> FILE_NAME\n"
-    "  elfspirit --add-segment [-z]<size> FILE_NAME\n";
+    "  elfspirit extract  [-o]<file offset> [-z]<size> string\n"
+    "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m|-f]<int|string value> string\n"
+    "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> string\n"
+    "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> string\n"
+    "  elfspirit --set-interpreter [-f]<new interpreter> string\n"
+    "  elfspirit --add-section [-z]<size> string\n"
+    "  elfspirit --add-segment [-z]<size> string\n"
+    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -248,13 +251,14 @@ static const char *help_chinese =
     "  elfspirit --set-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
-    "  elfspirit --add-segment [-z]<size> ELF\n";
+    "  elfspirit --add-segment [-z]<size> ELF\n"
+    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
     if (argc == 1) {
-        fputs(help, stdout);
         printf("Current version: %s\n", ver_elfspirt);
+        fputs(help, stdout);
     }
     while((opt = getopt_long(argc, argv, shortopts, longopts, NULL)) != EOF) {
         /* The row of options cannot be greater than the array capacity */
@@ -279,7 +283,7 @@ static void readcmdline(int argc, char *argv[]) {
             
             // set file name
             case 'f':
-                memcpy(file_name, optarg, LENGTH);
+                memcpy(string, optarg, strlen(optarg));
                 break;
 
             // configure
@@ -430,7 +434,7 @@ static void readcmdline(int argc, char *argv[]) {
 
                 case SET_INTERPRETER:
                     /* set new interpreter */
-                    set_interpreter(elf_name, file_name);
+                    set_interpreter(elf_name, string);
                     break;
 
                 case ADD_SEGMENT:
@@ -441,6 +445,15 @@ static void readcmdline(int argc, char *argv[]) {
                 case ADD_SECTION:
                     /* add a section */
                     add_section(elf_name, size);
+                    break;
+
+                case INFECT_SILVIO:
+                    /* infect using silvio */
+                    char *shellcode = malloc(size + 1);
+                    cmdline_shellcode(string, shellcode);
+                    shellcode[size] = '\0';
+                    infect_silvio(elf_name, shellcode, size + 1);
+                    free(shellcode);
                     break;
                 
                 default:
@@ -466,7 +479,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* inject so */
     if (!strcmp(function, "injectso")) {
-        char *so_name = file_name;
+        char *so_name = string;
         inject_so(elf_name, section_name, so_name, config_name, ver);
     }
 
@@ -508,7 +521,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* edit elf */
     if (!strcmp(function, "edit")) {
-        edit(elf_name, &po, row, column, value, section_name, file_name);
+        edit(elf_name, &po, row, column, value, section_name, string);
     }
 
     DEBUG("function: %s\n", function);

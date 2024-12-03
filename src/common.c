@@ -195,6 +195,27 @@ uint64_t align_to_4k(uint64_t address) {
 }
 
 /**
+ * @brief 将命令行传入的shellcode，转化为内存实际值
+ * convert the shellcode passed in from the command line to the actual value in memory
+ * @param sc_str input shellcode string
+ * @param sc_mem output shellcode memory
+ */
+int cmdline_shellcode(char *sc_str, char *sc_mem) {
+    if (strlen(sc_str) % 4 != 0) 
+        return -1;
+    else {
+        printf("shellcode: ");
+        for (size_t i = 0; i < strlen(sc_str); i += 4) {
+            unsigned char value;
+            sscanf(&sc_str[i], "\\x%2hhx", &value);
+            *(sc_mem+i/4) = value;
+            printf("%02x ", value);
+        }
+        printf("\n");
+    }
+}
+
+/**
  * @brief 获取文件大小
  * obtain file size
  * @param filename file name

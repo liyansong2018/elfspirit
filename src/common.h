@@ -126,6 +126,14 @@ int compare_firstN_chars(const char *str1, const char *str2, int n);
 uint64_t align_to_4k(uint64_t address);
 
 /**
+ * @brief 将命令行传入的shellcode，转化为内存实际值
+ * convert the shellcode passed in from the command line to the actual value in memory
+ * @param sc_str input shellcode string
+ * @param sc_mem output shellcode memory
+ */
+int cmdline_shellcode(char *sc_str, char *sc_mem);
+
+/**
  * @description: Determine whether elf is in 32-bit mode or 64-bit mode (判断elf是32位还是64位)
  * @param {char} *elf_name
  * @return {*}
