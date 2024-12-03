@@ -1,3 +1,12 @@
+[2024-12-03]
+    elfspirit 1.6
+        - Add the ability to modify section name
+        - Add the ability to add a segment
+        - Add the ability to add a section (new scenario)
+        - Add the ability to infect text segment using silvio
+        - Simplify makefile file
+        - Fix some errors
+
 [2024-11-19]
     elfspirit 1.5
         - Add the more ability to parse and modify ELF, such as .rel*. and .dynamic section
