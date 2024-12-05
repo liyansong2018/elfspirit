@@ -54,6 +54,7 @@ char ver[LENGTH];
 char ver_elfspirt[LENGTH];
 char elf_name[LENGTH];
 char function[LENGTH];
+char *g_shellcode;
 uint64_t base_addr;
 uint32_t size;
 uint32_t off;
@@ -72,6 +73,7 @@ enum LONG_OPTION {
     ADD_SEGMENT,
     ADD_SECTION,
     INFECT_SILVIO,
+    INFECT_SKEKSI,
 };
 
 /**
@@ -132,6 +134,7 @@ static const struct option longopts[] = {
     {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
     {"add-section", no_argument, &g_long_option, ADD_SECTION},
     {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
+    {"infect-skeksi", no_argument, &g_long_option, INFECT_SKEKSI},
     {0, 0, 0, 0}
 };
 
@@ -449,11 +452,20 @@ static void readcmdline(int argc, char *argv[]) {
 
                 case INFECT_SILVIO:
                     /* infect using silvio */
-                    char *shellcode = malloc(size + 1);
-                    cmdline_shellcode(string, shellcode);
-                    shellcode[size] = '\0';
-                    infect_silvio(elf_name, shellcode, size + 1);
-                    free(shellcode);
+                    g_shellcode = malloc(size + 1);
+                    cmdline_shellcode(string, g_shellcode);
+                    g_shellcode[size] = '\0';
+                    infect_silvio(elf_name, g_shellcode, size + 1);
+                    free(g_shellcode);
+                    break;
+
+                case INFECT_SKEKSI:
+                    /* infect using skeksi plus */
+                    g_shellcode = malloc(size + 1);
+                    cmdline_shellcode(string, g_shellcode);
+                    g_shellcode[size] = '\0';
+                    infect_skeksi_plus(elf_name, g_shellcode, size + 1);
+                    free(g_shellcode);
                     break;
                 
                 default:

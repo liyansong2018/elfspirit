@@ -25,6 +25,17 @@
 #include "cJSON/cJSON.h"
 
 /**
+ * @brief 得到段的映射地址范围
+ * Obtain the mapping address range of the segment
+ * @param elf_name 
+ * @param type segment type
+ * @param start output args
+ * @param end output args
+ * @return int error code {-1:error,0:sucess}
+ */
+int get_segment_range(char *elf_name, int type, uint64_t *start, uint64_t *end);
+
+/**
  * @brief 增加一个段
  * add a segment
  * @param elf_name 

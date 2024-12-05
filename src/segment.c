@@ -108,7 +108,7 @@ static int get_phdr_load(char *elf_name) {
  * @param end output args
  * @return int error code {-1:error,0:sucess}
  */
-static int get_segment_range(char *elf_name, int type, uint64_t *start, uint64_t *end) {
+int get_segment_range(char *elf_name, int type, uint64_t *start, uint64_t *end) {
     int fd;
     struct stat st;
     uint8_t *elf_map;
