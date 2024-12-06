@@ -198,7 +198,8 @@ static const char *help =
     "  elfspirit --set-interpreter [-f]<new interpreter> string\n"
     "  elfspirit --add-section [-z]<size> string\n"
     "  elfspirit --add-segment [-z]<size> string\n"
-    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n";
+    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string"
+    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -255,7 +256,8 @@ static const char *help_chinese =
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
-    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n";
+    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string"
+    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
