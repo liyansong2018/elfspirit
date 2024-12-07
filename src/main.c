@@ -198,7 +198,7 @@ static const char *help =
     "  elfspirit --set-interpreter [-f]<new interpreter> string\n"
     "  elfspirit --add-section [-z]<size> string\n"
     "  elfspirit --add-segment [-z]<size> string\n"
-    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string"
+    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n"
     "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n";
 
 static const char *help_chinese = 
@@ -256,7 +256,7 @@ static const char *help_chinese =
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
-    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string"
+    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n"
     "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n";
 
 static void readcmdline(int argc, char *argv[]) {
@@ -466,7 +466,7 @@ static void readcmdline(int argc, char *argv[]) {
                     g_shellcode = malloc(size + 1);
                     cmdline_shellcode(string, g_shellcode);
                     g_shellcode[size] = '\0';
-                    infect_skeksi_plus(elf_name, g_shellcode, size + 1);
+                    infect_skeksi_pie(elf_name, g_shellcode, size + 1);
                     free(g_shellcode);
                     break;
                 
