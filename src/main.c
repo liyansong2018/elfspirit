@@ -74,6 +74,7 @@ enum LONG_OPTION {
     ADD_SECTION,
     INFECT_SILVIO,
     INFECT_SKEKSI,
+    INFECT_DATA,
 };
 
 /**
@@ -135,6 +136,7 @@ static const struct option longopts[] = {
     {"add-section", no_argument, &g_long_option, ADD_SECTION},
     {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
     {"infect-skeksi", no_argument, &g_long_option, INFECT_SKEKSI},
+    {"infect-data", no_argument, &g_long_option, INFECT_DATA},
     {0, 0, 0, 0}
 };
 
@@ -199,7 +201,8 @@ static const char *help =
     "  elfspirit --add-section [-z]<size> string\n"
     "  elfspirit --add-segment [-z]<size> string\n"
     "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n"
-    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n";
+    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n"
+    "  elfspirit --infect-data [-f]<shellcode> [-z]<size> string\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -257,7 +260,8 @@ static const char *help_chinese =
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
     "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> string\n"
-    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n";
+    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> string\n"
+    "  elfspirit --infect-data [-f]<shellcode> [-z]<size> string\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -467,6 +471,15 @@ static void readcmdline(int argc, char *argv[]) {
                     cmdline_shellcode(string, g_shellcode);
                     g_shellcode[size] = '\0';
                     infect_skeksi_pie(elf_name, g_shellcode, size + 1);
+                    free(g_shellcode);
+                    break;
+
+                case INFECT_DATA:
+                    /* infect DATA segment */
+                    g_shellcode = malloc(size + 1);
+                    cmdline_shellcode(string, g_shellcode);
+                    g_shellcode[size] = '\0';
+                    infect_data(elf_name, g_shellcode, size + 1);
                     free(g_shellcode);
                     break;
                 
