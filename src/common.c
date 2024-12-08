@@ -321,6 +321,19 @@ int get_elf_machine(char *elf_name) {
     return arch;
 }
 
+
+/**
+ * @brief 判断二进制是否开启地址随机化
+ * determine whether binary has enabled address randomization
+ * @param elfname 
+ * @return int {1:true,0:false}
+ */
+int is_pie(char *elfname) {
+    uint64_t vstart, vend;
+    get_segment_range(elfname, PT_LOAD, &vstart, &vend);
+    return vstart == 0? 1: 0;
+}
+
 /**
  * @description: Judge whether the address is the starting address of the section (判断地址是否为section起始地址)
  * @param {char} *elf_name

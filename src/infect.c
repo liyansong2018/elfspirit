@@ -74,6 +74,7 @@ int insert_data(const char *filename, off_t offset, const void *data, size_t dat
 
 /*
                                                              
+                                                             
       memory layout                  file layout             
                                                              
   ─── ┌──────────────┐ 0x0000        ┌──────────────┐ 0x0000 
@@ -88,9 +89,9 @@ int insert_data(const char *filename, off_t offset, const void *data, size_t dat
   ▼   │              │               │       ▼      │        
   ─── │              │               │   PAGE_SIZE  │        
       │              │               │              │        
-      ├──────────────┤               ├──────────────┤        
-      │     shdr     │               │     shdr     │        
-      └──────────────┘               └──────────────┘        
+      └──────────────┘               ├──────────────┤        
+                                     │     shdr     │        
+                                     └──────────────┘        
                                                              
  */
 
@@ -242,23 +243,23 @@ uint64_t infect_silvio(char *elfname, char *parasite, size_t size) {
 The address of the load segment in memory cannot be easily changed
 .rela.dyn->offset->.dynamic
                                                             
-      memory layout                  file layout            
-                                                            
-      ┌──────────────┐ 0x0000        ┌──────────────┐ 0x0000
-      │xxxxxxxxxxxxxx│          const│   ehdr/phdr  │       
-  ─── ├──────────────┤ 0x1000        ├──────────────┤ 0x1000
-  ▲   │     TEXT     │               │xxxxxxxxxxxxxx│       
-  │   ├──────────────┤               ├──────────────┤       
-  │   │              │               │     TEXT     │       
- const│              │               ├──────────────┤       
-  │   │              │               │              │       
-  │   │              │               │              │       
-  ▼   │              │               │              │       
-  ─── ├──────────────┤               │              │       
-      │  ehrdr/phdr  │               │              │       
-      ├──────────────┤               ├──────────────┤       
-      │     shdr     │               │     shdr     │       
-      └──────────────┘               └──────────────┘       
+      memory layout                  file layout             
+                                                             
+      ┌──────────────┐ 0x0000        ┌──────────────┐ 0x0000 
+      │xxxxxxxxxxxxxx│          const│   ehdr/phdr  │        
+  ─── ├──────────────┤ 0x1000        ├──────────────┤ 0x1000 
+  ▲   │     TEXT     │               │xxxxxxxxxxxxxx│        
+  │   ├──────────────┤               ├──────────────┤        
+  │   │              │               │     TEXT     │        
+ const│              │               ├──────────────┤        
+  │   │              │               │              │        
+  │   │              │               │              │        
+  ▼   │              │               │              │        
+  ─── ├──────────────┤               │              │        
+      │  ehrdr/phdr  │               │              │        
+      └──────────────┘               ├──────────────┤        
+                                     │     shdr     │        
+                                     └──────────────┘           
                                                                      
 */                                                      
 

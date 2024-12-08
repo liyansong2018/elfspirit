@@ -241,3 +241,11 @@ int validated_offset(uint64_t addr, uint64_t start, uint64_t end);
  * @return int error code {-1:error,0:sucess}
  */
 int set_interpreter(char *elf_name, char *new_interpreter);
+
+/**
+ * @brief 判断二进制是否开启地址随机化
+ * determine whether binary has enabled address randomization
+ * @param elfname 
+ * @return int {1:true,0:false}
+ */
+int is_pie(char *elfname);
