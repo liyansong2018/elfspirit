@@ -95,6 +95,11 @@ int flag2str_sh(int flag, char *flag_str) {
     return 0;
 }
 
+// 函数用于检查整数是否包含特定的宏标志位
+int has_flag(int num, int flag) {
+    return (num & flag) == flag;
+}
+
 /**
  * @description: Judge whether the option is true
  * @param {parser_opt_t} po
@@ -1387,6 +1392,7 @@ static void display_dyninfo32(handle_t32 *h) {
     for(int i = 0; i < count; i++) {
         memset(value, 0, 50);
         snprintf(value, 50, "0x%x", dyn[i].d_un.d_val);
+        name = h->mem + h->shdr[dynstr].sh_offset + dyn[i].d_un.d_val;
         switch (dyn[i].d_tag) {
             /* Legal values for d_tag (dynamic entry type).  */
             case DT_NULL:
@@ -1395,7 +1401,6 @@ static void display_dyninfo32(handle_t32 *h) {
 
             case DT_NEEDED:
                 tmp = "DT_NEEDED";
-                name = h->mem + h->shdr[dynstr].sh_offset + dyn[i].d_un.d_val;
                 snprintf(value, 50, "Shared library: [%s]", name);
                 break;
             
@@ -1449,10 +1454,12 @@ static void display_dyninfo32(handle_t32 *h) {
 
             case DT_SONAME:
                 tmp = "DT_SONAME";
+                snprintf(value, 50, "[%s]", name);
                 break;
 
             case DT_RPATH:
                 tmp = "DT_RPATH";
+                snprintf(value, 50, "[%s]", name);
                 break;
 
             case DT_SYMBOLIC:
@@ -1509,11 +1516,42 @@ static void display_dyninfo32(handle_t32 *h) {
 
             case DT_RUNPATH:
                 tmp = "DT_RUNPATH";
+                snprintf(value, 50, "[%s]", name);
                 break;
 
             case DT_FLAGS:
                 tmp = "DT_FLAGS";
-                snprintf(value, 50, "Flags: %d", dyn[i].d_un.d_val);
+                switch (dyn[i].d_un.d_val)
+                {
+                /* Object may use DF_ORIGIN */
+                case DF_ORIGIN:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_ORIGIN");
+                    break;
+
+                /* Symbol resolutions starts here */
+                case DF_SYMBOLIC:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_SYMBOLIC");
+                    break;
+                
+                /* Object contains text relocations */
+                case DF_TEXTREL:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_TEXTREL");
+                    break;
+                
+                /* No lazy binding for this object */
+                case DF_BIND_NOW:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_BIND_NOW");
+                    break;
+
+                /* Module uses the static TLS model */
+                case DF_STATIC_TLS:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_STATIC_TLS");
+                    break;
+                
+                default:
+                    break;
+                }
+
                 break;
             
             case DT_ENCODING:
@@ -1673,14 +1711,16 @@ static void display_dyninfo32(handle_t32 *h) {
             /* These were chosen by Sun.  */
             case DT_FLAGS_1:
                 tmp = "DT_FLAGS_1";
-                switch (dyn[i].d_un.d_val) {
-                    case DF_1_PIE:
-                        snprintf(value, 50, "Flags: %s", "PIE");
-                        break;
-                    
-                    default:
-                        snprintf(value, 50, "Flags: %d", dyn[i].d_un.d_val);
-                        break;
+                int offset = 0;
+                if (has_flag(dyn[i].d_un.d_val, DF_1_NOW)) {
+                    offset += snprintf(value, 50, "%s ", "DF_1_NOW");
+                }
+                if (has_flag(dyn[i].d_un.d_val, DF_1_PIE)) {
+                    offset += snprintf(value + offset, 50, "%s ", "DF_1_PIE");
+                }
+                else {
+                    // TODO
+                    snprintf(value, 50, "Known: 0x%x", dyn[i].d_un.d_val);
                 }
                 
                 break;
@@ -1743,6 +1783,7 @@ static void display_dyninfo64(handle_t64 *h) {
     for(int i = 0; i < count; i++) {
         memset(value, 0, 50);
         snprintf(value, 50, "0x%x", dyn[i].d_un.d_val);
+        name = h->mem + h->shdr[dynstr].sh_offset + dyn[i].d_un.d_val;
         switch (dyn[i].d_tag) {
             /* Legal values for d_tag (dynamic entry type).  */
             case DT_NULL:
@@ -1751,7 +1792,6 @@ static void display_dyninfo64(handle_t64 *h) {
 
             case DT_NEEDED:
                 tmp = "DT_NEEDED";
-                name = h->mem + h->shdr[dynstr].sh_offset + dyn[i].d_un.d_val;
                 snprintf(value, 50, "Shared library: [%s]", name);
                 break;
             
@@ -1805,10 +1845,12 @@ static void display_dyninfo64(handle_t64 *h) {
 
             case DT_SONAME:
                 tmp = "DT_SONAME";
+                snprintf(value, 50, "[%s]", name);
                 break;
 
             case DT_RPATH:
                 tmp = "DT_RPATH";
+                snprintf(value, 50, "[%s]", name);
                 break;
 
             case DT_SYMBOLIC:
@@ -1865,11 +1907,41 @@ static void display_dyninfo64(handle_t64 *h) {
 
             case DT_RUNPATH:
                 tmp = "DT_RUNPATH";
+                snprintf(value, 50, "[%s]", name);
                 break;
 
             case DT_FLAGS:
                 tmp = "DT_FLAGS";
-                snprintf(value, 50, "Flags: %d", dyn[i].d_un.d_val);
+                switch (dyn[i].d_un.d_val)
+                {
+                /* Object may use DF_ORIGIN */
+                case DF_ORIGIN:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_ORIGIN");
+                    break;
+
+                /* Symbol resolutions starts here */
+                case DF_SYMBOLIC:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_SYMBOLIC");
+                    break;
+                
+                /* Object contains text relocations */
+                case DF_TEXTREL:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_TEXTREL");
+                    break;
+                
+                /* No lazy binding for this object */
+                case DF_BIND_NOW:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_BIND_NOW");
+                    break;
+
+                /* Module uses the static TLS model */
+                case DF_STATIC_TLS:
+                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_STATIC_TLS");
+                    break;
+                
+                default:
+                    break;
+                }
                 break;
             
             case DT_ENCODING:
@@ -2029,14 +2101,16 @@ static void display_dyninfo64(handle_t64 *h) {
             /* These were chosen by Sun.  */
             case DT_FLAGS_1:
                 tmp = "DT_FLAGS_1";
-                switch (dyn[i].d_un.d_val) {
-                    case DF_1_PIE:
-                        snprintf(value, 50, "Flags: %s", "PIE");
-                        break;
-                    
-                    default:
-                        snprintf(value, 50, "Flags: %d", dyn[i].d_un.d_val);
-                        break;
+                int offset = 0;
+                if (has_flag(dyn[i].d_un.d_val, DF_1_NOW)) {
+                    offset += snprintf(value, 50, "%s ", "DF_1_NOW");
+                }
+                if (has_flag(dyn[i].d_un.d_val, DF_1_PIE)) {
+                    offset += snprintf(value + offset, 50, "%s ", "DF_1_PIE");
+                }
+                else {
+                    // TODO
+                    snprintf(value, 50, "Known: 0x%x", dyn[i].d_un.d_val);
                 }
                 
                 break;
