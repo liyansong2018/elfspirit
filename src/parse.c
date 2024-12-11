@@ -1454,12 +1454,12 @@ static void display_dyninfo32(handle_t32 *h) {
 
             case DT_SONAME:
                 tmp = "DT_SONAME";
-                snprintf(value, 50, "[%s]", name);
+                snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, name);
                 break;
 
             case DT_RPATH:
                 tmp = "DT_RPATH";
-                snprintf(value, 50, "[%s]", name);
+                snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, name);
                 break;
 
             case DT_SYMBOLIC:
@@ -1516,7 +1516,7 @@ static void display_dyninfo32(handle_t32 *h) {
 
             case DT_RUNPATH:
                 tmp = "DT_RUNPATH";
-                snprintf(value, 50, "[%s]", name);
+                snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, name);
                 break;
 
             case DT_FLAGS:
@@ -1525,27 +1525,27 @@ static void display_dyninfo32(handle_t32 *h) {
                 {
                 /* Object may use DF_ORIGIN */
                 case DF_ORIGIN:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_ORIGIN");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_ORIGIN");
                     break;
 
                 /* Symbol resolutions starts here */
                 case DF_SYMBOLIC:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_SYMBOLIC");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_SYMBOLIC");
                     break;
                 
                 /* Object contains text relocations */
                 case DF_TEXTREL:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_TEXTREL");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_TEXTREL");
                     break;
                 
                 /* No lazy binding for this object */
                 case DF_BIND_NOW:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_BIND_NOW");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_BIND_NOW");
                     break;
 
                 /* Module uses the static TLS model */
                 case DF_STATIC_TLS:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_STATIC_TLS");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_STATIC_TLS");
                     break;
                 
                 default:
@@ -1713,10 +1713,10 @@ static void display_dyninfo32(handle_t32 *h) {
                 tmp = "DT_FLAGS_1";
                 int offset = 0;
                 if (has_flag(dyn[i].d_un.d_val, DF_1_NOW)) {
-                    offset += snprintf(value, 50, "%s ", "DF_1_NOW");
+                    offset += snprintf(value, 50, "%s ", "NOW");
                 }
                 if (has_flag(dyn[i].d_un.d_val, DF_1_PIE)) {
-                    offset += snprintf(value + offset, 50, "%s ", "DF_1_PIE");
+                    offset += snprintf(value + offset, 50, "%s ", "PIE");
                 }
                 else {
                     // TODO
@@ -1845,12 +1845,12 @@ static void display_dyninfo64(handle_t64 *h) {
 
             case DT_SONAME:
                 tmp = "DT_SONAME";
-                snprintf(value, 50, "[%s]", name);
+                snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, name);
                 break;
 
             case DT_RPATH:
                 tmp = "DT_RPATH";
-                snprintf(value, 50, "[%s]", name);
+                snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, name);
                 break;
 
             case DT_SYMBOLIC:
@@ -1907,7 +1907,7 @@ static void display_dyninfo64(handle_t64 *h) {
 
             case DT_RUNPATH:
                 tmp = "DT_RUNPATH";
-                snprintf(value, 50, "[%s]", name);
+                snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, name);
                 break;
 
             case DT_FLAGS:
@@ -1916,27 +1916,27 @@ static void display_dyninfo64(handle_t64 *h) {
                 {
                 /* Object may use DF_ORIGIN */
                 case DF_ORIGIN:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_ORIGIN");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_ORIGIN");
                     break;
 
                 /* Symbol resolutions starts here */
                 case DF_SYMBOLIC:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_SYMBOLIC");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_SYMBOLIC");
                     break;
                 
                 /* Object contains text relocations */
                 case DF_TEXTREL:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_TEXTREL");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_TEXTREL");
                     break;
                 
                 /* No lazy binding for this object */
                 case DF_BIND_NOW:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_BIND_NOW");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_BIND_NOW");
                     break;
 
                 /* Module uses the static TLS model */
                 case DF_STATIC_TLS:
-                    snprintf(value, 50, "Flags: %d [%s]", dyn[i].d_un.d_val, "DF_STATIC_TLS");
+                    snprintf(value, 50, "0x%x [%s]", dyn[i].d_un.d_val, "DF_STATIC_TLS");
                     break;
                 
                 default:
@@ -2103,10 +2103,10 @@ static void display_dyninfo64(handle_t64 *h) {
                 tmp = "DT_FLAGS_1";
                 int offset = 0;
                 if (has_flag(dyn[i].d_un.d_val, DF_1_NOW)) {
-                    offset += snprintf(value, 50, "%s ", "DF_1_NOW");
+                    offset += snprintf(value, 50, "%s ", "NOW");
                 }
                 if (has_flag(dyn[i].d_un.d_val, DF_1_PIE)) {
-                    offset += snprintf(value + offset, 50, "%s ", "DF_1_PIE");
+                    offset += snprintf(value + offset, 50, "%s ", "PIE");
                 }
                 else {
                     // TODO
