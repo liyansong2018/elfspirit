@@ -32,6 +32,7 @@
 #include <sys/mman.h>
 #include <elf.h>
 #include "common.h"
+#include "segment.h"
 #include "cJSON/cJSON.h"
 
 /**
@@ -471,7 +472,7 @@ int add_hpdr(char *elf_name) {
  * add a segment
  * @param elf_name 
  * @param type segment type
- * @param start segment size
+ * @param size segment size
  * @return int segment index
  */
 int add_segment(char *elf_name, int type, size_t size) {
@@ -537,6 +538,7 @@ int add_segment(char *elf_name, int type, size_t size) {
         phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend) + segoffset % PAGE_SIZE;
         phdr[ehdr->e_phnum - 1].p_paddr = phdr[ehdr->e_phnum - 1].p_vaddr;
         phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
+        phdr[ehdr->e_phnum - 1].p_flags = 4;    // defautl read permission
         index = ehdr->e_phnum - 1;
     }
 
@@ -551,6 +553,7 @@ int add_segment(char *elf_name, int type, size_t size) {
         phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend) + segoffset % PAGE_SIZE;
         phdr[ehdr->e_phnum - 1].p_paddr = phdr[ehdr->e_phnum - 1].p_vaddr;
         phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
+        phdr[ehdr->e_phnum - 1].p_flags = 4;    // defautl read permission
         index = ehdr->e_phnum - 1;
     }
 
@@ -558,6 +561,25 @@ int add_segment(char *elf_name, int type, size_t size) {
     close(fd);
     munmap(mapped, st.st_size);
     return index;
+}
+
+/**
+ * @brief 增加一个段，并填充内容
+ * add a paragraph and fill in the content
+ * @param elf_name 
+ * @param type segment type
+ * @param content segment content
+ * @param size segment size
+ * @return int segment index {-1:error}
+ */
+int add_segment_content(char *elf_name, int type, char *content, size_t size) {
+    int i = add_segment(elf_name, type, size);
+    uint64_t offset = get_segment_offset(elf_name, i);
+    if (set_content(elf_name, offset, content, size)) {
+        return -1;
+    } else {
+        return i;
+    }
 }
 
 /**
@@ -760,4 +782,246 @@ uint64_t get_segment_align(char *elfname, int i) {
         get_segment(elfname, i, &segment_info);
         return segment_info.p_align;
     }
+}
+
+/**
+ * @brief 根据dynamic段的tag，得到或者设置值
+ * get or set dynamic segment value by tag
+ * @param elfname 
+ * @param tag dynamic segment tag
+ * @param value dynamic segment value
+ * @param option {GET, SET, INDEX}
+ * @return int error code {-1:error,0:sucess}
+ */
+static int opt_dynamic_segment(char *elfname, int tag, uint64_t *value, enum OPT_FUNCTION opt) {
+    int fd;
+    struct stat st;
+    uint8_t *mapped;
+    int result = -1;
+
+    fd = open(elfname, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    mapped = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mapped == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Phdr *phdr;
+        Elf32_Dyn *dyn;
+        ehdr = (Elf32_Ehdr *)mapped;
+        phdr = (Elf32_Phdr *)&mapped[ehdr->e_phoff];
+
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_DYNAMIC) {
+                dyn = (Elf32_Dyn *)(mapped + phdr[i].p_offset);
+                for (int j = 0; j < phdr[i].p_filesz / sizeof(Elf32_Dyn); j++) {
+                    if (dyn[j].d_tag == tag) {
+                        switch (opt)
+                        {
+                            case GET:
+                                *value = dyn[j].d_un.d_val;
+                                result = 0;
+                                break;
+                            
+                            case SET:
+                                printf("%x->%x\n", dyn[j].d_un.d_val, *value);
+                                dyn[j].d_un.d_val = *value;
+                                result = 0;
+                                break;
+                            
+                            case INDEX:
+                                *value = j;
+                                break;
+                            
+                            default:
+                                result = -1;
+                                break;
+                        }
+
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Phdr *phdr;
+        Elf64_Dyn *dyn;
+        ehdr = (Elf64_Ehdr *)mapped;
+        phdr = (Elf64_Phdr *)&mapped[ehdr->e_phoff];
+
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_DYNAMIC) {
+                dyn = (Elf64_Dyn *)(mapped + phdr[i].p_offset);
+                for (int j = 0; j < phdr[i].p_filesz / sizeof(Elf64_Dyn); j++) {
+                    if (dyn[j].d_tag == tag) {
+                        switch (opt)
+                        {
+                            case GET:
+                                *value = dyn[j].d_un.d_val;
+                                result = 0;
+                                break;
+                            
+                            case SET:
+                                printf("%x->%x\n", dyn[j].d_un.d_val, *value);
+                                dyn[j].d_un.d_val = *value;
+                                result = 0;
+                                break;
+                            
+                            case INDEX:
+                                *value = j;
+                                break;
+                            
+                            default:
+                                result = -1;
+                                break;
+                        }
+
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    close(fd);
+    munmap(mapped, st.st_size);
+    return result;
+}
+
+/**
+ * @brief 根据dynamic段的tag，得到值
+ * get dynamic segment value by tag
+ * @param elfname 
+ * @param tag dynamic segment tag
+ * @param value dynamic segment value
+ * @return int error code {-1:error,0:sucess}
+ */
+uint64_t get_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value) {
+    return opt_dynamic_segment(elfname, tag, value, GET);
+}
+
+/**
+ * @brief 根据dynamic段的tag，设置值
+ * set dynamic segment value by tag
+ * @param elfname 
+ * @param tag dynamic segment tag
+ * @param value dynamic segment value
+ * @return int error code {-1:error,0:sucess}
+ */
+uint64_t set_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value) {
+    return opt_dynamic_segment(elfname, tag, value, SET);
+}
+
+/**
+ * @brief 根据dynamic段的tag，得到下标
+ * get dynamic segment index by tag
+ * @param elfname 
+ * @param tag dynamic item tag
+ * @param index dynamic item index
+ * @return dynamic item index {-1:error,0:sucess}
+ */
+uint64_t get_dynamic_index_by_tag(char *elfname, int tag, uint64_t *index) {
+    return opt_dynamic_segment(elfname, tag, index, INDEX);
+}
+
+/**
+ * @brief 扩充一个节或者一个段，通过将节或者段移动到文件末尾实现。
+ * expand a section or segment by moving it to the end of the file.
+ * @param elfname 
+ * @param offset sec/seg offset
+ * @param org_size sec/seg origin size
+ * @param add_content new added content
+ * @param content_size new added content size
+ * @return segment index {-1:error}
+ */
+int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_content, size_t content_size) {
+    int fd;     // file descriptor
+    char *buf;  // new content
+    int i;      // segment index
+
+    // 打开文件
+    fd = open(elfname, O_RDONLY);
+
+    if (fd == -1) {
+        perror("Failed to open file");
+        return -1;
+    }
+
+    // 设置文件偏移量
+    if (lseek(fd, offset, SEEK_SET) == -1) {
+        perror("Failed to set file offset");
+        close(fd);
+        return -1;
+    }
+
+    // 从指定偏移处读取数据
+    buf = malloc(org_size + content_size);
+    ssize_t bytes_read = read(fd, buf, org_size);
+    if (bytes_read == -1) {
+        perror("Failed to read from file");
+        close(fd);
+        free(buf);
+        return -1;
+    }
+
+    memcpy(buf + org_size, add_content, content_size);
+    i = add_segment_content(elfname, PT_LOAD, buf, org_size + content_size);
+
+    // 关闭文件
+    close(fd);
+    free(buf);
+    return i;
+}
+
+/**
+ * @brief 扩充dynamic段，通过将节或者段移动到文件末尾实现。
+ * expand dynamci segment by moving it to the end of the file.
+ * @param elfname 
+ * @param str new dynstr item
+ * @return segment index {-1:error}
+ */
+int expand_dynstr_segment(char *elfname, char *str) {
+    // get offset and size
+    uint64_t addr, offset;
+    size_t size;
+    int seg_i, sec_i;
+    get_dynamic_value_by_tag(elfname, DT_STRTAB, &addr);
+    get_dynamic_value_by_tag(elfname, DT_STRSZ, &size);
+    VERBOSE("dynamic strtab addr: 0x%x, size: 0x%x\n", addr, size);
+
+    // copy
+    seg_i = expand_segment(elfname, addr, size, str, strlen(str) + 1);
+
+    // set phdr
+    VERBOSE("set phdr\n");
+    addr = get_segment_vaddr(elfname, seg_i);
+    offset = get_segment_offset(elfname, seg_i);
+    size = get_segment_memsz(elfname, seg_i);
+    set_dynamic_value_by_tag(elfname, DT_STRTAB, &addr);
+    set_dynamic_value_by_tag(elfname, DT_STRSZ, &size);
+    
+    // set shdr
+    VERBOSE("set shdr\n");
+    sec_i = get_section_index(elfname, ".dynstr");
+    set_section_off(elfname, sec_i, offset);
+    set_section_addr(elfname, sec_i, addr);
+    set_section_size(elfname, sec_i, size);
+    return seg_i;
 }

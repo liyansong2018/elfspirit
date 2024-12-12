@@ -75,6 +75,7 @@ enum LONG_OPTION {
     INFECT_SILVIO,
     INFECT_SKEKSI,
     INFECT_DATA,
+    SET_RPATH,
 };
 
 /**
@@ -137,6 +138,7 @@ static const struct option longopts[] = {
     {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
     {"infect-skeksi", no_argument, &g_long_option, INFECT_SKEKSI},
     {"infect-data", no_argument, &g_long_option, INFECT_DATA},
+    {"set-rpath", no_argument, &g_long_option, SET_RPATH},
     {0, 0, 0, 0}
 };
 
@@ -198,7 +200,8 @@ static const char *help =
     "  elfspirit edit [-H|S|P|B|D|R] [-i]<row> [-j]<column> [-m|-f]<int|string value> ELF\n"
     "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
-    "  elfspirit --set-interpreter [-f]<new interpreter> stELFring\n"
+    "  elfspirit --set-interpreter [-f]<new interpreter> ELF\n"
+    "  elfspirit --set-rpath [-f]<rpath> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
     "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> ELF\n"
@@ -259,6 +262,7 @@ static const char *help_chinese =
     "  elfspirit --set-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --set-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
+    "  elfspirit --set-rpath [-f]<rpath> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
     "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> ELF\n"
@@ -446,6 +450,11 @@ static void readcmdline(int argc, char *argv[]) {
                 case SET_INTERPRETER:
                     /* set new interpreter */
                     set_interpreter(elf_name, string);
+                    break;
+                
+                case SET_RPATH:
+                    /* set rpath */
+                    set_rpath(elf_name, string);
                     break;
 
                 case ADD_SEGMENT:

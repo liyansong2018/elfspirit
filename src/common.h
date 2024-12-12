@@ -75,6 +75,13 @@ typedef struct handle64 {
     size_t size;
 } handle_t64;
 
+/* get or set function */
+enum OPT_FUNCTION {
+    GET,
+    SET,
+    INDEX,
+};
+
 void log_warning(char *str);
 void log_error(char *str);
 void log_info(char *str);
@@ -220,9 +227,18 @@ int get_section_offset(char *elf_name, char *section_name);
  * 
  * @param elf_name original file name
  * @param section_name section name
- * @return section 
+ * @return section size
  */
-int get_section_size(char *elf_name, char *section_name);
+size_t get_section_size(char *elf_name, char *section_name);
+
+/**
+ * @brief Get the section index
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section index
+ */
+int get_section_index(char *elf_name, char *section_name);
 
 /**
  * @description: Judge whether the memory address is legal
@@ -249,3 +265,14 @@ int set_interpreter(char *elf_name, char *new_interpreter);
  * @return int {1:true,0:false}
  */
 int is_pie(char *elfname);
+
+/**
+ * @brief 向ELF文件特定偏移处，写入一段数据
+ * Write a piece of data to a specific offset in the ELF file
+ * @param elf_name elf file name
+ * @param offset start elf file offset
+ * @param content new value string value to be edited
+ * @param size content size
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_content(char *elf_name, uint64_t offset, char *content, size_t size);

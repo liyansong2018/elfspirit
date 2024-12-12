@@ -607,7 +607,8 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
  */
 int get_section(char *elf_name, char *section_name, char *section_info) {
     MODE = get_elf_class(elf_name);
-    int fd;
+    int fd;         // file descriptor
+    int result;     // return result
     struct stat st;
     uint8_t *elf_map;
     uint8_t *name;
@@ -648,6 +649,7 @@ int get_section(char *elf_name, char *section_name, char *section_info) {
             }
             if (!strcmp(name, section_name)) {
                 flag = 1;
+                result = i;
                 memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
                 break;
             }
@@ -672,6 +674,7 @@ int get_section(char *elf_name, char *section_name, char *section_info) {
             }
             if (!strcmp(name, section_name)) {
                 flag = 1;
+                result = i;
                 memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
                 break;
             }
@@ -690,7 +693,7 @@ int get_section(char *elf_name, char *section_name, char *section_info) {
 
     close(fd);
     munmap(elf_map, st.st_size);
-    return 0;
+    return result;
 
 ERR_EXIT:
     close(fd);
@@ -745,7 +748,7 @@ int get_section_offset(char *elf_name, char *section_name) {
  * @param section_name section name
  * @return section size
  */
-int get_section_size(char *elf_name, char *section_name) {
+size_t get_section_size(char *elf_name, char *section_name) {
     MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
@@ -759,6 +762,18 @@ int get_section_size(char *elf_name, char *section_name) {
 }
 
 /**
+ * @brief Get the section index
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section index
+ */
+int get_section_index(char *elf_name, char *section_name) {
+    Elf64_Shdr section_info;
+    return get_section(elf_name, section_name, &section_info);
+}
+
+/**
  * @brief 向ELF文件特定偏移处，写入一段数据
  * Write a piece of data to a specific offset in the ELF file
  * @param elf_name elf file name
@@ -767,7 +782,7 @@ int get_section_size(char *elf_name, char *section_name) {
  * @param size content size
  * @return int error code {-1:error,0:sucess}
  */
-static int set_content(char *elf_name, uint64_t offset, char *content, size_t size) {
+int set_content(char *elf_name, uint64_t offset, char *content, size_t size) {
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -801,7 +816,6 @@ static int set_content(char *elf_name, uint64_t offset, char *content, size_t si
         goto ERR_EXIT;
     }
 
-    printf("%s->%s\n", start_addr, content);
     memset(start_addr, 0, size);
     memcpy(start_addr, content, size);
 
@@ -847,5 +861,32 @@ int set_interpreter(char *elf_name, char *new_interpreter) {
         set_segment_memsz(elf_name, 1, get_segment_memsz(elf_name, i));
         // set load permission
         set_segment_flags(elf_name, i, 4);
+    }
+}
+
+/**
+ * @brief 设置rpath
+ * set rpath
+ * @param elf_name elf file name
+ * @param rpath string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_rpath(char *elf_name, char *rpath) {
+    int index;
+    uint64_t size;
+    get_dynamic_value_by_tag(elf_name, DT_STRSZ, &size);
+    VERBOSE("change dynamic PT_NULL value 0x%x\n", size);
+    set_dynamic_value_by_tag(elf_name, PT_NULL, &size);
+    
+    get_dynamic_index_by_tag(elf_name, PT_NULL, &index);
+    VERBOSE("change dynamic [%d] PT_NULL to PT_RPATH\n", index);
+    set_dyn_tag(elf_name, index, DT_RPATH);
+
+    VERBOSE("add a new segment for rapth name\n");
+    int result = expand_dynstr_segment(elf_name, rpath);
+    if (result) {
+        return -1;
+    } else {
+        return 0;
     }
 }
