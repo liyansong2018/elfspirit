@@ -1,3 +1,27 @@
+/*
+ MIT License
+ 
+ Copyright (c) 2024 Yansong Li
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+*/
+
 #define _GNU_SOURCE 1
 #include <string.h>
 #include <stdio.h>
@@ -305,4 +329,180 @@ int add_section(char *elfname, size_t size) {
     close(fd);
     munmap(mapped, st.st_size);
     return index;
+}
+
+/**
+ * @brief Get the section content
+ * 
+ * @param elf_name original file name
+ * @param section_name input argument: section name
+ * @param section_info output argument: section content
+ * @return error code {-1:error,0:sucess}
+ */
+int get_section(char *elf_name, char *section_name, char *section_info) {
+    MODE = get_elf_class(elf_name);
+    int fd;         // file descriptor
+    int result;     // return result
+    struct stat st;
+    uint8_t *elf_map;
+    uint8_t *name;
+    int flag = 0;
+
+    fd = open(elf_name, O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+    
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (!strcmp(name, section_name)) {
+                flag = 1;
+                result = i;
+                memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
+                break;
+            }
+        }
+    }
+
+    /* 64bit */
+    else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
+                ERROR("Corrupt file format\n");
+                goto ERR_EXIT;
+            }
+            if (!strcmp(name, section_name)) {
+                flag = 1;
+                result = i;
+                memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
+                break;
+            }
+        }
+    }
+
+    else {
+        ERROR("Invalid ELF class");
+        goto ERR_EXIT;
+    }
+
+    if (!flag) {
+        ERROR("This file does not have %s\n", section_name);
+        goto ERR_EXIT;
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return result;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
+};
+
+/**
+ * @brief Get the section address
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section address
+ */
+int get_section_addr(char *elf_name, char *section_name) {
+    MODE = get_elf_class(elf_name);
+    if (MODE == ELFCLASS32) {
+        Elf32_Shdr section_info;
+        get_section(elf_name, section_name, &section_info);
+        return section_info.sh_addr;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Shdr section_info;
+        get_section(elf_name, section_name, &section_info);
+        return section_info.sh_addr;
+    }
+}
+
+/**
+ * @brief Get the section file offset address
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section file offset address
+ */
+int get_section_offset(char *elf_name, char *section_name) {
+    MODE = get_elf_class(elf_name);
+    if (MODE == ELFCLASS32) {
+        Elf32_Shdr section_info;
+        get_section(elf_name, section_name, &section_info);
+        return section_info.sh_offset;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Shdr section_info;
+        get_section(elf_name, section_name, &section_info);
+        return section_info.sh_offset;
+    }
+}
+
+/**
+ * @brief Get the section size
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section size
+ */
+size_t get_section_size(char *elf_name, char *section_name) {
+    MODE = get_elf_class(elf_name);
+    if (MODE == ELFCLASS32) {
+        Elf32_Shdr section_info;
+        get_section(elf_name, section_name, &section_info);
+        return section_info.sh_size;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Shdr section_info;
+        get_section(elf_name, section_name, &section_info);
+        return section_info.sh_size;
+    }
+}
+
+/**
+ * @brief Get the section index
+ * 
+ * @param elf_name original file name
+ * @param section_name section name
+ * @return section index
+ */
+int get_section_index(char *elf_name, char *section_name) {
+    Elf64_Shdr section_info;
+    return get_section(elf_name, section_name, &section_info);
 }

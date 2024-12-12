@@ -598,182 +598,6 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
 }
 
 /**
- * @brief Get the section content
- * 
- * @param elf_name original file name
- * @param section_name input argument: section name
- * @param section_info output argument: section content
- * @return error code {-1:error,0:sucess}
- */
-int get_section(char *elf_name, char *section_name, char *section_info) {
-    MODE = get_elf_class(elf_name);
-    int fd;         // file descriptor
-    int result;     // return result
-    struct stat st;
-    uint8_t *elf_map;
-    uint8_t *name;
-    int flag = 0;
-
-    fd = open(elf_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-    
-    /* 32bit */
-    if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr;
-        Elf32_Shdr *shdr;
-        Elf32_Shdr shstrtab;
-
-        ehdr = (Elf32_Ehdr *)elf_map;
-        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
-        shstrtab = shdr[ehdr->e_shstrndx];
-
-        for (int i = 0; i < ehdr->e_shnum; i++) {
-            name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
-                ERROR("Corrupt file format\n");
-                goto ERR_EXIT;
-            }
-            if (!strcmp(name, section_name)) {
-                flag = 1;
-                result = i;
-                memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
-                break;
-            }
-        }
-    }
-
-    /* 64bit */
-    else if (MODE == ELFCLASS64) {
-        Elf64_Ehdr *ehdr;
-        Elf64_Shdr *shdr;
-        Elf64_Shdr shstrtab;
-
-        ehdr = (Elf64_Ehdr *)elf_map;
-        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
-        shstrtab = shdr[ehdr->e_shstrndx];
-
-        for (int i = 0; i < ehdr->e_shnum; i++) {
-            name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (validated_offset(name, elf_map, elf_map + st.st_size)) {
-                ERROR("Corrupt file format\n");
-                goto ERR_EXIT;
-            }
-            if (!strcmp(name, section_name)) {
-                flag = 1;
-                result = i;
-                memcpy(section_info, &shdr[i], sizeof(Elf32_Shdr));
-                break;
-            }
-        }
-    }
-
-    else {
-        ERROR("Invalid ELF class");
-        goto ERR_EXIT;
-    }
-
-    if (!flag) {
-        ERROR("This file does not have %s\n", section_name);
-        goto ERR_EXIT;
-    }
-
-    close(fd);
-    munmap(elf_map, st.st_size);
-    return result;
-
-ERR_EXIT:
-    close(fd);
-    munmap(elf_map, st.st_size);
-    return -1;
-};
-
-/**
- * @brief Get the section address
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section address
- */
-int get_section_addr(char *elf_name, char *section_name) {
-    MODE = get_elf_class(elf_name);
-    if (MODE == ELFCLASS32) {
-        Elf32_Shdr section_info;
-        get_section(elf_name, section_name, &section_info);
-        return section_info.sh_addr;
-    } else if (MODE == ELFCLASS64) {
-        Elf64_Shdr section_info;
-        get_section(elf_name, section_name, &section_info);
-        return section_info.sh_addr;
-    }
-}
-
-/**
- * @brief Get the section file offset address
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section file offset address
- */
-int get_section_offset(char *elf_name, char *section_name) {
-    MODE = get_elf_class(elf_name);
-    if (MODE == ELFCLASS32) {
-        Elf32_Shdr section_info;
-        get_section(elf_name, section_name, &section_info);
-        return section_info.sh_offset;
-    } else if (MODE == ELFCLASS64) {
-        Elf64_Shdr section_info;
-        get_section(elf_name, section_name, &section_info);
-        return section_info.sh_offset;
-    }
-}
-
-/**
- * @brief Get the section size
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section size
- */
-size_t get_section_size(char *elf_name, char *section_name) {
-    MODE = get_elf_class(elf_name);
-    if (MODE == ELFCLASS32) {
-        Elf32_Shdr section_info;
-        get_section(elf_name, section_name, &section_info);
-        return section_info.sh_size;
-    } else if (MODE == ELFCLASS64) {
-        Elf64_Shdr section_info;
-        get_section(elf_name, section_name, &section_info);
-        return section_info.sh_size;
-    }
-}
-
-/**
- * @brief Get the section index
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section index
- */
-int get_section_index(char *elf_name, char *section_name) {
-    Elf64_Shdr section_info;
-    return get_section(elf_name, section_name, &section_info);
-}
-
-/**
  * @brief 向ELF文件特定偏移处，写入一段数据
  * Write a piece of data to a specific offset in the ELF file
  * @param elf_name elf file name
@@ -843,24 +667,27 @@ int set_interpreter(char *elf_name, char *new_interpreter) {
     // if the length of the name of the new interpreter is less than the original length,
     // there is no need to modify the ELF file size
     if (strlen(new_interpreter) + 1 <= size) {
-        VERBOSE("the length of the input string is less than the original string\n");
+        VERBOSE("don't need to add segment\n");
         return set_content(elf_name, offset, new_interpreter, strlen(new_interpreter) + 1);
     }
 
     else {
-        VERBOSE("the length of the input string is rather than the original string\n");
-        int i = add_segment(elf_name, PT_LOAD, strlen(new_interpreter) + 1);
-        offset = get_segment_offset(elf_name, i);
-        set_content(elf_name, offset, new_interpreter, strlen(new_interpreter) + 1);
+        VERBOSE("add segment\n");
+        int seg_i =add_segment_content(elf_name, PT_LOAD, new_interpreter, strlen(new_interpreter) + 1);
         // 原有interpreter段表指向新的load段
         // the original interpreter segment table points to the new load segment
-        set_segment_offset(elf_name, 1, offset);
-        set_segment_vaddr(elf_name, 1, get_segment_vaddr(elf_name, i));
-        set_segment_paddr(elf_name, 1, get_segment_paddr(elf_name, i));
-        set_segment_filesz(elf_name, 1, get_segment_filesz(elf_name, i));
-        set_segment_memsz(elf_name, 1, get_segment_memsz(elf_name, i));
-        // set load permission
-        set_segment_flags(elf_name, i, 4);
+        VERBOSE("set phdr\n");
+        set_segment_offset(elf_name, 1, get_segment_offset(elf_name, seg_i));
+        set_segment_vaddr(elf_name, 1, get_segment_vaddr(elf_name, seg_i));
+        set_segment_paddr(elf_name, 1, get_segment_paddr(elf_name, seg_i));
+        set_segment_filesz(elf_name, 1, get_segment_filesz(elf_name, seg_i));
+        set_segment_memsz(elf_name, 1, get_segment_memsz(elf_name, seg_i));
+        // set shdr
+        VERBOSE("set shdr\n");
+        int sec_i = get_section_index(elf_name, ".interp");
+        set_section_off(elf_name, sec_i, get_segment_offset(elf_name, seg_i));
+        set_section_addr(elf_name, sec_i, get_segment_vaddr(elf_name, seg_i));
+        set_section_size(elf_name, sec_i, get_segment_filesz(elf_name, seg_i));
     }
 }
 

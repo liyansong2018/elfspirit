@@ -205,42 +205,6 @@ void extract_fragment(const char *input_file, long offset, size_t size);
 
 /* EXTERN API */
 /**
- * @brief Get the section address
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section address
- */
-int get_section_addr(char *elf_name, char *section_name);
-
-/**
- * @brief Get the section file offset address
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section file offset address
- */
-int get_section_offset(char *elf_name, char *section_name);
-
-/**
- * @brief Get the section size
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section size
- */
-size_t get_section_size(char *elf_name, char *section_name);
-
-/**
- * @brief Get the section index
- * 
- * @param elf_name original file name
- * @param section_name section name
- * @return section index
- */
-int get_section_index(char *elf_name, char *section_name);
-
-/**
  * @description: Judge whether the memory address is legal
  * @param {uint64_t} addr
  * @param {uint64_t} start
@@ -276,3 +240,21 @@ int is_pie(char *elfname);
  * @return int error code {-1:error,0:sucess}
  */
 int set_content(char *elf_name, uint64_t offset, char *content, size_t size);
+
+/**
+ * @brief 设置新的解释器（动态链接器）
+ * set up a new interpreter (dynamic linker)
+ * @param elf_name elf file name
+ * @param new_interpreter string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_interpreter(char *elf_name, char *new_interpreter);
+
+/**
+ * @brief 设置rpath
+ * set rpath
+ * @param elf_name elf file name
+ * @param rpath string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_rpath(char *elf_name, char *rpath);

@@ -22,8 +22,6 @@
  SOFTWARE.
 */
 
-#include "cJSON/cJSON.h"
-
 /**
  * @brief 增加一个段
  * add a segment
