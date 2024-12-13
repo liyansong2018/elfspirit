@@ -1007,7 +1007,9 @@ int expand_dynstr_segment(char *elfname, char *str) {
     VERBOSE("dynamic strtab addr: 0x%x, size: 0x%x\n", addr, size);
 
     // copy
-    seg_i = expand_segment(elfname, addr, size, str, strlen(str) + 1);
+    // fix error in expanding segment if addr != offset
+    offset = get_section_offset(elfname, ".dynstr");
+    seg_i = expand_segment(elfname, offset, size, str, strlen(str) + 1);
 
     // set phdr
     VERBOSE("set phdr\n");
