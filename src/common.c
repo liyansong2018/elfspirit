@@ -692,13 +692,14 @@ int set_interpreter(char *elf_name, char *new_interpreter) {
 }
 
 /**
- * @brief 设置rpath
- * set rpath
+ * @brief 增加一个dynamic条目
+ * add a dynamic segment
  * @param elf_name elf file name
- * @param rpath string
+ * @param dt_tag dynamic tag
+ * @param dt_value dynamic value
  * @return int error code {-1:error,0:sucess}
  */
-int set_rpath(char *elf_name, char *rpath) {
+int add_dynamic_item(char *elf_name, int dt_tag, char *dt_value) {
     int index;
     uint64_t size;
     get_dynamic_value_by_tag(elf_name, DT_STRSZ, &size);
@@ -706,14 +707,36 @@ int set_rpath(char *elf_name, char *rpath) {
     set_dynamic_value_by_tag(elf_name, PT_NULL, &size);
     
     get_dynamic_index_by_tag(elf_name, PT_NULL, &index);
-    VERBOSE("change dynamic [%d] PT_NULL to PT_RPATH\n", index);
-    set_dyn_tag(elf_name, index, DT_RPATH);
+    VERBOSE("change dynamic [%d] PT_NULL to %d\n", index, dt_tag);
+    set_dyn_tag(elf_name, index, dt_tag);
 
     VERBOSE("add a new segment for rapth name\n");
-    int result = expand_dynstr_segment(elf_name, rpath);
+    int result = expand_dynstr_segment(elf_name, dt_value);
     if (result) {
         return -1;
     } else {
         return 0;
     }
+}
+
+/**
+ * @brief 设置rpath
+ * set rpath
+ * @param elf_name elf file name
+ * @param rpath string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_rpath(char *elf_name, char *rpath) {
+    return add_dynamic_item(elf_name, DT_RPATH, rpath);
+}
+
+/**
+ * @brief 设置runpath
+ * set runpath
+ * @param elf_name elf file name
+ * @param rpath string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_runpath(char *elf_name, char *runpath) {
+    return add_dynamic_item(elf_name, DT_RUNPATH, runpath);
 }

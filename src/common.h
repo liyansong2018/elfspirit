@@ -258,3 +258,12 @@ int set_interpreter(char *elf_name, char *new_interpreter);
  * @return int error code {-1:error,0:sucess}
  */
 int set_rpath(char *elf_name, char *rpath);
+
+/**
+ * @brief 设置runpath
+ * set runpath
+ * @param elf_name elf file name
+ * @param rpath string
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_runpath(char *elf_name, char *rpath);
