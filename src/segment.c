@@ -826,23 +826,24 @@ static int opt_dynamic_segment(char *elfname, int tag, uint64_t *value, enum OPT
         for (int i = 0; i < ehdr->e_phnum; i++) {
             if (phdr[i].p_type == PT_DYNAMIC) {
                 dyn = (Elf32_Dyn *)(mapped + phdr[i].p_offset);
-                for (int j = 0; j < phdr[i].p_filesz / sizeof(Elf32_Dyn); j++) {
+                for (uint64_t j = 0; j < phdr[i].p_filesz / sizeof(Elf32_Dyn); j++) {
                     if (dyn[j].d_tag == tag) {
                         switch (opt)
                         {
-                            case GET:
+                            case GET_SEG:
                                 *value = dyn[j].d_un.d_val;
                                 result = 0;
                                 break;
                             
-                            case SET:
+                            case SET_SEG:
                                 printf("%x->%x\n", dyn[j].d_un.d_val, *value);
                                 dyn[j].d_un.d_val = *value;
                                 result = 0;
                                 break;
                             
-                            case INDEX:
+                            case INDEX_SEG:
                                 *value = j;
+                                result = 0;
                                 break;
                             
                             default:
@@ -868,23 +869,24 @@ static int opt_dynamic_segment(char *elfname, int tag, uint64_t *value, enum OPT
         for (int i = 0; i < ehdr->e_phnum; i++) {
             if (phdr[i].p_type == PT_DYNAMIC) {
                 dyn = (Elf64_Dyn *)(mapped + phdr[i].p_offset);
-                for (int j = 0; j < phdr[i].p_filesz / sizeof(Elf64_Dyn); j++) {
+                for (uint64_t j = 0; j < phdr[i].p_filesz / sizeof(Elf64_Dyn); j++) {
                     if (dyn[j].d_tag == tag) {
                         switch (opt)
                         {
-                            case GET:
+                            case GET_SEG:
                                 *value = dyn[j].d_un.d_val;
                                 result = 0;
                                 break;
                             
-                            case SET:
+                            case SET_SEG:
                                 printf("%x->%x\n", dyn[j].d_un.d_val, *value);
                                 dyn[j].d_un.d_val = *value;
                                 result = 0;
                                 break;
                             
-                            case INDEX:
+                            case INDEX_SEG:
                                 *value = j;
+                                result = 0;
                                 break;
                             
                             default:
@@ -914,7 +916,7 @@ static int opt_dynamic_segment(char *elfname, int tag, uint64_t *value, enum OPT
  * @return int error code {-1:error,0:sucess}
  */
 uint64_t get_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value) {
-    return opt_dynamic_segment(elfname, tag, value, GET);
+    return opt_dynamic_segment(elfname, tag, value, GET_SEG);
 }
 
 /**
@@ -926,7 +928,7 @@ uint64_t get_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value) {
  * @return int error code {-1:error,0:sucess}
  */
 uint64_t set_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value) {
-    return opt_dynamic_segment(elfname, tag, value, SET);
+    return opt_dynamic_segment(elfname, tag, value, SET_SEG);
 }
 
 /**
@@ -938,7 +940,23 @@ uint64_t set_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value) {
  * @return dynamic item index {-1:error,0:sucess}
  */
 uint64_t get_dynamic_index_by_tag(char *elfname, int tag, uint64_t *index) {
-    return opt_dynamic_segment(elfname, tag, index, INDEX);
+    return opt_dynamic_segment(elfname, tag, index, INDEX_SEG);
+}
+
+/**
+ * @brief 根据tag判断某个动态item是否存在
+ * determine whether a dynamic item exists based on the tag
+ * @param elfname 
+ * @param tag dynamic item tag
+ * @return dynamic item index {-1:false, other:true}
+ */
+int has_dynamic_by_tag(char *elfname, int tag) {
+    uint64_t index = -1;    // use uint64_t instead of int: avoid overflow
+    get_dynamic_index_by_tag(elfname, tag, &index);
+    if (index == -1)
+        return -1;
+    else 
+        return index;
 }
 
 /**

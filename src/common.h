@@ -75,13 +75,6 @@ typedef struct handle64 {
     size_t size;
 } handle_t64;
 
-/* get or set function */
-enum OPT_FUNCTION {
-    GET,
-    SET,
-    INDEX,
-};
-
 void log_warning(char *str);
 void log_error(char *str);
 void log_info(char *str);

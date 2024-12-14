@@ -700,8 +700,16 @@ int set_interpreter(char *elf_name, char *new_interpreter) {
  * @return int error code {-1:error,0:sucess}
  */
 int add_dynamic_item(char *elf_name, int dt_tag, char *dt_value) {
-    int index;
+    // use uint64_t instead of int: avoid overflow
+    uint64_t index;
     uint64_t size;
+
+    index = has_dynamic_by_tag(elf_name, dt_tag);
+    if (index != -1) {
+        VERBOSE("change dynamic %d to PT_NULL\n", dt_tag);
+        set_dyn_tag(elf_name, index, PT_NULL);
+    }
+
     get_dynamic_value_by_tag(elf_name, DT_STRSZ, &size);
     VERBOSE("change dynamic PT_NULL value 0x%x\n", size);
     set_dynamic_value_by_tag(elf_name, PT_NULL, &size);

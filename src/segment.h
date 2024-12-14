@@ -22,6 +22,13 @@
  SOFTWARE.
 */
 
+/* get or set function */
+enum OPT_FUNCTION {
+    GET_SEG,
+    SET_SEG,
+    INDEX_SEG,
+};
+
 /**
  * @brief 增加一个段
  * add a segment
@@ -120,3 +127,12 @@ uint64_t get_dynamic_index_by_tag(char *elfname, int tag, uint64_t *index);
  * @return int error code {-1:error,0:sucess}
  */
 uint64_t set_dynamic_value_by_tag(char *elfname, int tag, uint64_t *value);
+
+/**
+ * @brief 根据tag判断某个动态item是否存在
+ * determine whether a dynamic item exists based on the tag
+ * @param elfname 
+ * @param tag dynamic item tag
+ * @return dynamic item index {-1:false, other:true}
+ */
+int has_dynamic_by_tag(char *elfname, int tag);
