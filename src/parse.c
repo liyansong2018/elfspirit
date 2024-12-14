@@ -844,6 +844,7 @@ static void display_segment32(handle_t32 *h) {
 
             case PT_INTERP:
                 tmp = "PT_INTERP";
+                printf("\t\t[Requesting program interpreter: %s]\n", h->mem + h->phdr[i].p_offset);
                 break;
 
             case PT_NOTE:
@@ -918,6 +919,7 @@ static void display_segment64(handle_t64 *h) {
 
             case PT_INTERP:
                 tmp = "PT_INTERP";
+                printf("\t\t[Requesting program interpreter: %s]\n", h->mem + h->phdr[i].p_offset);
                 break;
 
             case PT_NOTE:
