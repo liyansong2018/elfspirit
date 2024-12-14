@@ -7,9 +7,11 @@
 [![ld](https://img.shields.io/badge/ld-3.31%20%7C%203.32-lightgrey)](#)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
-**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including adding or deleting a section, injecting a dynamic link library for binary static, deleting the section header table to increase the difficulty of reverse engineering, parse ELF like `readelf` and edit ELF like 010 editor.
+**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including parsing ELF like `readelf`, editing ELF like `010 editor`, adding section or segment, pathing ELF like `patchelf`, infecting ELF, deleting the section header table to increase the difficulty of reverse engineering.
 
-More details about static injection: [ELF Static Injection to Load Malicious Dynamic Link Library](https://violentbinary.github.io/posts/1-elf-static-injection-to-load-malicious-dynamic-link-library/). Tips: Only the readme on the project homepage will tell you the latest features of the tool, while other documents will not. But you might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. Compared to [patchelf](https://github.com/NixOS/patchelf), elfspirit provides a more flexible editing environment.
+**elfspirit is not just a replacement for these tools, it provides even more powerful functionality about ELF. Its ultimate goal is to help hackers easily edit every byte of ELF.**
+
+ Related work: You might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. Compared to [patchelf](https://github.com/NixOS/patchelf), elfspirit provides a more flexible editing environment.
 ## Building
 
 **elfspirit** can be installed easily:
@@ -155,6 +157,48 @@ $ elfspirit edit -L -i27 -j2 -ftest.so main
 We have successfully linked a new so!
 
 ![4](pictures/4.png)
+
+### Patch ELF
+
+* Change the ELF interpreter ("the dynamic loader/linker") of executables:
+
+  ```shell
+  elfspirit --set-interpreter [-f]<new interpreter> ELF
+  ```
+
+* Change the `RPATH` or `RUNPATH` of executables and libraries:
+
+  ```shell
+  elfspirit --set-rpath [-f]<rpath> ELF
+  elfspirit --set-runpath [-f]<rpath> ELF
+  ```
+
+* Add section or segment of executables and libraries:
+
+  ```shell
+  elfspirit --add-section [-z]<size> ELF
+  elfspirit --add-segment [-z]<size> ELF
+  ```
+
+### Infect ELF (experimental)
+
+* Silvio text segment infectction technic:
+
+  ```shell
+  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> ELF
+  ```
+
+* Reverse text segment infectction technic (Skeksi):
+
+  ```shell
+  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> ELF
+  ```
+
+* Data segment infectction technic (Skeksi):
+
+  ```shell
+  elfspirit --infect-data [-f]<shellcode> [-z]<size> ELF
+  ```
 
 ## Limitations
 
