@@ -951,7 +951,8 @@ uint64_t get_dynamic_index_by_tag(char *elfname, int tag, uint64_t *index) {
  * @return dynamic item index {-1:false, other:true}
  */
 int has_dynamic_by_tag(char *elfname, int tag) {
-    uint64_t index = -1;    // use uint64_t instead of int: avoid overflow
+    // use uint64_t instead of int: avoid overflow
+    uint64_t index = -1;
     get_dynamic_index_by_tag(elfname, tag, &index);
     if (index == -1)
         return -1;
@@ -1009,8 +1010,8 @@ int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_co
 }
 
 /**
- * @brief 扩充dynamic段，通过将节或者段移动到文件末尾实现。
- * expand dynamci segment by moving it to the end of the file.
+ * @brief 扩充dynstr段，通过将节或者段移动到文件末尾实现。
+ * expand dynstr segment by moving it to the end of the file.
  * @param elfname 
  * @param str new dynstr item
  * @return segment index {-1:error}

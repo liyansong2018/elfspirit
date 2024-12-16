@@ -138,6 +138,6 @@ int set_rel_index(char *elf_name, int index, int value, char *section_name);
  */
 int set_dyn_tag(char *elf_name, int index, int value);
 int set_dyn_value(char *elf_name, int index, int value);
-int set_dyn_value_by_name(char *elf_name, int index, char *name);
+int edit_dyn_name_value(char *elf_name, int index, char *name);
 
 int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name, char *file_name);

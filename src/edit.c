@@ -1696,14 +1696,15 @@ int set_dyn_value(char *elf_name, int index, int value) {
     return set_dyn(elf_name, index, value, D_VALUE);
 }
 
-int set_dyn_value_by_name(char *elf_name, int index, char *name) {
+int edit_dyn_name_value(char *elf_name, int index, char *name) {
     MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
-    int eh_frame_offset;
-    int dynstr_offset;
+    uint64_t dynamic_offset, dynstr_offset;
+    size_t dynstr_size;
     uint8_t *elf_map;
     uint8_t *tmp_sec_name;
+    uint8_t *orgin_name;        // orgin dynamic item name
 
     fd = open(elf_name, O_RDWR);
     if (fd < 0) {
@@ -1727,6 +1728,7 @@ int set_dyn_value_by_name(char *elf_name, int index, char *name) {
         Elf32_Ehdr *ehdr;
         Elf32_Shdr *shdr;
         Elf32_Shdr shstrtab;
+        Elf32_Dyn *dyn;
 
         ehdr = (Elf32_Ehdr *)elf_map;
         shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
@@ -1734,12 +1736,15 @@ int set_dyn_value_by_name(char *elf_name, int index, char *name) {
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
             tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (!strcmp(".eh_frame", tmp_sec_name)) {
-                eh_frame_offset = shdr[i].sh_offset;
+            if (!strcmp(".dynamic", tmp_sec_name)) {
+                dynamic_offset = shdr[i].sh_offset;
             } else if (!strcmp(".dynstr", tmp_sec_name)) {
                 dynstr_offset = shdr[i].sh_offset;
+                dynstr_size = shdr[i].sh_size;
             }
         }
+        dyn = (Elf32_Dyn *)(elf_map + dynamic_offset);
+        orgin_name = elf_map + dynstr_offset + dyn[index].d_un.d_val;
     }
 
     /* 64bit */
@@ -1747,6 +1752,7 @@ int set_dyn_value_by_name(char *elf_name, int index, char *name) {
         Elf64_Ehdr *ehdr;
         Elf64_Shdr *shdr;
         Elf64_Shdr shstrtab;
+        Elf64_Dyn *dyn;
 
         ehdr = (Elf64_Ehdr *)elf_map;
         shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
@@ -1754,32 +1760,53 @@ int set_dyn_value_by_name(char *elf_name, int index, char *name) {
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
             tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
-            if (!strcmp(".eh_frame", tmp_sec_name)) {
-                eh_frame_offset = shdr[i].sh_offset;
+            if (!strcmp(".dynamic", tmp_sec_name)) {
+                dynamic_offset = shdr[i].sh_offset;
             } else if (!strcmp(".dynstr", tmp_sec_name)) {
                 dynstr_offset = shdr[i].sh_offset;
+                dynstr_size = shdr[i].sh_size;
             }
         }
+        dyn = (Elf64_Dyn *)(elf_map + dynamic_offset);
+        orgin_name = elf_map + dynstr_offset + dyn[index].d_un.d_val;
     }
 
-    if (!eh_frame_offset) {
-        WARNING("This file does not have %s\n", ".eh_frame");
+    if (!dynamic_offset) {
+        WARNING("This file does not have %s\n", ".dynamic");
         close(fd);
+        munmap(elf_map, st.st_size);
         return -1;
-    } else if (!dynstr_offset) {
+    }
+
+    if (!dynstr_offset) {
         WARNING("This file does not have %s\n", ".dynstr");
         close(fd);
+        munmap(elf_map, st.st_size);
         return -1;
     }
 
     // 1. copy name
-    strcpy(elf_map + eh_frame_offset, name);
-
-    close(fd);
-    munmap(elf_map, st.st_size);
-
-    // 2. set offset
-    return set_dyn(elf_name, index, eh_frame_offset - dynstr_offset, D_VALUE);
+    if (strlen(name) <= strlen(orgin_name)) {
+        memset(orgin_name, 0, strlen(orgin_name) + 1);
+        strcpy(orgin_name, name);
+        close(fd);
+        munmap(elf_map, st.st_size);
+        return 0;
+    } 
+    // 2. if new name length > orgin_name
+    else {
+        close(fd);
+        munmap(elf_map, st.st_size);
+        //size_t size;
+        //get_dynamic_value_by_tag(elf_name, DT_STRSZ, &size);
+        set_dyn_value(elf_name, index, dynstr_size);
+        int result = expand_dynstr_segment(elf_name, name);
+        if (result) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
 }
 
 /**
@@ -2100,7 +2127,7 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
                 if (!strlen(str_name)) {
                     error_code = set_dyn_value(elf, row, value);
                 } else {
-                    error_code = set_dyn_value_by_name(elf, row, str_name);
+                    error_code = edit_dyn_name_value(elf, row, str_name);
                 }
                 break;
             

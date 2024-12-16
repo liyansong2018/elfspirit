@@ -63,8 +63,8 @@ int add_segment_content(char *elf_name, int type, char *content, size_t size);
 int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_content, size_t content_size);
 
 /**
- * @brief 扩充dynamic段，通过将节或者段移动到文件末尾实现。
- * expand dynamci segment by moving it to the end of the file.
+ * @brief 扩充dynstr段，通过将节或者段移动到文件末尾实现。
+ * expand dynstr segment by moving it to the end of the file.
  * @param elfname 
  * @param str new dynstr item
  * @return segment index {-1:error}
