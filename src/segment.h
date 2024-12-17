@@ -72,6 +72,15 @@ int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_co
 int expand_dynstr_segment(char *elfname, char *str);
 
 /**
+ * @brief 扩充strtab，通过将节移动到文件末尾实现。
+ * expand strtab section by moving it to the end of the file.
+ * @param elfname 
+ * @param str new strtab item
+ * @return section index {-1:error}
+ */
+int expand_strtab_section(char *elfname, char *str);
+
+/**
  * @brief 得到段的映射地址范围
  * Obtain the mapping address range of the segment
  * @param elf_name 

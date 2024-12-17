@@ -1058,83 +1058,6 @@ int set_sym_name(char *elf_name, int index, int value, char *section_name) {
 }
 
 /**
- * @brief Set the dynsym name by str object
- * 
- * @param elf_name elf file name
- * @param index elf file name
- * @param new_value string value to be edited
- * @param section_name .dynsym or .symtab
- * @param str_section_name .dynstr or .strtab
- * @return int error code {-1:error,0:sucess}
- */
-int set_sym_name_by_str(char *elf_name, int index, char *new_value, char *section_name, char *str_section_name) {
-    int fd;
-    struct stat st;
-    uint8_t *elf_map;
-    uint8_t *str_addr;
-    uint64_t sym_offset;
-    uint64_t str_offset;
-
-    fd = open(elf_name, O_RDWR);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-    // get offset and update elf class
-    sym_offset = get_section_offset(elf_name, section_name);
-    str_offset = get_section_offset(elf_name, str_section_name);
-    if (!sym_offset) {
-        goto ERR_EXIT;
-    }
-    if (!str_offset) {
-        goto ERR_EXIT;
-    }
-
-    /* 32bit */
-    if (MODE == ELFCLASS32) {
-        Elf32_Sym *sym = (Elf32_Sym *)(elf_map + sym_offset);
-        str_addr = elf_map + str_offset + sym[index].st_name;
-    }
-
-    /* 64bit */
-    else if (MODE == ELFCLASS64) {
-        Elf64_Sym *sym = (Elf64_Sym *)(elf_map + sym_offset);
-        str_addr = elf_map + str_offset + sym[index].st_name;
-    }
-    
-    if (
-        validated_offset(str_addr, elf_map, elf_map + st.st_size) ||
-        validated_offset(str_addr + strlen(str_addr), elf_map, elf_map + st.st_size) ||
-        validated_offset(str_addr + strlen(new_value) + 1, elf_map, elf_map + st.st_size)
-    ) {
-        goto ERR_EXIT;
-    }
-
-    printf("%s->%s\n", str_addr, new_value);
-    strcpy(str_addr, new_value);
-
-    close(fd);
-    munmap(elf_map, st.st_size);
-    return 0;
-
-ERR_EXIT:
-    close(fd);
-    munmap(elf_map, st.st_size);
-    return -1;
-}
-
-/**
  * @brief Set the dynsym value object
  * 
  * @param elf_name elf file name
@@ -1696,6 +1619,140 @@ int set_dyn_value(char *elf_name, int index, int value) {
     return set_dyn(elf_name, index, value, D_VALUE);
 }
 
+/**
+ * @brief Set the dynsym name by str object
+ * 
+ * @param elf_name elf file name
+ * @param index elf file name
+ * @param name string value to be edited
+ * @param section_name .dynsym or .symtab
+ * @param str_section_name .dynstr or .strtab
+ * @return int error code {-1:error,0:sucess}
+ */
+int edit_sym_name_string(char *elf_name, int index, char *name, char *section_name, char *str_section_name) {
+    MODE = get_elf_class(elf_name);
+    int fd;
+    struct stat st;
+    uint64_t sym_offset, str_offset;
+    size_t str_size;
+    uint8_t *elf_map;
+    uint8_t *tmp_sec_name;
+    uint8_t *origin_name;        // origin dynamic item name
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr;
+        Elf32_Shdr *shdr;
+        Elf32_Shdr shstrtab;
+        Elf32_Sym *sym;
+
+        ehdr = (Elf32_Ehdr *)elf_map;
+        shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                sym_offset = shdr[i].sh_offset;
+            } else if (!strcmp(str_section_name, tmp_sec_name)) {
+                str_offset = shdr[i].sh_offset;
+                str_size = shdr[i].sh_size;
+            }
+        }
+        sym = (Elf32_Sym *)(elf_map + sym_offset);
+        origin_name = elf_map + str_offset + sym[index].st_name;
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr;
+        Elf64_Shdr *shdr;
+        Elf64_Shdr shstrtab;
+        Elf64_Sym *sym;
+
+        ehdr = (Elf64_Ehdr *)elf_map;
+        shdr = (Elf64_Shdr *)&elf_map[ehdr->e_shoff];
+        shstrtab = shdr[ehdr->e_shstrndx];
+
+        for (int i = 0; i < ehdr->e_shnum; i++) {
+            tmp_sec_name = elf_map + shstrtab.sh_offset + shdr[i].sh_name;
+            if (!strcmp(section_name, tmp_sec_name)) {
+                sym_offset = shdr[i].sh_offset;
+            } else if (!strcmp(str_section_name, tmp_sec_name)) {
+                str_offset = shdr[i].sh_offset;
+                str_size = shdr[i].sh_size;
+            }
+        }
+        sym = (Elf64_Sym *)(elf_map + sym_offset);
+        origin_name = elf_map + str_offset + sym[index].st_name;
+    }
+
+    if (!sym_offset) {
+        WARNING("This file does not have %s\n", section_name);
+        close(fd);
+        munmap(elf_map, st.st_size);
+        return -1;
+    }
+
+    if (!str_offset) {
+        WARNING("This file does not have %s\n", str_section_name);
+        close(fd);
+        munmap(elf_map, st.st_size);
+        return -1;
+    }
+
+    printf("%s->%s\n", origin_name, name);
+
+    // 1. copy name
+    if (strlen(name) <= strlen(origin_name)) {
+        memset(origin_name, 0, strlen(origin_name) + 1);
+        strcpy(origin_name, name);
+        close(fd);
+        munmap(elf_map, st.st_size);
+        return 0;
+    } 
+    // 2. if new name length > orgin_name
+    else {
+        close(fd);
+        munmap(elf_map, st.st_size);
+
+        int result = -1;
+        if (!strcmp(section_name, ".dynsym")) {
+            VERBOSE("set sym name value: 0x%x\n", str_size);
+            set_sym_name(elf_name, index, str_size, section_name);
+            result = expand_dynstr_segment(elf_name, name);
+        } 
+        
+        if (!strcmp(section_name, ".symtab")) {
+            set_sym_name(elf_name, index, str_size, section_name);
+            result = expand_strtab_section(elf_name, name);
+        }
+
+        if (result) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+}
+
 int edit_dyn_name_value(char *elf_name, int index, char *name) {
     MODE = get_elf_class(elf_name);
     int fd;
@@ -1784,6 +1841,8 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
         munmap(elf_map, st.st_size);
         return -1;
     }
+
+    printf("%s->%s\n", orgin_name, name);
 
     // 1. copy name
     if (strlen(name) <= strlen(orgin_name)) {
@@ -2007,7 +2066,7 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
                 if (!strlen(str_name)) {
                     error_code = set_sym_name(elf, row, value, ".dynsym");
                 } else {
-                    error_code = set_sym_name_by_str(elf, row, str_name, ".dynsym", ".dynstr");
+                    error_code = edit_sym_name_string(elf, row, str_name, ".dynsym", ".dynstr");
                 }
                 break;
             
@@ -2021,11 +2080,8 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
         switch (column)
         {
             case 0:
-                if (!strlen(str_name)) {
-                    error_code = set_sym_name(elf, row, value, ".symtab");
-                } else {
-                    error_code = set_sym_name_by_str(elf, row, str_name, ".symtab", ".strtab");
-                }
+                error_code = set_sym_value(elf, row, value, ".symtab");
+                break;
 
             case 1:
                 error_code = set_sym_size(elf, row, value, ".symtab");
@@ -2048,8 +2104,11 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
                 break;
 
             case 6:
-                error_code = set_sym_name(elf, row, value, ".symtab");
-                break;
+                if (!strlen(str_name)) {
+                    error_code = set_sym_name(elf, row, value, ".symtab");
+                } else {
+                    error_code = edit_sym_name_string(elf, row, str_name, ".symtab", ".strtab");
+                }
             
             default:
                 break;

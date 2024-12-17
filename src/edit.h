@@ -97,17 +97,6 @@ int set_sym_type(char *elf_name, int index, int value, char *section_name);
 int set_sym_bind(char *elf_name, int index, int value, char *section_name);
 int set_sym_other(char *elf_name, int index, int value, char *section_name);
 int set_sym_shndx(char *elf_name, int index, int value, char *section_name);
-/**
- * @brief Set the dynsym name by str object
- * 
- * @param elf_name elf file name
- * @param index elf file name
- * @param str_value string value to be edited
- * @param section_name .dynsym or .symtab
- * @param str_section_name .dynstr or .strtab
- * @return int 
- */
-int set_sym_name_by_str(char *elf_name, int index, char *str_value, char *section_name, char *str_section_name);
 
 /**
  * @brief Set the .rela section offset
@@ -138,6 +127,18 @@ int set_rel_index(char *elf_name, int index, int value, char *section_name);
  */
 int set_dyn_tag(char *elf_name, int index, int value);
 int set_dyn_value(char *elf_name, int index, int value);
+
+/**
+ * @brief Set the dynsym name by str object
+ * 
+ * @param elf_name elf file name
+ * @param index elf file name
+ * @param name string value to be edited
+ * @param section_name .dynsym or .symtab
+ * @param str_section_name .dynstr or .strtab
+ * @return int 
+ */
+int edit_sym_name_string(char *elf_name, int index, char *name, char *section_name, char *str_section_name);
 int edit_dyn_name_value(char *elf_name, int index, char *name);
 
 int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *section_name, char *file_name);

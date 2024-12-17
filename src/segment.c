@@ -1046,3 +1046,35 @@ int expand_dynstr_segment(char *elfname, char *str) {
     set_section_size(elfname, sec_i, size);
     return seg_i;
 }
+
+/**
+ * @brief 扩充strtab，通过将节移动到文件末尾实现。
+ * expand strtab section by moving it to the end of the file.
+ * @param elfname 
+ * @param str new strtab item
+ * @return section index {-1:error}
+ */
+int expand_strtab_section(char *elfname, char *str) {
+    uint64_t offset,addr;
+    size_t size;
+    int sec_i, seg_i;
+
+    // copy
+    offset = get_section_offset(elfname, ".strtab");
+    size = get_section_size(elfname, ".strtab");
+    VERBOSE("strtab offset: 0x%x, size: 0x%x\n", offset, size);
+
+    // expand section
+    seg_i = expand_segment(elfname, offset, size, str, strlen(str) + 1);
+    addr = get_segment_vaddr(elfname, seg_i);
+    offset = get_segment_offset(elfname, seg_i);
+    size = get_segment_memsz(elfname, seg_i);
+    
+    // set shdr
+    VERBOSE("set shdr\n");
+    sec_i = get_section_index(elfname, ".strtab");
+    set_section_off(elfname, sec_i, offset);
+    set_section_addr(elfname, sec_i, addr);
+    set_section_size(elfname, sec_i, size);
+    return seg_i;
+}
