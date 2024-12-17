@@ -340,7 +340,6 @@ int add_section(char *elfname, size_t size) {
  * @return error code {-1:error,0:sucess}
  */
 int get_section(char *elf_name, char *section_name, char *section_info) {
-    MODE = get_elf_class(elf_name);
     int fd;         // file descriptor
     int result;     // return result
     struct stat st;
@@ -443,7 +442,6 @@ ERR_EXIT:
  * @return section address
  */
 int get_section_addr(char *elf_name, char *section_name) {
-    MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
         get_section(elf_name, section_name, &section_info);
@@ -463,7 +461,6 @@ int get_section_addr(char *elf_name, char *section_name) {
  * @return section file offset address
  */
 int get_section_offset(char *elf_name, char *section_name) {
-    MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
         get_section(elf_name, section_name, &section_info);
@@ -483,7 +480,6 @@ int get_section_offset(char *elf_name, char *section_name) {
  * @return section size
  */
 size_t get_section_size(char *elf_name, char *section_name) {
-    MODE = get_elf_class(elf_name);
     if (MODE == ELFCLASS32) {
         Elf32_Shdr section_info;
         get_section(elf_name, section_name, &section_info);

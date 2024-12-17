@@ -362,8 +362,7 @@ int is_sec_addr(char *elf_name, int offset) {
         ERROR("mmap\n");
         return -1;
     }
-    
-    mode = get_elf_class(elf_name);
+
     if (mode == ELFCLASS32) {
         Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
         Elf32_Shdr *shdr = (Elf32_Shdr *)&elf_map[ehdr->e_shoff];

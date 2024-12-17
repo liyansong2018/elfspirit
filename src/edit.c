@@ -107,7 +107,6 @@ enum DynamicLabel {
  * @return error code {-1:error,0:sucess}
  */
 static int set_header(char *elf_name, int value, enum HeaderLabel label) {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -363,7 +362,6 @@ int set_header_shstrndx(char *elf_name, int value) {
  * @return error code {-1:error,0:sucess}
  */
 static int set_section(char *elf_name, int index, int value, enum SectionLabel label) {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -663,7 +661,6 @@ ERR_EXIT:
  * @return error code {-1:error,0:sucess}
  */
 static int set_segment(char *elf_name, int index, int value, enum SegmentLabel label) {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -1136,7 +1133,6 @@ int set_sym_shndx(char *elf_name, int index, int value, char *section_name) {
 }
 
 int set_rel(char *elf_name, int index, int value, enum RelocationLabel label, char *section_name)  {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     int type;
@@ -1275,7 +1271,6 @@ int set_rel(char *elf_name, int index, int value, enum RelocationLabel label, ch
 }
 
 int set_rela(char *elf_name, int index, int value, enum RelocationLabel label, char *section_name)  {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     int type;
@@ -1467,7 +1462,6 @@ int set_rel_index(char *elf_name, int index, int value, char *section_name) {
 }
 
 static int set_dyn(char *elf_name, int index, int value, enum DynamicLabel label)  {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint8_t *elf_map;
@@ -1630,7 +1624,6 @@ int set_dyn_value(char *elf_name, int index, int value) {
  * @return int error code {-1:error,0:sucess}
  */
 int edit_sym_name_string(char *elf_name, int index, char *name, char *section_name, char *str_section_name) {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint64_t sym_offset, str_offset;
@@ -1754,7 +1747,6 @@ int edit_sym_name_string(char *elf_name, int index, char *name, char *section_na
 }
 
 int edit_dyn_name_value(char *elf_name, int index, char *name) {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint64_t dynamic_offset, dynstr_offset;

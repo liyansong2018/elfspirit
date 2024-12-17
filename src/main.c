@@ -517,6 +517,7 @@ static void readcmdline(int argc, char *argv[]) {
     else {
         memcpy(function, argv[optind], LENGTH);
         memcpy(elf_name, argv[++optind], LENGTH);
+        MODE = get_elf_class(elf_name);
     }
 
     /* add a section */

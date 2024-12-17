@@ -43,8 +43,6 @@ int delete_shtab(char *elf) {
     uint8_t *elf_map_new;
     uint32_t shtab_size;
 
-    MODE = get_elf_class(elf);
-
     fd = open(elf, O_RDONLY);
     if (fd < 0) {
         perror("open");

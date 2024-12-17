@@ -87,7 +87,6 @@ int delete_section(char *elf_name, char *section_name, char *config_name) {
 }
 
 int delete_section_imp(char *elf_name, char *section_name, int is_rename) {
-    MODE = get_elf_class(elf_name);
     int fd;
     struct stat st;
     uint8_t *elf_map;

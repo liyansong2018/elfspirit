@@ -264,7 +264,6 @@ int mips_jal_insn(unsigned int addr) {
  * @return {*}
  */
 int inject_so(char *elf_name, char *modify_sec_name, char *so_name, char *json_name, char *version) {
-    MODE = get_elf_class(elf_name);
     ARCH = get_elf_machine(elf_name);
     name2mem(so_name, strlen(so_name) - 1);
     char arch[10];

@@ -74,8 +74,6 @@ int add_section_bak(uint8_t *elf, uint32_t offset, uint8_t *new_sec, uint32_t se
     uint32_t new_map_size;
     uint32_t start;
 
-    MODE = get_elf_class(elf);
-
     fd = open(elf, O_RDONLY);
     if (fd < 0) {
         perror("open");
