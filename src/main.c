@@ -42,7 +42,7 @@
 #include "edit.h"
 #include "segment.h"
 
-#define VERSION "1.6"
+#define VERSION "1.7"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];

@@ -1721,7 +1721,7 @@ int edit_sym_name_string(char *elf_name, int index, char *name, char *section_na
         munmap(elf_map, st.st_size);
         return 0;
     } 
-    // 2. if new name length > orgin_name
+    // 2. if new name length > origin_name
     else {
         close(fd);
         munmap(elf_map, st.st_size);
@@ -1753,7 +1753,7 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
     size_t dynstr_size;
     uint8_t *elf_map;
     uint8_t *tmp_sec_name;
-    uint8_t *orgin_name;        // orgin dynamic item name
+    uint8_t *origin_name;        // origin dynamic item name
 
     fd = open(elf_name, O_RDWR);
     if (fd < 0) {
@@ -1793,7 +1793,7 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
             }
         }
         dyn = (Elf32_Dyn *)(elf_map + dynamic_offset);
-        orgin_name = elf_map + dynstr_offset + dyn[index].d_un.d_val;
+        origin_name = elf_map + dynstr_offset + dyn[index].d_un.d_val;
     }
 
     /* 64bit */
@@ -1817,7 +1817,7 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
             }
         }
         dyn = (Elf64_Dyn *)(elf_map + dynamic_offset);
-        orgin_name = elf_map + dynstr_offset + dyn[index].d_un.d_val;
+        origin_name = elf_map + dynstr_offset + dyn[index].d_un.d_val;
     }
 
     if (!dynamic_offset) {
@@ -1834,17 +1834,17 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
         return -1;
     }
 
-    printf("%s->%s\n", orgin_name, name);
+    printf("%s->%s\n", origin_name, name);
 
     // 1. copy name
-    if (strlen(name) <= strlen(orgin_name)) {
-        memset(orgin_name, 0, strlen(orgin_name) + 1);
-        strcpy(orgin_name, name);
+    if (strlen(name) <= strlen(origin_name)) {
+        memset(origin_name, 0, strlen(origin_name) + 1);
+        strcpy(origin_name, name);
         close(fd);
         munmap(elf_map, st.st_size);
         return 0;
     } 
-    // 2. if new name length > orgin_name
+    // 2. if new name length > origin_name
     else {
         close(fd);
         munmap(elf_map, st.st_size);

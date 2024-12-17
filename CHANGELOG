@@ -1,3 +1,10 @@
+[2024-12-17]
+    elfspirit 1.7
+        - Add more infect algorithm
+        - Add the ability to set rpath, run path and interpreter
+        - Allow modifying the symbols to longer strings
+        - Continue to optimize and adjust some code structures
+
 [2024-12-03]
     elfspirit 1.6
         - Add the ability to modify section name

