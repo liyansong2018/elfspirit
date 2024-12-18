@@ -160,7 +160,6 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
         g_strlength = length;
     }
 
-    MODE = get_elf_class(elf);
     if (MODE == -1) {
         return -1;
     }
@@ -982,11 +981,13 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, i
     char *type;
     char *bind;
     char *other;
-    int dynstr_index;
-    int dynsym_index;
+    // The following variables must be initialized 
+    // because they need to be used to determine whether sections exist or not.
+    // 以下些变量必须初始化，因为要根据他们判节是否存在
+    int dynstr_index = 0;
+    int dynsym_index = 0;
     size_t count;
     Elf32_Sym *sym;
-    int has_component = 0;
 
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
@@ -1001,11 +1002,15 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, i
 
         if (!strcmp(name, section_name)) {
             dynsym_index = i;
-            has_component = 1;
         }
     }
 
-    if (!has_component) {
+    if (!dynstr_index) {
+        WARNING("This file does not have a %s\n", str_tab);
+        return -1;
+    }
+
+    if (!dynsym_index) {
         WARNING("This file does not have a %s\n", section_name);
         return -1;
     }
@@ -1173,11 +1178,13 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, i
     char *type;
     char *bind;
     char *other;
-    int dynstr_index;
-    int dynsym_index;
+    // The following variables must be initialized 
+    // because they need to be used to determine whether sections exist or not.
+    // 以下些变量必须初始化，因为要根据他们判节是否存在
+    int dynstr_index = 0;
+    int dynsym_index = 0;
     size_t count;
     Elf64_Sym *sym;
-    int has_component = 0;
 
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
@@ -1192,11 +1199,15 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, i
 
         if (!strcmp(name, section_name)) {
             dynsym_index = i;
-            has_component = 1;
         }
     }
 
-    if (!has_component) {
+    if (!dynstr_index) {
+        WARNING("This file does not have a %s\n", str_tab);
+        return -1;
+    }
+
+    if (!dynsym_index) {
         WARNING("This file does not have a %s\n", section_name);
         return -1;
     }
