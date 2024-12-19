@@ -112,7 +112,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLR";
+static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLRI";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -427,6 +427,10 @@ static void readcmdline(int argc, char *argv[]) {
 
             case 'R':
                 po.options[po.index++] = RELA;
+                break;
+
+            case 'I':
+                po.options[po.index++] = POINTER;
                 break;
             
             default:

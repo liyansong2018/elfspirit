@@ -34,6 +34,7 @@ typedef enum PARSE_OPT {
     DYNSYM,
     LINK,
     RELA,
+    POINTER,
     END
 } PARSE_OPT_T;
 

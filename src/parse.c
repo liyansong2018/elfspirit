@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <stdarg.h>
 #include "common.h"
 #include "parse.h"
 
@@ -72,6 +73,21 @@
 #define PRINT_RELA_TITLE(Nr, offset, info, type, value, name) \
     printf("     [%2s] %-16s %-16s %-18s %-10s %-16s\n", \
     Nr, offset, info, type, value, name);
+
+/* print pointer */
+#define PRINT_POINTER32(Nr, value, name) \
+    printf("     [%2d] %08x %-16s\n", \
+    Nr, value, name);
+#define PRINT_POINTER32_TITLE(Nr, value, name) \
+    printf("     [%2s] %-08s %-16s\n", \
+    Nr, value, name);
+
+#define PRINT_POINTER64(Nr, value, name) \
+    printf("     [%2d] %016x %-16s\n", \
+    Nr, value, name);
+#define PRINT_POINTER64_TITLE(Nr, value, name) \
+    printf("     [%2s] %-016s %-16s\n", \
+    Nr, value, name);
 
 int flag2str(int flag, char *flag_str) {
     if (flag & 0x1)
@@ -121,14 +137,20 @@ int get_option(parser_opt_t *po, PARSE_OPT_T option){
 #define STR_LENGTH 0x1024
 struct MyStr {
     size_t count;
+    uint64_t value[STR_NUM];
     char name[STR_NUM][STR_LENGTH];
 };
 struct MyStr g_dynsym;
 struct MyStr g_symtab;
 struct MyStr g_secname;
 uint32_t g_strlength;
-//char g_symtab[STR_NUM][STR_LENGTH];      /* symobl table */
-//char g_secname[STR_NUM][STR_LENGTH];     /* section name */   
+
+void static init() {
+    memset(&g_dynsym, 0, sizeof(struct MyStr));
+    memset(&g_symtab, 0, sizeof(struct MyStr));
+    memset(&g_secname, 0, sizeof(struct MyStr));
+    g_strlength = 0;
+}
 
 static void display_header32(handle_t32 *);
 static void display_header64(handle_t64 *);
@@ -144,15 +166,19 @@ static int display_rel32(handle_t32 *, char *section_name);
 static int display_rel64(handle_t64 *, char *section_name);
 static int display_rela32(handle_t32 *, char *section_name);
 static int display_rela64(handle_t64 *, char *section_name);
+static int display_pointer32(handle_t32 *, int, ...);
+static int display_pointer64(handle_t64 *, int, ...);
 
 int parse(char *elf, parser_opt_t *po, uint32_t length) {
     int fd;
     struct stat st;
-    uint8_t *elf_map;
-    int count;
-    char *tmp;
-    char *name;
-    char flag[4];
+    uint8_t *elf_map = NULL;
+    int count = 0;
+    char *tmp = NULL;
+    char *name = NULL;
+    char flag[4] = "\0";
+
+    init();
 
     if (!length) {
         g_strlength = 15;
@@ -232,7 +258,14 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
                     display_rel32(&h, g_secname.name[i]);
                 }
             }
-        }         
+        } 
+
+        /* elf pointer */
+        if (!get_option(po, POINTER) || !get_option(po, ALL)) {
+            if (g_symtab.count == 0)
+                display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
+            display_pointer32(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");  
+        }        
     }
 
     /* 64bit */
@@ -287,6 +320,12 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
                 }
             }
         }
+        
+        /* elf pointer */
+        if (!get_option(po, POINTER) || !get_option(po, ALL))    
+            if (g_symtab.count == 0)
+                display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
+            display_pointer64(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");
     }
 
     return 0;
@@ -1151,10 +1190,12 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, i
             /* store */
             if (!strcmp(".symtab", section_name) && i < STR_NUM && strlen(name) < STR_LENGTH) {
                 g_symtab.count++;
+                g_symtab.value[i] = sym[i].st_value;
                 strcpy(g_symtab.name[i], name);
             } 
             else if (!strcmp(".dynsym", section_name) &&  i < STR_NUM && strlen(name) < STR_LENGTH){
                 g_dynsym.count++;
+                g_dynsym.value[i] = sym[i].st_value;
                 strcpy(g_dynsym.name[i], name);
             }
             /* hide long strings */
@@ -1348,10 +1389,12 @@ static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, i
             /* store */
             if (!strcmp(".symtab", section_name) && i < STR_NUM && strlen(name) < STR_LENGTH) {
                 g_symtab.count++;
+                g_symtab.value[i] = sym[i].st_value;
                 strcpy(g_symtab.name[i], name);
             } 
             else if (!strcmp(".dynsym", section_name) &&  i < STR_NUM && strlen(name) < STR_LENGTH){
                 g_dynsym.count++;
+                g_dynsym.value[i] = sym[i].st_value;
                 strcpy(g_dynsym.name[i], name);
             }
             /* hide long strings */
@@ -3077,5 +3120,169 @@ static int display_rela64(handle_t64 *h, char *section_name) {
             snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
     }
+    printf("\n");
+}
+
+/** 
+ * @brief 显示ELF相关节包含的指针
+ * display .init_array .finit_array .ctors .dtors	
+ * @param h 
+ * @param section_name 
+ * @return int error code {-1:error,0:sucess}
+ */
+static int display_pointer32(handle_t32 *h, int num, ...) {
+    char *name = NULL;
+    int index[10];
+    int strtab_index = 0;
+    size_t count = 0;
+
+    for (int i = 0; i < 10; i++) {
+        index[i] = 0;
+    }
+
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            return -1;
+        }
+
+        va_list args;                       // 定义一个 va_list 类型的变量
+        va_start(args, num);                // 初始化可变参数列表
+
+        for (int j = 0; j < num; j++) {
+            char *section_name = va_arg(args, char *); // 从可变参数列表中获取参数值
+            if (!strcmp(name, section_name)) {
+                index[j] = i;
+            }
+        }
+
+        va_end(args);                       // 结束可变参数列表的使用
+
+        // 判断是否存在符号表
+        // determine whether there is a symbol table
+        if (!strcmp(name, ".strtab")) {
+            strtab_index = i;
+        }
+    }
+
+    va_list args;
+    va_start(args, num);
+
+    for (int j = 0; j < num; j++) {
+        char *section_name = va_arg(args, char *);
+        if (index[j] == 0) {
+            WARNING("This file does not have a %s\n", section_name);
+        } else {
+            uint32_t offset = h->shdr[index[j]].sh_offset;
+            size_t size = h->shdr[index[j]].sh_size;
+            uint32_t *addr = h->mem + offset;
+            int count = size / 4;
+            INFO("%s section at offset 0x%x contains %d pointers:\n", section_name, offset, count);
+            PRINT_POINTER32_TITLE("Nr", "Pointer", "Symbol");
+            for (int i = 0; i < count; i++) {
+                if (strtab_index) {
+                    int find_sym = 0;
+                    for (int k = 0; k < g_symtab.count; k++) {
+                        if (addr[i] == g_symtab.value[k]) {
+                            PRINT_POINTER32(i, addr[i], g_symtab.name[k]);
+                            find_sym = 1;
+                            break;
+                        }
+                    }
+                    if (!find_sym) {
+                        PRINT_POINTER32(i, addr[i], "0");
+                    }
+                } else {
+                    PRINT_POINTER32(i, addr[i], "0");
+                }
+            }
+        }
+    }
+
+    va_end(args);
+    
+    printf("\n");
+}
+
+/** 
+ * @brief 显示ELF相关节包含的指针
+ * display .init_array .finit_array .ctors .dtors	
+ * @param h 
+ * @param section_name 
+ * @return int error code {-1:error,0:sucess}
+ */
+static int display_pointer64(handle_t64 *h, int num, ...) {
+    char *name = NULL;
+    int index[10];
+    int strtab_index = 0;
+    size_t count = 0;
+
+    for (int i = 0; i < 10; i++) {
+        index[i] = 0;
+    }
+
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            return -1;
+        }
+
+        va_list args;                       // 定义一个 va_list 类型的变量
+        va_start(args, num);                // 初始化可变参数列表
+
+        for (int j = 0; j < num; j++) {
+            char *section_name = va_arg(args, char *); // 从可变参数列表中获取参数值
+            if (!strcmp(name, section_name)) {
+                index[j] = i;
+            }
+        }
+
+        va_end(args);                       // 结束可变参数列表的使用
+
+        // 判断是否存在符号表
+        // determine whether there is a symbol table
+        if (!strcmp(name, ".strtab")) {
+            strtab_index = i;
+        }
+    }
+
+    va_list args;
+    va_start(args, num);
+
+    for (int j = 0; j < num; j++) {
+        char *section_name = va_arg(args, char *);
+        if (index[j] == 0) {
+            WARNING("This file does not have a %s\n", section_name);
+        } else {
+            uint64_t offset = h->shdr[index[j]].sh_offset;
+            size_t size = h->shdr[index[j]].sh_size;
+            uint64_t *addr = h->mem + offset;
+            int count = size / 4;
+            INFO("%s section at offset 0x%x contains %d pointers:\n", section_name, offset, count);
+            PRINT_POINTER64_TITLE("Nr", "Pointer", "Symbol");
+            for (int i = 0; i < count; i++) {
+                if (strtab_index) {
+                    int find_sym = 0;
+                    for (int k = 0; k < g_symtab.count; k++) {
+                        if (addr[i] == g_symtab.value[k]) {
+                            PRINT_POINTER64(i, addr[i], g_symtab.name[k]);
+                            find_sym = 1;
+                            break;
+                        }
+                    }
+                    if (!find_sym) {
+                        PRINT_POINTER64(i, addr[i], "0");
+                    }
+                } else {
+                    PRINT_POINTER64(i, addr[i], "0");
+                }
+            }
+        }
+    }
+
+    va_end(args);
+    
     printf("\n");
 }
