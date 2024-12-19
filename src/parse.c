@@ -1395,6 +1395,16 @@ static void display_dyninfo32(handle_t32 *h) {
         }
     }
 
+    if (!dynstr) {
+        WARNING("This file does not have a %s\n", ".dynstr");
+        return -1;
+    }
+
+    if (!dynamic) {
+        WARNING("This file does not have a %s\n", ".dynamic");
+        return -1;
+    }
+
     char value[50];
     name = "";
     dyn = (Elf32_Dyn *)&h->mem[h->shdr[dynamic].sh_offset];
@@ -1784,6 +1794,16 @@ static void display_dyninfo64(handle_t64 *h) {
         if (!strcmp(name, ".dynamic")) {
             dynamic = i;
         }
+    }
+
+    if (!dynstr) {
+        WARNING("This file does not have a %s\n", ".dynstr");
+        return -1;
+    }
+
+    if (!dynamic) {
+        WARNING("This file does not have a %s\n", ".dynamic");
+        return -1;
     }
 
     char value[50];
