@@ -1860,6 +1860,73 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
     }
 }
 
+int edit_pointer_value(char *elf_name, int index, uint64_t value, char *section_name) {
+    int fd;
+    struct stat st;
+    int type;
+    int bind;
+    uint8_t *elf_map;
+    uint64_t sec_offset, sec_size;
+
+    {
+        sec_offset = 0;
+        sec_size = 0;
+    }
+    sec_offset = get_section_offset(elf_name, section_name);
+    sec_size = get_section_size(elf_name, section_name);
+    if (!sec_offset || !sec_size) {
+        return -1;
+    }
+
+    fd = open(elf_name, O_RDWR);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        uint32_t *sec = (uint32_t *)(elf_map + sec_offset);
+        int count = sec_size / sizeof(uint32_t);
+        if (index >= count) {
+            goto ERR_EXIT;
+        }
+        printf("0x%x->0x%x\n", sec[index], value);
+        sec[index] = value & 0xffff;    // avoid interger overflow
+    }
+
+    /* 64bit */
+    else if (MODE == ELFCLASS64) {
+        uint64_t *sec = (uint64_t *)(elf_map + sec_offset);
+        int count = sec_size / sizeof(uint64_t);
+        if (index >= count) {
+            goto ERR_EXIT;
+        }
+        printf("0x%x->0x%x\n", sec[index], value);
+        sec[index] = value;
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return 0;
+
+ERR_EXIT:
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return -1;
+}
+
 /**
  * @brief entry function
  * 
@@ -2180,6 +2247,23 @@ int edit(char *elf, parser_opt_t *po, int row, int column, int value, char *sect
                 } else {
                     error_code = edit_dyn_name_value(elf, row, str_name);
                 }
+                break;
+            
+            default:
+                break;
+        }
+    }
+
+    /* edit pointer information */
+    if (!get_option(po, POINTER)) {
+        switch (column)
+        {
+            case 0:
+                error_code = edit_pointer_value(elf, row, value, section_name);
+                break;
+
+            case 1:
+                INFO("You can edit symbol by option '-B' instead of '-I'\n");
                 break;
             
             default:
