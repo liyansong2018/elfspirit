@@ -2437,7 +2437,6 @@ static int display_rel32(handle_t32 *h, char *section_name) {
         str_index = ELF32_R_SYM(rel_section[i].r_info);
         PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
     }
-    printf("\n");
 }
 
 /** 
@@ -2662,7 +2661,6 @@ static int display_rel64(handle_t64 *h, char *section_name) {
         str_index = ELF64_R_SYM(rel_section[i].r_info);
         PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
     }
-    printf("\n");
 }
 
 /** 
@@ -2891,7 +2889,6 @@ static int display_rela32(handle_t32 *h, char *section_name) {
             snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
     }
-    printf("\n");
 }
 
 /** 
@@ -3120,7 +3117,6 @@ static int display_rela64(handle_t64 *h, char *section_name) {
             snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
     }
-    printf("\n");
 }
 
 /** 
@@ -3177,7 +3173,7 @@ static int display_pointer32(handle_t32 *h, int num, ...) {
             uint32_t offset = h->shdr[index[j]].sh_offset;
             size_t size = h->shdr[index[j]].sh_size;
             uint32_t *addr = h->mem + offset;
-            int count = size / 4;
+            int count = size / sizeof(uint32_t);
             INFO("%s section at offset 0x%x contains %d pointers:\n", section_name, offset, count);
             PRINT_POINTER32_TITLE("Nr", "Pointer", "Symbol");
             for (int i = 0; i < count; i++) {
@@ -3201,8 +3197,6 @@ static int display_pointer32(handle_t32 *h, int num, ...) {
     }
 
     va_end(args);
-    
-    printf("\n");
 }
 
 /** 
@@ -3259,7 +3253,7 @@ static int display_pointer64(handle_t64 *h, int num, ...) {
             uint64_t offset = h->shdr[index[j]].sh_offset;
             size_t size = h->shdr[index[j]].sh_size;
             uint64_t *addr = h->mem + offset;
-            int count = size / 4;
+            int count = size / sizeof(uint64_t);
             INFO("%s section at offset 0x%x contains %d pointers:\n", section_name, offset, count);
             PRINT_POINTER64_TITLE("Nr", "Pointer", "Symbol");
             for (int i = 0; i < count; i++) {
@@ -3283,6 +3277,4 @@ static int display_pointer64(handle_t64 *h, int num, ...) {
     }
 
     va_end(args);
-    
-    printf("\n");
 }
