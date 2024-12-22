@@ -69,6 +69,7 @@ static int g_long_option;
 enum LONG_OPTION {
     SET_SECTION_FLAGS = 1,
     SET_SEGMENT_FLAGS,
+    EDIT_POINTER,
     SET_INTERPRETER,
     ADD_SEGMENT,
     ADD_SECTION,
@@ -133,6 +134,7 @@ static const struct option longopts[] = {
     {"length", required_argument, NULL, 'l'},
     {"set-section-flags", no_argument, &g_long_option, SET_SECTION_FLAGS},
     {"set-segment-flags", no_argument, &g_long_option, SET_SEGMENT_FLAGS},
+    {"edit-pointer", no_argument, &g_long_option, EDIT_POINTER},
     {"set-interpreter", no_argument, &g_long_option, SET_INTERPRETER},
     {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
     {"add-section", no_argument, &g_long_option, ADD_SECTION},
@@ -203,6 +205,7 @@ static const char *help =
     "  elfspirit extract  [-o]<file offset> [-z]<size> ELF\n"
     "  elfspirit --set-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --set-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
+    "  elfspirit --edit-pointer [-n]<section name> [-i]<index of item> [-m]<pointer value> ELF\n"
     "  elfspirit --set-interpreter [-f]<new interpreter> ELF\n"
     "  elfspirit --set-rpath [-f]<rpath> ELF\n"
     "  elfspirit --set-runpath [-f]<runpath> ELF\n"
@@ -268,6 +271,7 @@ static const char *help_chinese =
     "  elfspirit extract  [-o]<file offset> [-z]<size> ELF\n"
     "  elfspirit --set-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --set-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
+    "  elfspirit --edit-pointer [-n]<section name> [-i]<第几个条目> [-m]<指针值> ELF\n"
     "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
     "  elfspirit --set-rpath [-f]<rpath> ELF\n"
     "  elfspirit --set-runpath [-f]<runpath> ELF\n"
@@ -457,6 +461,11 @@ static void readcmdline(int argc, char *argv[]) {
                 case SET_SEGMENT_FLAGS:
                     /* modify segment information */
                     set_segment_flags(elf_name, row, value);
+                    break;
+                
+                case EDIT_POINTER:
+                    /* edit pointer */
+                    edit_pointer_value(elf_name, row, value, section_name);
                     break;
 
                 case SET_INTERPRETER:

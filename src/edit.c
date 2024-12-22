@@ -1860,6 +1860,15 @@ int edit_dyn_name_value(char *elf_name, int index, char *name) {
     }
 }
 
+/**
+ * @brief 编辑某些节存储的指针
+ * edit pointers stored in certain sections
+ * @param elf_name elf file name
+ * @param index item index
+ * @param value new pointer
+ * @param section_name section name, such as .init_array.
+ * @return int error code {-1:error,0:sucess}
+ */
 int edit_pointer_value(char *elf_name, int index, uint64_t value, char *section_name) {
     int fd;
     struct stat st;
