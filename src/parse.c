@@ -322,10 +322,11 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
         }
         
         /* elf pointer */
-        if (!get_option(po, POINTER) || !get_option(po, ALL))    
+        if (!get_option(po, POINTER) || !get_option(po, ALL)) {
             if (g_symtab.count == 0)
                 display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
             display_pointer64(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");
+        }  
     }
 
     return 0;
