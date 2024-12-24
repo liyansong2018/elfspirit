@@ -133,13 +133,6 @@ int get_option(parser_opt_t *po, PARSE_OPT_T option){
     return -1;
 }
 
-#define STR_NUM 0x4096
-#define STR_LENGTH 0x1024
-struct MyStr {
-    size_t count;
-    uint64_t value[STR_NUM];
-    char name[STR_NUM][STR_LENGTH];
-};
 struct MyStr g_dynsym;
 struct MyStr g_symtab;
 struct MyStr g_secname;
@@ -150,186 +143,6 @@ void static init() {
     memset(&g_symtab, 0, sizeof(struct MyStr));
     memset(&g_secname, 0, sizeof(struct MyStr));
     g_strlength = 0;
-}
-
-static void display_header32(handle_t32 *);
-static void display_header64(handle_t64 *);
-static void display_section32(handle_t32 *, int is_display);
-static void display_section64(handle_t64 *, int is_display);
-static void display_segment32(handle_t32 *);
-static void display_segment64(handle_t64 *);
-static void display_dynsym32(handle_t32 *, char *section_name, char *str_tab, int is_display);
-static void display_dynsym64(handle_t64 *, char *section_name, char *str_tab, int is_display);
-static void display_dyninfo32(handle_t32 *);
-static void display_dyninfo64(handle_t64 *);
-static int display_rel32(handle_t32 *, char *section_name);
-static int display_rel64(handle_t64 *, char *section_name);
-static int display_rela32(handle_t32 *, char *section_name);
-static int display_rela64(handle_t64 *, char *section_name);
-static int display_pointer32(handle_t32 *, int, ...);
-static int display_pointer64(handle_t64 *, int, ...);
-
-int parse(char *elf, parser_opt_t *po, uint32_t length) {
-    int fd;
-    struct stat st;
-    uint8_t *elf_map = NULL;
-    int count = 0;
-    char *tmp = NULL;
-    char *name = NULL;
-    char flag[4] = "\0";
-
-    init();
-
-    if (!length) {
-        g_strlength = 15;
-    } else {
-        g_strlength = length;
-    }
-
-    if (MODE == -1) {
-        return -1;
-    }
-
-    fd = open(elf, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
-    /* 32bit */
-    if (MODE == ELFCLASS32) {
-        handle_t32 h;
-        h.mem = elf_map;
-        h.ehdr = (Elf32_Ehdr *)h.mem;
-        h.shdr = (Elf32_Shdr *)&h.mem[h.ehdr->e_shoff];
-        h.phdr = (Elf32_Phdr *)&h.mem[h.ehdr->e_phoff];
-        h.shstrtab = (Elf32_Shdr *)&h.shdr[h.ehdr->e_shstrndx];
-        h.size = st.st_size;
-
-        /* ELF Header Information */
-        if (!get_option(po, HEADERS) || !get_option(po, ALL))    
-            display_header32(&h);
-        
-        /* Section Information */
-        if (!get_option(po, SECTIONS) || !get_option(po, ALL))
-            display_section32(&h, 1);
-
-        /* Segmentation Information */
-        if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
-            display_segment32(&h);
-
-        /* .dynsym information */
-        if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
-            display_dynsym32(&h, ".dynsym", ".dynstr", 1);
-        }
-
-        /* .symtab information */
-        if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
-            display_dynsym32(&h, ".symtab", ".strtab", 1);
-        }
-
-        /* .dynamic Infomation */
-        if (!get_option(po, LINK) || !get_option(po, ALL))
-            display_dyninfo32(&h);  
-
-        /* .rela.dyn .rela.plt Infomation */
-        if (!get_option(po, RELA) || !get_option(po, ALL)) {
-            if (g_dynsym.count == 0)
-                display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
-            if (g_symtab.count == 0)
-                display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
-            if (g_secname.count == 0)
-                display_section32(&h, 0);                       // get section name
-            for (int i = 0; i < g_secname.count; i++) {
-                if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
-                    display_rela32(&h, g_secname.name[i]);
-                } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
-                    display_rel32(&h, g_secname.name[i]);
-                }
-            }
-        } 
-
-        /* elf pointer */
-        if (!get_option(po, POINTER) || !get_option(po, ALL)) {
-            if (g_symtab.count == 0)
-                display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
-            display_pointer32(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");  
-        }        
-    }
-
-    /* 64bit */
-    if (MODE == ELFCLASS64) {
-        handle_t64 h;
-        h.mem = elf_map;
-        h.ehdr = (Elf64_Ehdr *)h.mem;
-        h.shdr = (Elf64_Shdr *)&h.mem[h.ehdr->e_shoff];
-        h.phdr = (Elf64_Phdr *)&h.mem[h.ehdr->e_phoff];
-        h.shstrtab = (Elf64_Shdr *)&h.shdr[h.ehdr->e_shstrndx];
-        h.size = st.st_size;
-
-        /* ELF Header Information */
-        if (!get_option(po, HEADERS) || !get_option(po, ALL)) 
-            display_header64(&h);
-
-        /* Section Information */
-        if (!get_option(po, SECTIONS) || !get_option(po, ALL))
-            display_section64(&h, 1);
-
-        /* Segmentation Information */
-        if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
-            display_segment64(&h);
-
-        /* .dynsym information */
-        if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
-            display_dynsym64(&h, ".dynsym", ".dynstr", 1);
-        }
-
-        /* .symtab information */
-        if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
-            display_dynsym64(&h, ".symtab", ".strtab", 1);
-        }
-
-        /* .dynamic Infomation */
-        if (!get_option(po, LINK) || !get_option(po, ALL))
-            display_dyninfo64(&h);      
-
-        /* .rela.dyn .rela.plt Infomation */
-        if (!get_option(po, RELA) || !get_option(po, ALL)) {
-            if (g_dynsym.count == 0)
-                display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
-            if (g_symtab.count == 0)
-                display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
-            if (g_secname.count == 0)
-                display_section64(&h, 0);                       // get section name
-            for (int i = 0; i < g_secname.count; i++) {
-                if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
-                    display_rela64(&h, g_secname.name[i]);
-                } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
-                    display_rel64(&h, g_secname.name[i]);
-                }
-            }
-        }
-        
-        /* elf pointer */
-        if (!get_option(po, POINTER) || !get_option(po, ALL)) {
-            if (g_symtab.count == 0)
-                display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
-            display_pointer64(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");
-        }  
-    }
-
-    return 0;
 }
 
 /**
@@ -1016,7 +829,7 @@ static void display_segment64(handle_t64 *h) {
  * @param {handle_t32} h
  * @return {void}
  */
-static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, int is_display) {
+void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, int is_display) {
     char *name = NULL;
     char *type;
     char *bind;
@@ -1215,7 +1028,7 @@ static void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, i
  * @param {handle_t64} h
  * @return {void}
  */
-static void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, int is_display) {
+void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, int is_display) {
     char *name = NULL;
     char *type;
     char *bind;
@@ -3278,4 +3091,167 @@ static int display_pointer64(handle_t64 *h, int num, ...) {
     }
 
     va_end(args);
+}
+
+int parse(char *elf, parser_opt_t *po, uint32_t length) {
+    int fd;
+    struct stat st;
+    uint8_t *elf_map = NULL;
+    int count = 0;
+    char *tmp = NULL;
+    char *name = NULL;
+    char flag[4] = "\0";
+
+    init();
+
+    if (!length) {
+        g_strlength = 15;
+    } else {
+        g_strlength = length;
+    }
+
+    if (MODE == -1) {
+        return -1;
+    }
+
+    fd = open(elf, O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    /* 32bit */
+    if (MODE == ELFCLASS32) {
+        handle_t32 h;
+        h.mem = elf_map;
+        h.ehdr = (Elf32_Ehdr *)h.mem;
+        h.shdr = (Elf32_Shdr *)&h.mem[h.ehdr->e_shoff];
+        h.phdr = (Elf32_Phdr *)&h.mem[h.ehdr->e_phoff];
+        h.shstrtab = (Elf32_Shdr *)&h.shdr[h.ehdr->e_shstrndx];
+        h.size = st.st_size;
+
+        /* ELF Header Information */
+        if (!get_option(po, HEADERS) || !get_option(po, ALL))    
+            display_header32(&h);
+        
+        /* Section Information */
+        if (!get_option(po, SECTIONS) || !get_option(po, ALL))
+            display_section32(&h, 1);
+
+        /* Segmentation Information */
+        if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
+            display_segment32(&h);
+
+        /* .dynsym information */
+        if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
+            display_dynsym32(&h, ".dynsym", ".dynstr", 1);
+        }
+
+        /* .symtab information */
+        if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
+            display_dynsym32(&h, ".symtab", ".strtab", 1);
+        }
+
+        /* .dynamic Infomation */
+        if (!get_option(po, LINK) || !get_option(po, ALL))
+            display_dyninfo32(&h);  
+
+        /* .rela.dyn .rela.plt Infomation */
+        if (!get_option(po, RELA) || !get_option(po, ALL)) {
+            if (g_dynsym.count == 0)
+                display_dynsym32(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            if (g_symtab.count == 0)
+                display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
+            if (g_secname.count == 0)
+                display_section32(&h, 0);                       // get section name
+            for (int i = 0; i < g_secname.count; i++) {
+                if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
+                    display_rela32(&h, g_secname.name[i]);
+                } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
+                    display_rel32(&h, g_secname.name[i]);
+                }
+            }
+        } 
+
+        /* elf pointer */
+        if (!get_option(po, POINTER) || !get_option(po, ALL)) {
+            if (g_symtab.count == 0)
+                display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
+            display_pointer32(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");  
+        }        
+    }
+
+    /* 64bit */
+    if (MODE == ELFCLASS64) {
+        handle_t64 h;
+        h.mem = elf_map;
+        h.ehdr = (Elf64_Ehdr *)h.mem;
+        h.shdr = (Elf64_Shdr *)&h.mem[h.ehdr->e_shoff];
+        h.phdr = (Elf64_Phdr *)&h.mem[h.ehdr->e_phoff];
+        h.shstrtab = (Elf64_Shdr *)&h.shdr[h.ehdr->e_shstrndx];
+        h.size = st.st_size;
+
+        /* ELF Header Information */
+        if (!get_option(po, HEADERS) || !get_option(po, ALL)) 
+            display_header64(&h);
+
+        /* Section Information */
+        if (!get_option(po, SECTIONS) || !get_option(po, ALL))
+            display_section64(&h, 1);
+
+        /* Segmentation Information */
+        if (!get_option(po, SEGMENTS) || !get_option(po, ALL))
+            display_segment64(&h);
+
+        /* .dynsym information */
+        if (!get_option(po, DYNSYM) || !get_option(po, ALL)){
+            display_dynsym64(&h, ".dynsym", ".dynstr", 1);
+        }
+
+        /* .symtab information */
+        if (!get_option(po, SYMTAB) || !get_option(po, ALL)){
+            display_dynsym64(&h, ".symtab", ".strtab", 1);
+        }
+
+        /* .dynamic Infomation */
+        if (!get_option(po, LINK) || !get_option(po, ALL))
+            display_dyninfo64(&h);      
+
+        /* .rela.dyn .rela.plt Infomation */
+        if (!get_option(po, RELA) || !get_option(po, ALL)) {
+            if (g_dynsym.count == 0)
+                display_dynsym64(&h, ".dynsym", ".dynstr", 0);  // get dynamic symbol name
+            if (g_symtab.count == 0)
+                display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
+            if (g_secname.count == 0)
+                display_section64(&h, 0);                       // get section name
+            for (int i = 0; i < g_secname.count; i++) {
+                if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
+                    display_rela64(&h, g_secname.name[i]);
+                } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
+                    display_rel64(&h, g_secname.name[i]);
+                }
+            }
+        }
+        
+        /* elf pointer */
+        if (!get_option(po, POINTER) || !get_option(po, ALL)) {
+            if (g_symtab.count == 0)
+                display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
+            display_pointer64(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");
+        }  
+    }
+
+    return 0;
 }
