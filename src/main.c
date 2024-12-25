@@ -41,12 +41,14 @@
 #include "joinelf.h"
 #include "edit.h"
 #include "segment.h"
+#include "rel.h"
 
 #define VERSION "1.7"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];
 char string[PAGE_SIZE];
+char file[PAGE_SIZE];
 char config_name[PAGE_SIZE];
 char arch[LENGTH];
 char endian[LENGTH];
@@ -103,7 +105,8 @@ static int get_version(char *ver, size_t len) {
  */
 static void init() {
     memset(section_name, 0, LENGTH);
-    memset(string, 0, LENGTH);
+    memset(string, 0, PAGE_SIZE);
+    memset(file, 0, PAGE_SIZE);
     memset(config_name, 0, LENGTH);
     memset(elf_name, 0, LENGTH);
     memset(function, 0, LENGTH);
@@ -113,11 +116,12 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLRI";
+static const char *shortopts = "n:z:s:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLRI";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
     {"section-size", required_argument, NULL, 'z'},
+    {"string", required_argument, NULL, 's'},
     {"file-name", required_argument, NULL, 'f'},
     {"configure-name", required_argument, NULL, 'c'},
     {"architcture", required_argument, NULL, 'a'},
@@ -166,7 +170,7 @@ static const char *help =
     "  -n, --section-name=<section name>         Set section name\n"
     "  -z, --section-size=<section size>         Set section size\n"
     "  -f, --file-name=<file name>               File containing code(e.g. so, etc.)\n"
-    "      --string-name=<string name>           String value\n"
+    "  -s, --string-name=<string name>           String value\n"
     "  -c, --configure-name=<file name>          File containing configure(e.g. json, etc.)\n"
     "  -a, --architecture=<ELF architecture>     ELF architecture\n"
     "  -m, --class=<ELF machine>                 ELF class(e.g. 32bit, 64bit, etc.)\n"
@@ -190,7 +194,7 @@ static const char *help =
     "  -I, (no argument)                         Display | Edit pointer(e.g. .init_array, etc.)\n"
     "Detailed Usage: \n"
     "  elfspirit parse    [-A|H|S|P|B|D|R|I] ELF\n"
-    "  elfspirit edit     [-H|S|P|B|D|R|I] [-i]<row> [-j]<column> [-m|-f]<int|string value> ELF\n"
+    "  elfspirit edit     [-H|S|P|B|D|R|I] [-i]<row> [-j]<column> [-m|-s]<int|string value> ELF\n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
     "                     [-c]<multi section name> ELF\n"
@@ -206,14 +210,14 @@ static const char *help =
     "  elfspirit --edit-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<index of item> [-m]<pointer value> ELF\n"
-    "  elfspirit --set-interpreter [-f]<new interpreter> ELF\n"
-    "  elfspirit --set-rpath [-f]<rpath> ELF\n"
-    "  elfspirit --set-runpath [-f]<runpath> ELF\n"
+    "  elfspirit --set-interpreter [-s]<new interpreter> ELF\n"
+    "  elfspirit --set-rpath [-s]<rpath> ELF\n"
+    "  elfspirit --set-runpath [-s]<runpath> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
-    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> ELF\n"
-    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> ELF\n"
-    "  elfspirit --infect-data [-f]<shellcode> [-z]<size> ELF\n";
+    "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
+    "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
+    "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
 
 static const char *help_chinese = 
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
@@ -232,7 +236,7 @@ static const char *help_chinese =
     "  -n, --section-name=<section name>         设置节名\n"
     "  -z, --section-size=<section size>         设置节大小\n"
     "  -f, --file-name=<file name>               包含代码的文件名称(如某个so库)\n"
-    "      --string-name=<string name>           传入字符串值\n"
+    "  -s, --string-name=<string name>           传入字符串值\n"
     "  -c, --configure-name=<file name>          配置文件(如json)\n"
     "  -a, --architecture=<ELF architecture>     ELF文件的架构(预留选项，非必须)\n"
     "  -m, --class=<ELF machine>                 设置ELF字长(32bit, 64bit)\n"
@@ -256,7 +260,7 @@ static const char *help_chinese =
     "  -R, 不需要参数                    显示|编辑ELF: 指针(e.g. .init_array, etc.)\n"
     "细节: \n"
     "  elfspirit parse    [-A|H|S|P|B|D|R|I] ELF\n"
-    "  elfspirit edit     [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-f]<int|str修改值> ELF\n"
+    "  elfspirit edit     [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-s]<int|str修改值> ELF\n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
     "  elfspirit delsec   [-n]<节的名字> ELF\n"
     "                     [-c]<多个节的名字> ELF\n"
@@ -272,14 +276,14 @@ static const char *help_chinese =
     "  elfspirit --edit-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<第几个条目> [-m]<指针值> ELF\n"
-    "  elfspirit --set-interpreter [-f]<新的链接器> ELF\n"
-    "  elfspirit --set-rpath [-f]<rpath> ELF\n"
-    "  elfspirit --set-runpath [-f]<runpath> ELF\n"
+    "  elfspirit --set-interpreter [-s]<新的链接器> ELF\n"
+    "  elfspirit --set-rpath [-s]<rpath> ELF\n"
+    "  elfspirit --set-runpath [-s]<runpath> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
-    "  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> ELF\n"
-    "  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> ELF\n"
-    "  elfspirit --infect-data [-f]<shellcode> [-z]<size> ELF\n";
+    "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
+    "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
+    "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
 
 static void readcmdline(int argc, char *argv[]) {
     int opt;
@@ -308,9 +312,14 @@ static void readcmdline(int argc, char *argv[]) {
                 }                
                 break;
             
+            // set string
+            case 's':
+                memcpy(string, optarg, strlen(optarg));
+                break;
+            
             // set file name
             case 'f':
-                memcpy(string, optarg, strlen(optarg));
+                memcpy(file, optarg, strlen(optarg));
                 break;
 
             // configure
@@ -544,7 +553,7 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* inject so */
     if (!strcmp(function, "injectso")) {
-        char *so_name = string;
+        char *so_name = file;
         inject_so(elf_name, section_name, so_name, config_name, ver);
     }
 
@@ -578,9 +587,9 @@ static void readcmdline(int argc, char *argv[]) {
         if (strlen(section_name) != 0) {
             off = get_section_offset(elf_name, section_name);
             size = get_section_size(elf_name, section_name);
-            extract_fragment(elf_name, off, size);
+            extract_fragment(elf_name, off, size, NULL);
         } else if (size != 0) {
-            extract_fragment(elf_name, off, size);
+            extract_fragment(elf_name, off, size, NULL);
         }
     }
 
