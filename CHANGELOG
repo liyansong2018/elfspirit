@@ -1,3 +1,9 @@
+[2024-12-26]
+    elfspirit 1.8.0
+        - Add the ability to obtain or edit pointer in ELF including .init_array, .finit_array and so on
+        - Re optimize the command-line parameters of the tool
+        - Remove redundant code and fix some issues
+
 [2024-12-17]
     elfspirit 1.7
         - Add more infect algorithm

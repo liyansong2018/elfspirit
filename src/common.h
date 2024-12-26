@@ -192,8 +192,10 @@ uint64_t get_phdr_offset(char *elf_name);
  * @param input_file original file name
  * @param offset start address
  * @param size end address(size)
+ * @param output fragments content
+ * @return error code {-1:error,0:sucess}
  */
-void extract_fragment(const char *input_file, long offset, size_t size);
+int extract_fragment(const char *input_file, long offset, size_t size, char *output);
 
 
 /* EXTERN API */

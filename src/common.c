@@ -551,12 +551,14 @@ uint64_t get_phdr_offset(char *elf_name) {
  * @param input_file original file name
  * @param offset start address
  * @param size end address(size)
+ * @param output fragments content
+ * @return error code {-1:error,0:sucess}
  */
-void extract_fragment(const char *input_file, long offset, size_t size) {
+int extract_fragment(const char *input_file, long offset, size_t size, char *output) {
     FILE *input_fp = fopen(input_file, "rb");
     if (input_fp == NULL) {
-        perror("Error opening input file");
-        return;
+        perror("open input file");
+        return -1;
     }
 
     // 设置文件指针偏移量
@@ -565,9 +567,9 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
     // 读取指定大小的数据
     unsigned char *buffer = (unsigned char *)malloc(size);
     if (buffer == NULL) {
-        perror("Memory allocation error");
+        perror("memory allocation");
         fclose(input_fp);
-        return;
+        return -1;
     }
 
     fread(buffer, 1, size, input_fp);
@@ -575,6 +577,8 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
         printf("\\x%02x", buffer[i]);
     }
     printf("\n");
+    if (output)
+        memcpy(output, buffer, size);
 
     // 关闭输入文件
     fclose(input_fp);
@@ -584,7 +588,7 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
     if (output_fp == NULL) {
         perror("Error creating output file");
         free(buffer);
-        return;
+        return -1;
     }
 
     fwrite(buffer, 1, size, output_fp);
@@ -592,7 +596,6 @@ void extract_fragment(const char *input_file, long offset, size_t size) {
 
     // 关闭输出文件
     fclose(output_fp);
-
     free(buffer);
 }
 

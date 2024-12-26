@@ -41,9 +41,8 @@
 #include "joinelf.h"
 #include "edit.h"
 #include "segment.h"
-#include "rel.h"
 
-#define VERSION "1.7"
+#define VERSION "1.8.0"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];
