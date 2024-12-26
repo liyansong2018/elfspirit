@@ -62,8 +62,11 @@ typedef struct handle32 {
     Elf32_Phdr *phdr;
     Elf32_Shdr *shdr;
     Elf32_Shdr *shstrtab;
+    int sec_index;      // section index
+    size_t sec_size;    // section size
     uint8_t *mem;
-    size_t size;
+    int fd;
+    size_t size;        // file size
 } handle_t32;
 
 typedef struct handle64 {
@@ -71,8 +74,11 @@ typedef struct handle64 {
     Elf64_Phdr *phdr;
     Elf64_Shdr *shdr;
     Elf64_Shdr *shstrtab;
+    int sec_index;      // section index
+    size_t sec_size;    // section size
     uint8_t *mem;
-    size_t size;
+    int fd;
+    size_t size;        // file size
 } handle_t64;
 
 void log_warning(char *str);
@@ -262,3 +268,14 @@ int set_rpath(char *elf_name, char *rpath);
  * @return int error code {-1:error,0:sucess}
  */
 int set_runpath(char *elf_name, char *rpath);
+
+/**
+ * @brief hook外部函数
+ * hook function by .got.plt
+ * @param elf_name elf file name
+ * @param symbol symbol name
+ * @param hookfile hook function file
+ * @param hook_offset hook function offset in hook file
+ * @return int error code {-1:error,0:sucess}
+ */
+int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offset);

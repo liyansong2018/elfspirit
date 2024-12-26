@@ -32,6 +32,7 @@
 #include <elf.h>
 #include "common.h"
 #include "segment.h"
+#include "parse.h"
 #include "cJSON/cJSON.h"
 
 int MODE;
@@ -168,7 +169,7 @@ int hex2str(unsigned int hex, char *ret, unsigned int len) {
 
 /**
  * @brief Compare string
- * 
+ * 比较两个字符串的前n位是否相同
  * @param str1 
  * @param str2 
  * @param n 
@@ -229,6 +230,36 @@ uint64_t get_file_size(const char *filename) {
         // 如果获取文件大小失败，返回-1或其他错误代码
         return -1;
     }
+}
+
+/**
+ * @brief 读取文件内容到buf
+ * save file content
+ * @param filename file name
+ * @param buffer buffer, need to free
+ * @return error code {-1:false,0:success}
+ */
+int read_file(const char* filename, char** buffer) {
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
+        return -1; 
+    }
+
+    fseek(file, 0, SEEK_END); // 将文件指针移动到文件末尾
+    long size = ftell(file); // 获取文件大小
+    fseek(file, 0, SEEK_SET); // 将文件指针移动回文件开头
+
+    *buffer = (char*)malloc(size + 1); // 分配足够的内存来存储文件内容
+    if (*buffer == NULL) {
+        fclose(file);
+        return -2; // 内存分配失败，返回-2表示错误
+    }
+
+    fread(*buffer, 1, size, file); // 读取文件内容到缓冲区
+    (*buffer)[size] = '\0'; // 在末尾添加字符串结束符
+
+    fclose(file); 
+    return size; 
 }
 
 /**
@@ -749,4 +780,82 @@ int set_rpath(char *elf_name, char *rpath) {
  */
 int set_runpath(char *elf_name, char *runpath) {
     return add_dynamic_item(elf_name, DT_RUNPATH, runpath);
+}
+
+/**
+ * @brief hook外部函数
+ * hook function by .got.plt
+ * @param elf_name elf file name
+ * @param symbol symbol name
+ * @param hookfile hook function file
+ * @param hook_offset hook function offset in hook file
+ * @return int error code {-1:error,0:sucess}
+ */
+int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offset) {
+    /* 1.extract .text from shellcode binary */
+    // uint64_t offset = get_section_offset(hookfile, ".text");
+    // size_t size = get_section_size(hookfile, ".text");
+    uint64_t offset = 0;
+    int seg_i = 0;
+    int ret = -1;
+    /* 2.fill new segment with .text */
+    seg_i = add_segment_file(elf_name, PT_LOAD, hookfile);
+    ret = set_segment_flags(elf_name, seg_i, 7);
+    if (ret < 0) {
+        goto ERR_EXIT;
+    }
+    uint64_t addr = get_segment_vaddr(elf_name, seg_i);
+
+    /* 3.replace symbol with new segment address */
+    // We are trying to analyze and edit the content of the section 
+    // in a different way than before. Here is a case study
+    char *name;
+    handle_t32 h32;
+    handle_t64 h64;
+    ret = init_elf(elf_name, &h32, &h64);
+    if (ret < 0) {
+        ERROR("init elf error\n");
+        goto ERR_EXIT;
+    }
+
+    /* attention: The 32-bit program has not been tested! */
+    if (MODE == ELFCLASS32) {
+        h32.sec_size = sizeof(Elf32_Rel);  // init
+        for (int i = 0; i < h32.sec_size / sizeof(Elf32_Rel); i++) {
+            ret = get_rel32_name(&h32, ".rel.plt", i, &name);
+            if (ret < 0) {
+                goto ERR_EXIT;
+            }
+            if (!strncmp(name, symbol, strlen(name))) {
+                offset = get_rel32_offset(&h32, ".rel.plt", i);
+                break;
+            }
+        }
+        VERBOSE("%s offset: 0x%x, new value: 0x%x\n", symbol, offset, addr + hook_offset);
+        uint32_t *p = (uint32_t *)(h32.mem + offset);
+        *p = addr + hook_offset;
+    }
+
+    if (MODE == ELFCLASS64) {
+        h64.sec_size = sizeof(Elf64_Rela);  // init
+        for (int i = 0; i < h64.sec_size / sizeof(Elf64_Rela); i++) {
+            ret = get_rela64_name(&h64, ".rela.plt", i, &name);
+            if (ret < 0) {
+                goto ERR_EXIT;
+            }
+            if (!strncmp(name, symbol, strlen(name))) {
+                offset = get_rela64_offset(&h64, ".rela.plt", i);
+                break;
+            }
+        }
+        VERBOSE("%s offset: 0x%x, new value: 0x%x\n", symbol, offset, addr + hook_offset);
+        uint64_t *p = (uint64_t *)(h64.mem + offset);
+        *p = addr + hook_offset;
+    }
+    
+    finit_elf(&h32, &h64);
+
+    return 0;
+ERR_EXIT:
+    return -1;
 }

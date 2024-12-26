@@ -41,6 +41,7 @@
 #include "joinelf.h"
 #include "edit.h"
 #include "segment.h"
+#include "rel.h"
 
 #define VERSION "1.8.0"
 #define CONTENT_LENGTH 1024 * 1024
@@ -206,6 +207,7 @@ static const char *help =
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> ELF\n"
+    "  elfspirit hook [-s]<hook symbol> [-f]<new function bin> [-o]<new function start offset> ELF\n"
     "  elfspirit --edit-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<index of item> [-m]<pointer value> ELF\n"
@@ -272,6 +274,7 @@ static const char *help_chinese =
     "                     OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> ELF\n"
+    "  elfspirit hook [-s]<hook函数名> [-f]<新的函数二进制> [-o]<新函数偏移> ELF\n"
     "  elfspirit --edit-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<第几个条目> [-m]<指针值> ELF\n"
@@ -595,6 +598,11 @@ static void readcmdline(int argc, char *argv[]) {
     /* edit elf */
     if (!strcmp(function, "edit")) {
         edit(elf_name, &po, row, column, value, section_name, string);
+    }
+
+    /* hook */
+    if (!strcmp(function, "hook")) {
+        hook_extern(elf_name, string, file, off);
     }
 
     DEBUG("function: %s\n", function);

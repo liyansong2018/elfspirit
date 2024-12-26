@@ -583,6 +583,43 @@ int add_segment_content(char *elf_name, int type, char *content, size_t size) {
 }
 
 /**
+ * @brief 增加一个段，并用文件填充内容
+ * add a paragraph and fill in the content with a file
+ * @param elf_name 
+ * @param type segment type
+ * @param file file content
+ * @return int segment index {-1:error}
+ */
+int add_segment_file(char *elf_name, int type, char *file) {
+    char* buffer = NULL;
+    int file_size = read_file(file, &buffer);
+    if (file_size > 0) {
+        DEBUG("file size: 0x%x\n", file_size);
+    } else {
+        DEBUG("error: Unable to read file %s\n", file);
+        goto ERR_EXIT;
+    }
+
+    int i = add_segment(elf_name, type, file_size);
+    uint64_t offset = get_segment_offset(elf_name, i);
+    if (set_content(elf_name, offset, buffer, file_size)) {
+        DEBUG("set content");
+        goto ERR_EXIT;
+    }
+
+    if (buffer != NULL) {
+        free(buffer);
+    }
+    return i;
+
+ERR_EXIT:
+    if (buffer != NULL) {
+        free(buffer);
+    }
+    return -1;
+}
+
+/**
  * @brief 根据段的下标，获取段表头
  * obtain the program header table based on its index
  * @param elfname 

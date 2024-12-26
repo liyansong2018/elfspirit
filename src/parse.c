@@ -3189,6 +3189,13 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
             if (g_symtab.count == 0)
                 display_dynsym32(&h, ".symtab", ".strtab", 0);  // get symbol name
             display_pointer32(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");  
+        }
+
+        /* init symbol name */
+        else {
+            display_dynsym32(&h, ".dynsym", ".dynstr", 0);
+            display_dynsym32(&h, ".symtab", ".strtab", 0);
+            display_section32(&h, 0);
         }        
     }
 
@@ -3250,7 +3257,14 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
             if (g_symtab.count == 0)
                 display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
             display_pointer64(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");
-        }  
+        }
+
+        /* init symbol name */
+        else {
+            display_dynsym64(&h, ".dynsym", ".dynstr", 0);
+            display_dynsym64(&h, ".symtab", ".strtab", 0);
+            display_section64(&h, 0);
+        }   
     }
 
     return 0;
