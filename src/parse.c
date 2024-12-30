@@ -2072,7 +2072,7 @@ static int display_rel32(handle_t32 *h, char *section_name) {
     rel_section = (Elf32_Rel *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
     count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf32_Rel);
     INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
-    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name(.symtab)");
+    PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name");
     for (int i = 0; i < count; i++) {
         switch (ELF32_R_TYPE(rel_section[i].r_info))
         {
@@ -2249,7 +2249,11 @@ static int display_rel32(handle_t32 *h, char *section_name) {
         }
         
         str_index = ELF32_R_SYM(rel_section[i].r_info);
-        PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+        if (strlen(g_dynsym.name[str_index]) == 0) {
+            /* .o file .rel.text */
+            PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+        } else
+            PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_dynsym.name[str_index]);
     }
 }
 
@@ -2296,7 +2300,7 @@ static int display_rel64(handle_t64 *h, char *section_name) {
     rel_section = (Elf64_Rel *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
     count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf64_Rel);
     INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
-    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name (.symtab)");
+    PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name");
     for (int i = 0; i < count; i++) {
         switch (ELF64_R_TYPE(rel_section[i].r_info))
         {
@@ -2473,7 +2477,11 @@ static int display_rel64(handle_t64 *h, char *section_name) {
         }
         
         str_index = ELF64_R_SYM(rel_section[i].r_info);
-        PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+        if (strlen(g_dynsym.name[str_index]) == 0) {
+            /* .o file .rel.text */
+            PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+        } else
+            PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_dynsym.name[str_index]);
     }
 }
 
@@ -2520,7 +2528,7 @@ static int display_rela32(handle_t32 *h, char *section_name) {
     rela_dyn = (Elf32_Rela *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
     count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf32_Rela);
     INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
-    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
+    PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
     for (int i = 0; i < count; i++) {
         switch (ELF32_R_TYPE(rela_dyn[i].r_info))
         {
@@ -2697,7 +2705,18 @@ static int display_rela32(handle_t32 *h, char *section_name) {
         }
         
         str_index = ELF32_R_SYM(rela_dyn[i].r_info);
-        if (rela_dyn[i].r_addend >= 0)
+        if (strlen(g_dynsym.name[str_index]) == 0) {
+            /* .rela.dyn */
+            if (str_index == 0) {
+                snprintf(name, STR_LENGTH, "%x", rela_dyn[i].r_addend);
+            } 
+            /* .o file .rela.text */
+            else {
+                snprintf(name, STR_LENGTH, "%s %d", g_symtab.name[str_index], rela_dyn[i].r_addend);
+            }
+        }
+        /* .rela.plt */
+        else if (rela_dyn[i].r_addend >= 0)
             snprintf(name, STR_LENGTH, "%s + %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         else
             snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
@@ -2748,7 +2767,7 @@ static int display_rela64(handle_t64 *h, char *section_name) {
     rela_dyn = (Elf64_Rela *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
     count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf64_Rela);
     INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
-    PRINT_RELA_TITLE("Nr", "Offset", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
+    PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
     for (int i = 0; i < count; i++) {
         switch (ELF64_R_TYPE(rela_dyn[i].r_info))
         {
@@ -2925,7 +2944,18 @@ static int display_rela64(handle_t64 *h, char *section_name) {
         }
         
         str_index = ELF64_R_SYM(rela_dyn[i].r_info);
-        if (rela_dyn[i].r_addend >= 0)
+        if (strlen(g_dynsym.name[str_index]) == 0) {
+            /* .rela.dyn */
+            if (str_index == 0) {
+                snprintf(name, STR_LENGTH, "%x", rela_dyn[i].r_addend);
+            } 
+            /* .o file .rela.text */
+            else {
+                snprintf(name, STR_LENGTH, "%s %d", g_symtab.name[str_index], rela_dyn[i].r_addend);
+            }
+        }
+        /* .rela.plt */
+        else if (rela_dyn[i].r_addend >= 0)
             snprintf(name, STR_LENGTH, "%s + %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         else
             snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
