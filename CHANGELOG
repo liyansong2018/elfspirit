@@ -1,3 +1,10 @@
+[2024-12-31]
+    elfspirit 1.8.1
+        - Add examples for elfspirit wiki
+        - Add the ability to hook external function through .got.plt infection
+        - Fix issue about parsing relocation section
+        - Update README command-line parameters
+
 [2024-12-26]
     elfspirit 1.8.0
         - Add the ability to obtain or edit pointer in ELF including .init_array, .finit_array and so on

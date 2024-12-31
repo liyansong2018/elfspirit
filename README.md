@@ -163,14 +163,14 @@ We have successfully linked a new so!
 * Change the ELF interpreter ("the dynamic loader/linker") of executables:
 
   ```shell
-  elfspirit --set-interpreter [-f]<new interpreter> ELF
+  elfspirit --set-interpreter [-s]<new interpreter> ELF
   ```
 
 * Change the `RPATH` or `RUNPATH` of executables and libraries:
 
   ```shell
-  elfspirit --set-rpath [-f]<rpath> ELF
-  elfspirit --set-runpath [-f]<rpath> ELF
+  elfspirit --set-rpath [-s]<rpath> ELF
+  elfspirit --set-runpath [-s]<rpath> ELF
   ```
 
 * Add section or segment of executables and libraries:
@@ -185,19 +185,19 @@ We have successfully linked a new so!
 * Silvio text segment infectction technic:
 
   ```shell
-  elfspirit --infect-silvio [-f]<shellcode> [-z]<size> ELF
+  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF
   ```
 
 * Reverse text segment infectction technic (Skeksi):
 
   ```shell
-  elfspirit --infect-skeksi [-f]<shellcode> [-z]<size> ELF
+  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF
   ```
 
 * Data segment infectction technic (Skeksi):
 
   ```shell
-  elfspirit --infect-data [-f]<shellcode> [-z]<size> ELF
+  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF
   ```
 
 ## Limitations
