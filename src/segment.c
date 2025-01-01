@@ -403,7 +403,7 @@ ERR_EXIT:
  * @param elf_name elf file name
  * @return int error code {-1:error,0:sucess}
  */
-int add_hpdr(char *elf_name) {
+int add_phdr(char *elf_name) {
     int fd;
     struct stat st;
     uint8_t *mapped;
@@ -500,7 +500,7 @@ int add_segment(char *elf_name, int type, size_t size) {
 
     // 如果程序头在ELF文件末尾处，直接增加一个段
     // if program header is at the end of elf
-    add_hpdr(elf_name);
+    add_phdr(elf_name);
     VERBOSE("add a phdr\n");
 
     // 计算LOAD段的地址空间范围
@@ -538,7 +538,7 @@ int add_segment(char *elf_name, int type, size_t size) {
         phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend) + segoffset % PAGE_SIZE;
         phdr[ehdr->e_phnum - 1].p_paddr = phdr[ehdr->e_phnum - 1].p_vaddr;
         phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
-        phdr[ehdr->e_phnum - 1].p_flags = 4;    // defautl read permission
+        phdr[ehdr->e_phnum - 1].p_flags = 4;    // default read permission
         index = ehdr->e_phnum - 1;
     }
 
@@ -553,7 +553,7 @@ int add_segment(char *elf_name, int type, size_t size) {
         phdr[ehdr->e_phnum - 1].p_vaddr = align_to_4k(vend) + segoffset % PAGE_SIZE;
         phdr[ehdr->e_phnum - 1].p_paddr = phdr[ehdr->e_phnum - 1].p_vaddr;
         phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
-        phdr[ehdr->e_phnum - 1].p_flags = 4;    // defautl read permission
+        phdr[ehdr->e_phnum - 1].p_flags = 4;    // default read permission
         index = ehdr->e_phnum - 1;
     }
 
@@ -1013,6 +1013,7 @@ int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_co
     int i;      // segment index
 
     // 打开文件
+    // open the file
     fd = open(elfname, O_RDONLY);
 
     if (fd == -1) {
@@ -1021,6 +1022,7 @@ int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_co
     }
 
     // 设置文件偏移量
+    // set the file offset
     if (lseek(fd, offset, SEEK_SET) == -1) {
         perror("Failed to set file offset");
         close(fd);
@@ -1028,6 +1030,7 @@ int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_co
     }
 
     // 从指定偏移处读取数据
+    // read data from the offset file
     buf = malloc(org_size + content_size);
     ssize_t bytes_read = read(fd, buf, org_size);
     if (bytes_read == -1) {
@@ -1041,6 +1044,7 @@ int expand_segment(char *elfname, uint64_t offset, size_t org_size, char *add_co
     i = add_segment_content(elfname, PT_LOAD, buf, org_size + content_size);
 
     // 关闭文件
+    // close the file
     close(fd);
     free(buf);
     return i;
