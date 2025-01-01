@@ -605,6 +605,11 @@ static void readcmdline(int argc, char *argv[]) {
         hook_extern(elf_name, string, file, off);
     }
 
+    /* change bin to so */
+    if (!strcmp(function, "bin2so")) {
+        add_dynsym_item(elf_name, string, value, size);
+    }
+
     DEBUG("function: %s\n", function);
     DEBUG("elf: %s\n", elf_name);
     DEBUG("name:%s, size: %u\n", section_name, size);

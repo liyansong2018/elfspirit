@@ -66,15 +66,12 @@ static int get_phdr_load(char *elf_name) {
     if (MODE == ELFCLASS32) {
         Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
         Elf32_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        // 计算地址的最大值和最小值
-        // calculate the maximum and minimum values of the virtual address
-        for (int i = 1; i < ehdr->e_phnum; i++) {
+        for (int i = 0; i < ehdr->e_phnum; i++) {
             if (phdr[i].p_type == PT_LOAD) {
-                if (phdr[i].p_vaddr <= phdr[0].p_vaddr)
-                    if (phdr[i].p_vaddr + phdr[i].p_memsz >= phdr[0].p_vaddr + phdr[0].p_memsz) {
-                        index = i;
-                        break;
-                    }     
+                if (phdr[i].p_offset == ehdr->e_phoff) {
+                    index = i;
+                    break;
+                } 
             }
         }
     }
@@ -82,15 +79,12 @@ static int get_phdr_load(char *elf_name) {
     if (MODE == ELFCLASS64) {
         Elf64_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
         Elf64_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        // 计算地址的最大值和最小值
-        // calculate the maximum and minimum values of the virtual address
-        for (int i = 1; i < ehdr->e_phnum; i++) {
+        for (int i = 0; i < ehdr->e_phnum; i++) {
             if (phdr[i].p_type == PT_LOAD) {
-                if (phdr[i].p_vaddr <= phdr[0].p_vaddr)
-                    if (phdr[i].p_vaddr + phdr[i].p_memsz >= phdr[0].p_vaddr + phdr[0].p_memsz) {
-                        index = i;
-                        break;
-                    }     
+                if (phdr[i].p_offset == ehdr->e_phoff) {
+                    index = i;
+                    break;
+                }   
             }
         }
     }
@@ -248,6 +242,10 @@ static int mov_phdr(char *elf_name, uint64_t offset, int need_load) {
     get_segment_range(elf_name, PT_LOAD, &vstart, &vend);
     DEBUG("LOAD vstart: 0x%x ~ vend: 0x%x\n", vstart, vend);
 
+    // 得到程序头表下标
+    // get phdr index
+    int phdr_i = get_phdr_load(elf_name);
+
     fd = open(elf_name, O_RDWR);
     if (fd < 0) {
         perror("open");
@@ -317,15 +315,18 @@ static int mov_phdr(char *elf_name, uint64_t offset, int need_load) {
         phdr[0].p_filesz = phdr_size;
         phdr[0].p_memsz = phdr_size;
         // 设置增加的段的参数
-        phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
-        phdr[ehdr->e_phnum - 1].p_offset = ehdr->e_phoff;
-        phdr[ehdr->e_phnum - 1].p_vaddr = phdr[0].p_vaddr;
-        phdr[ehdr->e_phnum - 1].p_paddr = phdr[0].p_vaddr;
-        phdr[ehdr->e_phnum - 1].p_filesz = phdr_size;
-        phdr[ehdr->e_phnum - 1].p_memsz = phdr_size;
-        phdr[ehdr->e_phnum - 1].p_flags = 4;
-        phdr[ehdr->e_phnum - 1].p_align = 4096; 
-    }
+        if (need_load) {
+            phdr_i = ehdr->e_phnum - 1;
+        }
+        phdr[phdr_i].p_type = PT_LOAD;
+        phdr[phdr_i].p_offset = ehdr->e_phoff;
+        phdr[phdr_i].p_vaddr = phdr[0].p_vaddr;
+        phdr[phdr_i].p_paddr = phdr[0].p_vaddr;
+        phdr[phdr_i].p_filesz = phdr_size;
+        phdr[phdr_i].p_memsz = phdr_size;
+        phdr[phdr_i].p_flags = 4;
+        phdr[phdr_i].p_align = 4096; 
+}
 
     /* 64bit */
     if (MODE == ELFCLASS64) {
@@ -377,14 +378,17 @@ static int mov_phdr(char *elf_name, uint64_t offset, int need_load) {
         phdr[0].p_filesz = phdr_size;
         phdr[0].p_memsz = phdr_size;
         // 设置增加的段的参数
-        phdr[ehdr->e_phnum - 1].p_type = PT_LOAD;
-        phdr[ehdr->e_phnum - 1].p_offset = ehdr->e_phoff;
-        phdr[ehdr->e_phnum - 1].p_vaddr = phdr[0].p_vaddr;
-        phdr[ehdr->e_phnum - 1].p_paddr = phdr[0].p_vaddr;
-        phdr[ehdr->e_phnum - 1].p_filesz = phdr_size;
-        phdr[ehdr->e_phnum - 1].p_memsz = phdr_size;
-        phdr[ehdr->e_phnum - 1].p_flags = 4;
-        phdr[ehdr->e_phnum - 1].p_align = 4096; 
+        if (need_load) {
+            phdr_i = ehdr->e_phnum - 1;
+        }
+        phdr[phdr_i].p_type = PT_LOAD;
+        phdr[phdr_i].p_offset = ehdr->e_phoff;
+        phdr[phdr_i].p_vaddr = phdr[0].p_vaddr;
+        phdr[phdr_i].p_paddr = phdr[0].p_vaddr;
+        phdr[phdr_i].p_filesz = phdr_size;
+        phdr[phdr_i].p_memsz = phdr_size;
+        phdr[phdr_i].p_flags = 4;
+        phdr[phdr_i].p_align = 4096; 
     }
 
     close(fd);
@@ -403,7 +407,7 @@ ERR_EXIT:
  * @param elf_name elf file name
  * @return int error code {-1:error,0:sucess}
  */
-int add_phdr(char *elf_name) {
+int add_phdr_entry(char *elf_name) {
     int fd;
     struct stat st;
     uint8_t *mapped;
@@ -411,7 +415,7 @@ int add_phdr(char *elf_name) {
     int index;
 
     index = get_phdr_load(elf_name);
-    VERBOSE("get the phdr load index: %d\n", index);
+    VERBOSE("get the phdr load index: [%d]\n", index);
 
     fd = open(elf_name, O_RDWR);
     if (fd < 0) {
@@ -498,9 +502,9 @@ int add_segment(char *elf_name, int type, size_t size) {
     mov_phdr(elf_name, segoffset + size, 0);
     VERBOSE("move the phdr: %d\n", size);
 
-    // 如果程序头在ELF文件末尾处，直接增加一个段
+    // 如果程序头在ELF文件末尾处，直接增加一个程序头表项
     // if program header is at the end of elf
-    add_phdr(elf_name);
+    add_phdr_entry(elf_name);
     VERBOSE("add a phdr\n");
 
     // 计算LOAD段的地址空间范围

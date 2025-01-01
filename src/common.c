@@ -859,3 +859,56 @@ int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offs
 ERR_EXIT:
     return -1;
 }
+
+/**
+ * @brief 增加一个.dynsym table条目
+ * add a dynamic symbol stable item
+ * @param elf_name elf file name
+ * @param name dynamic symbol name
+ * @param value dynamic symbol address
+ * @param code_size func size
+ * @return int error code {-1:error,0:sucess}
+ */
+int add_dynsym_item(char *elf_name, char *name, uint64_t value, size_t code_size) {
+    uint64_t size, dynstr_size;
+    uint64_t addr, offset;
+    int seg_i, sec_i;
+
+    // 1. expand .dynstr section
+    VERBOSE("1. add a new segment for .dynstr entry\n");
+    dynstr_size = get_section_size(elf_name, ".dynstr");
+    seg_i = expand_dynstr_segment(elf_name, name);
+    if (seg_i == -1) {
+        ERROR("expand .dynstr section error!\n");
+        return -1;
+    }
+
+    // 2. expand .dynsym section
+    VERBOSE("2. add a new segment for .dynsym entry\n");
+    size = get_section_size(elf_name, ".dynsym");
+    offset = get_section_offset(elf_name, ".dynsym");
+    if (MODE == ELFCLASS64) {
+        Elf64_Sym sym;
+        sym.st_value = value;
+        sym.st_info = ELF64_ST_INFO(STB_GLOBAL, STT_FUNC);
+        sym.st_other = STV_DEFAULT;
+        sym.st_name = dynstr_size;
+        sym.st_size = code_size;
+        seg_i = expand_segment(elf_name, offset, size, &sym, sizeof(Elf64_Sym));
+    }
+    
+    // 3. set phdr
+    VERBOSE("3. set phdr for DT_SYMTAB segment\n");
+    addr = get_segment_vaddr(elf_name, seg_i);
+    offset = get_segment_offset(elf_name, seg_i);
+    size = get_segment_memsz(elf_name, seg_i);
+    set_dynamic_value_by_tag(elf_name, DT_SYMTAB, &addr);
+    // set_dynamic_value_by_tag(elf_name, DT_SYMENT, &size);       // entry size == size?
+    
+    // 4. set shdr
+    VERBOSE("4. set shdr for .dynsym section\n");
+    sec_i = get_section_index(elf_name, ".dynsym");
+    set_section_off(elf_name, sec_i, offset);
+    set_section_addr(elf_name, sec_i, addr);
+    set_section_size(elf_name, sec_i, size);
+}
