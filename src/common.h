@@ -81,6 +81,15 @@ typedef struct handle64 {
     size_t size;        // file size
 } handle_t64;
 
+typedef struct GnuHash {
+    uint32_t nbuckets;      // 桶的数量
+    uint32_t symndx;        // 符号表的开始索引
+    uint32_t maskbits;      // 掩码位数
+    uint32_t shift;         // 用于计算哈希值的位移量
+    uint32_t buckets[];     // 桶数组，大小为 nbuckets
+    // 后面可能跟着链表和其他数据
+} gnuhash_t;
+
 void log_warning(char *str);
 void log_error(char *str);
 void log_info(char *str);

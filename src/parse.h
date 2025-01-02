@@ -35,6 +35,7 @@ typedef enum PARSE_OPT {
     LINK,
     RELA,
     POINTER,
+    GNUHASH,
     END
 } PARSE_OPT_T;
 

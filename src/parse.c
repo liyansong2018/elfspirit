@@ -3123,6 +3123,130 @@ static int display_pointer64(handle_t64 *h, int num, ...) {
     va_end(args);
 }
 
+/**
+ * @brief 显示gnu hash表
+ * show hash table
+ * @param h
+ * @return int error code {-1:error,0:sucess}
+ */
+int display_hash32(handle_t32 *h) {
+    char *name = NULL;
+    int hash_index = 0;
+
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
+
+        if (!strcmp(name, ".gnu.hash")) {
+            hash_index = i;
+        }
+    }
+
+    if (!hash_index) {
+        WARNING("This file does not have a %s\n", ".gnu.hash");
+        return -1;
+    }
+    
+    name = h->mem + h->shdr[hash_index].sh_offset;
+    /* security check start*/
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        exit(-1);
+    }
+
+    gnuhash_t *hash = (gnuhash_t *)&h->mem[h->shdr[hash_index].sh_offset];
+    INFO(".gnu.hash table at offset 0x%x\n", h->shdr[hash_index].sh_offset);
+    printf("     |-------------Header-------------|\n");
+    printf("     |nbuckets:             0x%08x|\n", hash->nbuckets);
+    printf("     |symndx:               0x%08x|\n", hash->symndx);
+    printf("     |maskbits:             0x%08x|\n", hash->maskbits);
+    printf("     |shift:                0x%08x|\n", hash->shift);
+    
+    printf("     |-----------Bloom filter---------|\n");
+    uint32_t *bloomfilter = hash->buckets;
+    int i;
+    for (i = 0; i < hash->maskbits; i++) {
+        printf("     |           0x%08x           |\n", bloomfilter[i]);
+    }
+
+    printf("     |-----------Hash Buckets---------|\n");
+    uint32_t *buckets = &bloomfilter[i];
+    for (i = 0; i < hash->nbuckets; i++) {
+        printf("     |           0x%08x           |\n", buckets[i]);
+    }
+
+    printf("     |-----------Hash Chain-----------|\n");
+    uint32_t *value = &buckets[i];
+    for (i = 0; i < g_dynsym.count - hash->symndx; i++) {
+        printf("     |           0x%08x           |\n", value[i]);
+    }
+}
+
+/**
+ * @brief 显示gnu hash表
+ * show hash table
+ * @param h
+ * @return int error code {-1:error,0:sucess}
+ */
+int display_hash64(handle_t64 *h) {
+    char *name = NULL;
+    int hash_index = 0;
+
+    for (int i = 0; i < h->ehdr->e_shnum; i++) {
+        name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
+
+        if (!strcmp(name, ".gnu.hash")) {
+            hash_index = i;
+        }
+    }
+
+    if (!hash_index) {
+        WARNING("This file does not have a %s\n", ".gnu.hash");
+        return -1;
+    }
+    
+    name = h->mem + h->shdr[hash_index].sh_offset;
+    /* security check start*/
+    if (validated_offset(name, h->mem, h->mem + h->size)) {
+        ERROR("Corrupt file format\n");
+        exit(-1);
+    }
+
+    gnuhash_t *hash = (gnuhash_t *)&h->mem[h->shdr[hash_index].sh_offset];
+    INFO(".gnu.hash table at offset 0x%x\n", h->shdr[hash_index].sh_offset);
+    printf("     |-------------Header-------------|\n");
+    printf("     |nbuckets:             0x%08x|\n", hash->nbuckets);
+    printf("     |symndx:               0x%08x|\n", hash->symndx);
+    printf("     |maskbits:             0x%08x|\n", hash->maskbits);
+    printf("     |shift:                0x%08x|\n", hash->shift);
+    
+    printf("     |-----------Bloom filter---------|\n");
+    uint64_t *bloomfilter = hash->buckets;
+    int i;
+    for (i = 0; i < hash->maskbits; i++) {
+        printf("     |       0x%016x       |\n", bloomfilter[i]);
+    }
+
+    printf("     |-----------Hash Buckets---------|\n");
+    uint32_t *buckets = &bloomfilter[i];
+    for (i = 0; i < hash->nbuckets; i++) {
+        printf("     |           0x%08x           |\n", buckets[i]);
+    }
+
+    printf("     |-----------Hash Chain-----------|\n");
+    uint32_t *value = &buckets[i];
+    for (i = 0; i < g_dynsym.count - hash->symndx; i++) {
+        printf("     |           0x%08x           |\n", value[i]);
+    }
+}
+
 int parse(char *elf, parser_opt_t *po, uint32_t length) {
     int fd;
     struct stat st;
@@ -3221,6 +3345,13 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
             display_pointer32(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");  
         }
 
+            /* elf .gnu.hash */
+        if (!get_option(po, GNUHASH) || !get_option(po, ALL)) {
+            if (g_dynsym.count == 0)
+                display_dynsym32(&h, ".dynsym", ".dynstr", 0);
+            display_hash32(&h);
+        }
+
         /* init symbol name */
         else {
             display_dynsym32(&h, ".dynsym", ".dynstr", 0);
@@ -3287,6 +3418,13 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
             if (g_symtab.count == 0)
                 display_dynsym64(&h, ".symtab", ".strtab", 0);  // get symbol name
             display_pointer64(&h, 5, ".init_array", ".fini_array", ".ctors", ".dtors", ".eh_frame_hdr");
+        }
+
+        /* elf .gnu.hash */
+        if (!get_option(po, GNUHASH) || !get_option(po, ALL)) {
+            if (g_dynsym.count == 0)
+                display_dynsym64(&h, ".dynsym", ".dynstr", 0);
+            display_hash64(&h);
         }
 
         /* init symbol name */

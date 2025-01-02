@@ -116,7 +116,7 @@ static void init() {
     po.index = 0;
     memset(po.options, 0, sizeof(po.options));
 }
-static const char *shortopts = "n:z:s:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLRI";
+static const char *shortopts = "n:z:s:f:c:a:m:e:b:o:v:i:j:l:h::AHSPBDLRIG";
 
 static const struct option longopts[] = {
     {"section-name", required_argument, NULL, 'n'},
@@ -192,8 +192,9 @@ static const char *help =
     "  -L, (no argument)                         Display | Edit .dynamic information\n"
     "  -R, (no argument)                         Display | Edit relocation section\n"
     "  -I, (no argument)                         Display | Edit pointer(e.g. .init_array, etc.)\n"
+    "  -G, (no argument)                         Display hash table\n"
     "Detailed Usage: \n"
-    "  elfspirit parse    [-A|H|S|P|B|D|R|I] ELF\n"
+    "  elfspirit parse    [-A|H|S|P|B|D|R|I|G] ELF\n"
     "  elfspirit edit     [-H|S|P|B|D|R|I] [-i]<row> [-j]<column> [-m|-s]<int|string value> ELF\n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit delsec   [-n]<section name> ELF\n"
@@ -259,8 +260,9 @@ static const char *help_chinese =
     "  -L, 不需要参数                    显示|编辑ELF: 动态链接\n"
     "  -R, 不需要参数                    显示|编辑ELF: 重定位表\n"
     "  -R, 不需要参数                    显示|编辑ELF: 指针(e.g. .init_array, etc.)\n"
+    "  -G, 不需要参数                    显示hash表\n"
     "细节: \n"
-    "  elfspirit parse    [-A|H|S|P|B|D|R|I] ELF\n"
+    "  elfspirit parse    [-A|H|S|P|B|D|R|I|G] ELF\n"
     "  elfspirit edit     [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-s]<int|str修改值> ELF\n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
     "  elfspirit delsec   [-n]<节的名字> ELF\n"
@@ -450,6 +452,10 @@ static void readcmdline(int argc, char *argv[]) {
 
             case 'I':
                 po.options[po.index++] = POINTER;
+                break;
+
+            case 'G':
+                po.options[po.index++] = GNUHASH;
                 break;
             
             default:
