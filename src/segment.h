@@ -81,6 +81,16 @@ int expand_dynstr_segment(char *elfname, char *str);
 int expand_strtab_section(char *elfname, char *str);
 
 /**
+ * @brief 添加新的hash节，通过将节移动到文件末尾实现。
+ * add a new hash section by moving it to the end of the file.
+ * @param elfname 
+ * @param content new section content
+ * @param content_size new section content size
+ * @return segment index {-1:error}
+ */
+int add_hash_segment(char *elfname, char *content, size_t content_size);
+
+/**
  * @brief 得到段的映射地址范围
  * Obtain the mapping address range of the segment
  * @param elf_name 

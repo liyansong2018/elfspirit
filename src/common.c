@@ -263,6 +263,51 @@ int read_file(const char* filename, char** buffer) {
 }
 
 /**
+ * @brief 从文件特定偏移处，读取文件内容到buffer
+ * read the file content from a specific offset to buffer
+ * @param filename file name
+ * @param offset file offset
+ * @param size file fragment size
+ * @param buffer save content to buffer
+ * @return error code {-1:false,0:success}
+ */
+int read_file_offset(const char* filename, uint64_t offset, size_t size, char** buffer) {
+    FILE *file = fopen(filename, "rb");
+
+    if (!file) {
+        fprintf(stderr, "Error opening file\n");
+        return -1;
+    }
+
+    // 定位到指定的偏移处
+    if (fseek(file, offset, SEEK_SET) != 0) {
+        fprintf(stderr, "Error seeking in file\n");
+        fclose(file);
+        return -1;
+    }
+
+    // 分配足够的内存来存储读取的数据
+    *buffer = (char *)malloc(size);
+    if (!(*buffer)) {
+        fprintf(stderr, "Error allocating memory\n");
+        fclose(file);
+        return -1;
+    }
+
+    // 读取数据到缓冲区
+    size_t bytes_read = fread(*buffer, 1, size, file);
+
+    if (bytes_read != size) {
+        fprintf(stderr, "Error reading file\n");
+        free(*buffer);
+        *buffer = NULL;
+    }
+
+    fclose(file);
+    return 0;
+}
+
+/**
  * @description: Determine whether elf is in 32-bit mode or 64-bit mode. (判断elf是32位还是64位)
  * @param {char} *elf_name
  * @return {*}
@@ -869,10 +914,11 @@ ERR_EXIT:
  * @param code_size func size
  * @return int error code {-1:error,0:sucess}
  */
-int add_dynsym_item(char *elf_name, char *name, uint64_t value, size_t code_size) {
+int add_dynsym_entry(char *elf_name, char *name, uint64_t value, size_t code_size) {
     uint64_t size, dynstr_size;
     uint64_t addr, offset;
     int seg_i, sec_i;
+    int ret;
 
     // 1. expand .dynstr section
     VERBOSE("1. add a new segment for .dynstr entry\n");
@@ -911,4 +957,16 @@ int add_dynsym_item(char *elf_name, char *name, uint64_t value, size_t code_size
     set_section_off(elf_name, sec_i, offset);
     set_section_addr(elf_name, sec_i, addr);
     set_section_size(elf_name, sec_i, size);
+    
+    // 5. compute hash table
+    VERBOSE("5. compute hash table\n");
+    if (MODE == ELFCLASS32)
+        ret = set_hash_table32(elf_name);
+    if (MODE == ELFCLASS64)
+        ret = set_hash_table64(elf_name);
+    if (ret == -1) {
+        ERROR("compute hash table error\n");
+        return -1;
+    }
+    return 0;
 }

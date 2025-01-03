@@ -1123,3 +1123,42 @@ int expand_strtab_section(char *elfname, char *str) {
     set_section_size(elfname, sec_i, size);
     return seg_i;
 }
+
+/**
+ * @brief 添加新的hash节，通过将节移动到文件末尾实现。
+ * add a new hash section by moving it to the end of the file.
+ * @param elfname 
+ * @param content new section content
+ * @param content_size new section content size
+ * @return segment index {-1:error}
+ */
+int add_hash_segment(char *elfname, char *content, size_t content_size) {
+    // get offset and size
+    uint64_t addr, offset;
+    size_t size;
+    int seg_i, sec_i;
+    get_dynamic_value_by_tag(elfname, DT_GNU_HASH, &addr);
+    //get_dynamic_value_by_tag(elfname, DT_STRSZ, &size);
+    VERBOSE("dynamic strtab addr: 0x%x, size: 0x%x\n", addr, size);
+
+    // copy
+    // fix error in expanding segment if addr != offset
+    offset = get_section_offset(elfname, ".gnu.hash");
+    seg_i = expand_segment(elfname, 0, 0, content, content_size);
+
+    // set phdr
+    VERBOSE("set phdr\n");
+    addr = get_segment_vaddr(elfname, seg_i);
+    offset = get_segment_offset(elfname, seg_i);
+    size = get_segment_memsz(elfname, seg_i);
+    set_dynamic_value_by_tag(elfname, DT_GNU_HASH, &addr);
+    //set_dynamic_value_by_tag(elfname, DT_STRSZ, &size);
+    
+    // set shdr
+    VERBOSE("set shdr\n");
+    sec_i = get_section_index(elfname, ".gnu.hash");
+    set_section_off(elfname, sec_i, offset);
+    set_section_addr(elfname, sec_i, addr);
+    set_section_size(elfname, sec_i, size);
+    return seg_i;
+}

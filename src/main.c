@@ -209,6 +209,7 @@ static const char *help =
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> ELF\n"
     "  elfspirit hook [-s]<hook symbol> [-f]<new function bin> [-o]<new function start offset> ELF\n"
+    "  elfspirit exe2so [-s]<symbol> [-m]<function offset> [-z]<function size> ELF\n"
     "  elfspirit --edit-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<index of item> [-m]<pointer value> ELF\n"
@@ -277,6 +278,7 @@ static const char *help_chinese =
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit extract  [-o]<file offset> [-z]<size> ELF\n"
     "  elfspirit hook [-s]<hook函数名> [-f]<新的函数二进制> [-o]<新函数偏移> ELF\n"
+    "  elfspirit exe2so [-s]<函数名> [-m]<函数偏移> [-z]<函数大小> ELF\n"
     "  elfspirit --edit-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<第几个条目> [-m]<指针值> ELF\n"
@@ -612,8 +614,8 @@ static void readcmdline(int argc, char *argv[]) {
     }
 
     /* change bin to so */
-    if (!strcmp(function, "bin2so")) {
-        add_dynsym_item(elf_name, string, value, size);
+    if (!strcmp(function, "exe2so")) {
+        add_dynsym_entry(elf_name, string, value, size);
     }
 
     DEBUG("function: %s\n", function);

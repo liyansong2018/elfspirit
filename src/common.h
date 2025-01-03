@@ -288,3 +288,14 @@ int set_runpath(char *elf_name, char *rpath);
  * @return int error code {-1:error,0:sucess}
  */
 int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offset);
+
+/**
+ * @brief 增加一个.dynsym table条目
+ * add a dynamic symbol stable item
+ * @param elf_name elf file name
+ * @param name dynamic symbol name
+ * @param value dynamic symbol address
+ * @param code_size func size
+ * @return int error code {-1:error,0:sucess}
+ */
+int add_dynsym_entry(char *elf_name, char *name, uint64_t value, size_t code_size);
