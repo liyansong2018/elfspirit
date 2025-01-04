@@ -1,3 +1,9 @@
+[2025-01-04]
+    elfspirit 1.8.2
+        - Add the ability to parse DT_GNU_HASH table
+        - Add the ability to transform an ELF executable into a library
+        - Fix spelling errors of certain words
+
 [2024-12-31]
     elfspirit 1.8.1
         - Add examples for elfspirit wiki
