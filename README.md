@@ -3,15 +3,16 @@
 
 [![arch](https://img.shields.io/badge/arch-i386%20%7C%20amd64-orange)](#)
 [![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-orange)](#)
-[![libc](https://img.shields.io/badge/libc-3.31%20%7C%203.32-lightgrey)](#) 
-[![ld](https://img.shields.io/badge/ld-3.31%20%7C%203.32-lightgrey)](#)
+![GitHub Tag](https://img.shields.io/github/v/tag/liyansong2018/elfspirit)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including parsing ELF like `readelf`, editing ELF like `010 editor`, adding section or segment, pathing ELF like `patchelf`, infecting ELF, deleting the section header table to increase the difficulty of reverse engineering.
 
-**elfspirit is not just a replacement for these tools, it provides even more powerful functionality about ELF. Its ultimate goal is to help hackers easily edit every byte of ELF.**
-
  Related work: You might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. Compared to [patchelf](https://github.com/NixOS/patchelf), elfspirit provides a more flexible editing environment.
+
+ **elfspirit is not just a replacement for these tools, it provides even more powerful functionality about ELF. Its ultimate goal is to help hackers easily edit every byte of ELF. Please see [elfspirit wiki](https://github.com/liyansong2018/elfspirit/wiki) for more details.**
+
+
 ## Building
 
 **elfspirit** can be installed easily:
@@ -87,7 +88,7 @@ In addition, elfspirit also has the function of splicing firmware. A common situ
 $ ./elfspirit joinelf -a arm -m 32 -e big -c ./configure/bininfo.json ~/Documents/app.bin
 ```
 
-### Add or delete a section
+### Add or delete a section/segment
 
 Sometimes we need to limit the size of an ELF file, so deleting a useless section (such as. eh_frame) is a good solution.
 
@@ -205,17 +206,13 @@ We have successfully linked a new so!
 **elfspirit** is a work in process, and some things still aren't implemented. Following is the current list of know limitations.
 
 -  `addsec`  The location of the added section only supports a specific offset address of ELF file, such as existing section offset, section header table offset and the end of the file. This is because if we add a section in another location, the program may not work properly.
--  `injectso` is an experimental binary, which mainly implements the idea of static injection. The current version only passes the verification test on libc-2.31/2.32. Therefore, we specially provided a JSON file to load the relevant offset addresses of other versions of libc.
+-  `injectso` is an experimental binary, which mainly implements the idea of static injection. The current version only passes the verification test on libc-2.31/2.32 (Ubuntu 20.04 / Kali Linux 2020.4). Therefore, we specially provided a JSON file to load the relevant offset addresses of other versions of libc.
 
-We run **elfspirit** using:
+We run **elfspirit** common function using :
 
-- Ubuntu 20.04 / Kali Linux 2020.4
-- gcc 10.2.1
-- libc-2.31/2.32
+- Ubuntu 22.04 / Kali Linux 2024.4
 
-Currently, this is the only supported environment in elfspirit injection module. Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. **The other functional modules of elfspirit are not limited by the environment.** 
-
-Due to the lack of support for object-oriented programming in C language and limited personal abilities, there may be some redundant code in this project. Please understand.
+Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. **The other functional modules of elfspirit are not limited by the environment.** Due to the lack of support for object-oriented programming in C language and limited personal abilities, there may be some redundant code in this project. Please understand.
 
 ## License
 
