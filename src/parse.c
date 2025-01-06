@@ -3435,5 +3435,7 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
         }   
     }
 
+    munmap(elf_map, st.st_size);
+    close(fd);
     return 0;
 }
