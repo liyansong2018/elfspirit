@@ -476,14 +476,14 @@ static void display_section32(handle_t32 *h, int is_display) {
 
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
         /* store section name */
         if (i < STR_NUM && strlen(name) < STR_LENGTH){
             g_secname.count++;
             strcpy(g_secname.name[i], name);
-        }
-        if (validated_offset(name, h->mem, h->mem + h->size)) {
-            ERROR("Corrupt file format\n");
-            exit(-1);
         }
 
         switch (h->shdr[i].sh_type) {
@@ -578,14 +578,14 @@ static void display_section64(handle_t64 *h, int is_display) {
     
     for (int i = 0; i < h->ehdr->e_shnum; i++) {
         name = h->mem + h->shstrtab->sh_offset + h->shdr[i].sh_name;
+        if (validated_offset(name, h->mem, h->mem + h->size)) {
+            ERROR("Corrupt file format\n");
+            exit(-1);
+        }
         /* store section name */
         if (i < STR_NUM && strlen(name) < STR_LENGTH){
             g_secname.count++;
             strcpy(g_secname.name[i], name);
-        }
-        if (validated_offset(name, h->mem, h->mem + h->size)) {
-            ERROR("Corrupt file format\n");
-            exit(-1);
         }
 
         switch (h->shdr[i].sh_type) {

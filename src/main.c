@@ -33,8 +33,7 @@
 
 #include "addsec.h"
 #include "injectso.h"
-#include "delsec.h"
-#include "delshtab.h"
+#include "delete.h"
 #include "parse.h"
 #include "common.h"
 #include "addelfinfo.h"
@@ -75,6 +74,9 @@ enum LONG_OPTION {
     SET_INTERPRETER,
     ADD_SEGMENT,
     ADD_SECTION,
+    REMOVE_SECTION,
+    REMOVE_SHDR,
+    REMOVE_STRIP,
     INFECT_SILVIO,
     INFECT_SKEKSI,
     INFECT_DATA,
@@ -142,6 +144,9 @@ static const struct option longopts[] = {
     {"set-interpreter", no_argument, &g_long_option, SET_INTERPRETER},
     {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
     {"add-section", no_argument, &g_long_option, ADD_SECTION},
+    {"rm-section", no_argument, &g_long_option, REMOVE_SECTION},
+    {"rm-shdr", no_argument, &g_long_option, REMOVE_SHDR},
+    {"rm-strip", no_argument, &g_long_option, REMOVE_STRIP},
     {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
     {"infect-skeksi", no_argument, &g_long_option, INFECT_SKEKSI},
     {"infect-data", no_argument, &g_long_option, INFECT_DATA},
@@ -157,15 +162,15 @@ static const char *help =
     "Usage: elfspirit [function] [option]<argument>... ELF\n"
     "Currently defined functions:\n"
     "  parse            Parse ELF file statically like readelf\n"
-    "  addelfinfo       Add ELF info to firmware for IDA\n"
     "  joinelf          Connect bin in firmware for IDA\n"
     "  extract          Extract binary fragments from the target file, like `dd` command\n"
     "  edit             Modify section information\n"
-    "  infect           infect ELF\n"
-    "  delshtab         Delete section header table\n"
     "  addsec           Add a section in a ELF file\n"
-    "  delsec           Delete a section of ELF file\n"
+    "  addelfinfo       Add ELF info to firmware for IDA\n"
     "  injectso         Inject dynamic link library statically \n"
+    "  --set            Patch ELF\n"
+    "  --rm             Delete a section, section header or symtable of ELF file\n"
+    "  --infect         Infect ELF like virus\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
     "  -z, --section-size=<section size>         Set section size\n"
@@ -197,9 +202,6 @@ static const char *help =
     "  elfspirit parse    [-A|H|S|P|B|D|R|I|G] ELF\n"
     "  elfspirit edit     [-H|S|P|B|D|R|I] [-i]<row> [-j]<column> [-m|-s]<int|string value> ELF\n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
-    "  elfspirit delsec   [-n]<section name> ELF\n"
-    "                     [-c]<multi section name> ELF\n"
-    "  elfspirit delshtab ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
     "                     [-v]<libc version> ELF\n"  
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
@@ -218,6 +220,10 @@ static const char *help =
     "  elfspirit --set-runpath [-s]<runpath> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
+    "  elfspirit --rm-section  [-n]<section name> ELF\n"
+    "                          [-c]<multi section name> ELF\n"
+    "  elfspirit --rm-shdr ELF\n"
+    "  elfspirit --rm-strip ELF\n"
     "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
@@ -226,15 +232,16 @@ static const char *help_chinese =
     "用法: elfspirit [功能] [选项]<参数>... ELF\n"
     "当前已定义的功能:\n"
     "  parse            ELF文件格式分析, 类似于readelf\n"
-    "  addelfinfo       为原始固件添加ELF信息, 方便IDA识别\n"
     "  joinelf          还原固件各个部分在内存中的布局\n"
     "  extract          从目标文件中提取二进制片段(like dd)\n"
     "  edit             修改节的信息\n"
     "  infect           感染ELF\n"
     "  addsec           增加一个节\n"
-    "  delsec           删除一个节\n"
+    "  addelfinfo       为原始固件添加ELF信息, 方便IDA识别\n"
     "  injectso         静态注入一个so\n"
-    "  delshtab         删除节头表\n"
+    "  --set            Patch ELF\n"
+    "  --rm             删除节、过滤符号表、删除节头表\n"
+    "  --infect         ELF文件感染\n"
     "支持的选项:\n"
     "  -n, --section-name=<section name>         设置节名\n"
     "  -z, --section-size=<section size>         设置节大小\n"
@@ -266,9 +273,6 @@ static const char *help_chinese =
     "  elfspirit parse    [-A|H|S|P|B|D|R|I|G] ELF\n"
     "  elfspirit edit     [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-s]<int|str修改值> ELF\n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
-    "  elfspirit delsec   [-n]<节的名字> ELF\n"
-    "                     [-c]<多个节的名字> ELF\n"
-    "  elfspirit delshtab ELF\n"
     "  elfspirit injectso [-n]<节的名字> [-f]<so的名字> [-c]<配置文件>\n"
     "                     [-v]<libc的版本> ELF\n"
     "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<基地址>\n"
@@ -287,6 +291,10 @@ static const char *help_chinese =
     "  elfspirit --set-runpath [-s]<runpath> ELF\n"
     "  elfspirit --add-section [-z]<size> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
+    "  elfspirit --rm-section  [-n]<节的名字> ELF\n"
+    "                          [-c]<多个节的名字> ELF\n"
+    "  elfspirit --rm-shdr ELF\n"
+    "  elfspirit --rm-strip ELF\n"
     "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
@@ -512,6 +520,18 @@ static void readcmdline(int argc, char *argv[]) {
                     add_section(elf_name, size);
                     break;
 
+                case REMOVE_SECTION:
+                    clear_section(elf_name, section_name, config_name);
+                    break;
+
+                case REMOVE_SHDR:
+                    delete_shtab(elf_name);
+                    break;
+
+                case REMOVE_STRIP:
+                    strip(elf_name);
+                    break;
+
                 case INFECT_SILVIO:
                     /* infect using silvio */
                     g_shellcode = malloc(size + 1);
@@ -565,16 +585,6 @@ static void readcmdline(int argc, char *argv[]) {
     if (!strcmp(function, "injectso")) {
         char *so_name = file;
         inject_so(elf_name, section_name, so_name, config_name, ver);
-    }
-
-    /* delete a section */
-    if (!strcmp(function, "delsec")) {
-        delete_section(elf_name, section_name, config_name);
-    }
-
-    /* delete a section */
-    if (!strcmp(function, "delshtab")) {
-        delete_shtab(elf_name);
     }
 
     /* ELF parser */
