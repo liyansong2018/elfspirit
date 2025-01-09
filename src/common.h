@@ -299,3 +299,12 @@ int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offs
  * @return int error code {-1:error,0:sucess}
  */
 int add_dynsym_entry(char *elf_name, char *name, uint64_t value, size_t code_size);
+
+/**
+ * @brief 调整字符串表中的字符串顺序
+ * adjust the string order in the string table
+ * @param elf_name elf file name
+ * @param strtab string table name
+ * @return int error code {-1:error,0:sucess}
+ */
+int confuse_symbol(char *elf_name, char *strtab);

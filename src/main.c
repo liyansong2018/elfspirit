@@ -77,6 +77,7 @@ enum LONG_OPTION {
     REMOVE_SECTION,
     REMOVE_SHDR,
     REMOVE_STRIP,
+    CONFUSE_SYMBOL,
     INFECT_SILVIO,
     INFECT_SKEKSI,
     INFECT_DATA,
@@ -147,6 +148,7 @@ static const struct option longopts[] = {
     {"rm-section", no_argument, &g_long_option, REMOVE_SECTION},
     {"rm-shdr", no_argument, &g_long_option, REMOVE_SHDR},
     {"rm-strip", no_argument, &g_long_option, REMOVE_STRIP},
+    {"confuse-symbol", no_argument, &g_long_option, CONFUSE_SYMBOL},
     {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
     {"infect-skeksi", no_argument, &g_long_option, INFECT_SKEKSI},
     {"infect-data", no_argument, &g_long_option, INFECT_DATA},
@@ -224,6 +226,7 @@ static const char *help =
     "                          [-c]<multi section name> ELF\n"
     "  elfspirit --rm-shdr ELF\n"
     "  elfspirit --rm-strip ELF\n"
+    "  elfspirit --confuse-symbol [-n]<.strtab|.shstrtab|.dynstr> ELF\n"
     "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
@@ -295,6 +298,7 @@ static const char *help_chinese =
     "                          [-c]<多个节的名字> ELF\n"
     "  elfspirit --rm-shdr ELF\n"
     "  elfspirit --rm-strip ELF\n"
+    "  elfspirit --confuse-symbol [-n]<.strtab|.shstrtab|.dynstr> ELF\n"
     "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
@@ -530,6 +534,10 @@ static void readcmdline(int argc, char *argv[]) {
 
                 case REMOVE_STRIP:
                     strip(elf_name);
+                    break;
+
+                case CONFUSE_SYMBOL:
+                    confuse_symbol(elf_name, section_name);
                     break;
 
                 case INFECT_SILVIO:

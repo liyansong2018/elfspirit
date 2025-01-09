@@ -970,3 +970,79 @@ int add_dynsym_entry(char *elf_name, char *name, uint64_t value, size_t code_siz
     }
     return 0;
 }
+
+/**
+ * @brief 调整字符串表中的字符串顺序
+ * adjust the string order in the string table
+ * @param file_name file name
+ * @param offset start address
+ * @param size string table size
+ * @return int error code {-1:error,0:sucess}
+ */
+int confuse_string(char *file_name, uint64_t offset, size_t size) {
+    FILE *file = fopen(file_name, "r+b");
+
+    if (!file) {
+        fprintf(stderr, "Error opening file\n");
+        return;
+    }
+
+    // 移动文件指针到字符串表的偏移位置(+1)
+    if (fseek(file, offset + 1, SEEK_SET) != 0) {
+        fprintf(stderr, "Error seeking in file\n");
+        fclose(file);
+        return;
+    }
+
+    // 读取字符串表的内容到缓冲区
+    char *buffer = (char *)malloc(size);
+    fread(buffer, 1, size, file);
+
+    // 分割字符串并打乱顺序
+    char *token = buffer;
+
+    char **strings = (char **)calloc(1000, sizeof(char *)); // 假设最多有1000个字符串
+    size_t count = 0;
+
+    while (strlen(token) != 0 && token < (buffer + size) && count < 1000) {
+        DEBUG("%s ", token);
+        strings[count] = token;
+        count++;
+        token += strlen(token) + 1;
+    }
+
+    DEBUG("string count: %d\n", count);
+
+    // 打乱字符串的顺序
+    for (size_t i = 0; i < count; i++) {
+        size_t j = rand() % count;
+        char *temp = strings[i];
+        strings[i] = strings[j];
+        strings[j] = temp;
+    }
+
+    // 将打乱后的字符串写回文件
+    fseek(file, offset, SEEK_SET);
+
+    for (size_t i = 0; i < count; i++) {
+        fwrite(strings[i], 1, strlen(strings[i]) + 1, file); // 包括字符串结束符 '\0'
+    }
+
+    free(strings);
+    free(buffer);
+    fclose(file);
+}
+
+/**
+ * @brief 调整字符串表中的字符串顺序
+ * adjust the string order in the string table
+ * @param elf_name elf file name
+ * @param strtab string table name
+ * @return int error code {-1:error,0:sucess}
+ */
+int confuse_symbol(char *elf_name, char *strtab) {
+    uint64_t offset = get_section_offset(elf_name, strtab);
+    size_t size = get_section_size(elf_name, strtab);
+    DEBUG("string table offset: 0x%x, size: 0x%x\n", offset, size);
+    return confuse_string(elf_name, offset, size);
+}
