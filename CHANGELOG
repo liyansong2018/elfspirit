@@ -1,3 +1,10 @@
+[2025-01-09]
+    elfspirit 1.9.0
+        - Add the ability to confuse symbols of the string table
+        - Integrate the code of the elf deletion module and add the function of removing symbol table
+        - Modify some command-line parameters
+        - Fix some issues
+
 [2025-01-04]
     elfspirit 1.8.2
         - Add the ability to parse DT_GNU_HASH table
