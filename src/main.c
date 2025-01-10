@@ -78,6 +78,7 @@ enum LONG_OPTION {
     REMOVE_SHDR,
     REMOVE_STRIP,
     CONFUSE_SYMBOL,
+    REFRESH_HASH,
     INFECT_SILVIO,
     INFECT_SKEKSI,
     INFECT_DATA,
@@ -149,6 +150,7 @@ static const struct option longopts[] = {
     {"rm-shdr", no_argument, &g_long_option, REMOVE_SHDR},
     {"rm-strip", no_argument, &g_long_option, REMOVE_STRIP},
     {"confuse-symbol", no_argument, &g_long_option, CONFUSE_SYMBOL},
+    {"refresh-hash", no_argument, &g_long_option, REFRESH_HASH},
     {"infect-silvio", no_argument, &g_long_option, INFECT_SILVIO},
     {"infect-skeksi", no_argument, &g_long_option, INFECT_SKEKSI},
     {"infect-data", no_argument, &g_long_option, INFECT_DATA},
@@ -171,7 +173,7 @@ static const char *help =
     "  addelfinfo       Add ELF info to firmware for IDA\n"
     "  injectso         Inject dynamic link library statically \n"
     "  --set            Patch ELF\n"
-    "  --rm             Delete a section, section header or symtable of ELF file\n"
+    "  --remove         Delete a section, section header or symtable of ELF file\n"
     "  --infect         Infect ELF like virus\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
@@ -227,6 +229,7 @@ static const char *help =
     "  elfspirit --rm-shdr ELF\n"
     "  elfspirit --rm-strip ELF\n"
     "  elfspirit --confuse-symbol [-n]<.strtab|.shstrtab|.dynstr> ELF\n"
+    "  elfspirit --refresh-hash ELF\n"
     "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
@@ -243,7 +246,7 @@ static const char *help_chinese =
     "  addelfinfo       为原始固件添加ELF信息, 方便IDA识别\n"
     "  injectso         静态注入一个so\n"
     "  --set            Patch ELF\n"
-    "  --rm             删除节、过滤符号表、删除节头表\n"
+    "  --remove         删除节、过滤符号表、删除节头表\n"
     "  --infect         ELF文件感染\n"
     "支持的选项:\n"
     "  -n, --section-name=<section name>         设置节名\n"
@@ -299,6 +302,7 @@ static const char *help_chinese =
     "  elfspirit --rm-shdr ELF\n"
     "  elfspirit --rm-strip ELF\n"
     "  elfspirit --confuse-symbol [-n]<.strtab|.shstrtab|.dynstr> ELF\n"
+    "  elfspirit --refresh-hash ELF\n"
     "  elfspirit --infect-silvio [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-skeksi [-s]<shellcode> [-z]<size> ELF\n"
     "  elfspirit --infect-data [-s]<shellcode> [-z]<size> ELF\n";
@@ -538,6 +542,11 @@ static void readcmdline(int argc, char *argv[]) {
 
                 case CONFUSE_SYMBOL:
                     confuse_symbol(elf_name, section_name);
+                    break;
+                
+                case REFRESH_HASH:
+                    /* refresh gnu hash table */
+                    refresh_hash_table(elf_name);
                     break;
 
                 case INFECT_SILVIO:

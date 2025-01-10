@@ -19,19 +19,20 @@ uint32_t dl_new_hash(const char* name) {
 /* 重新计算hash表 */
 /* Mainly inspired from LIEF */
 int set_hash_table32(char *elf_name) {
-    uint32_t size;
-    uint32_t offset;
+    size_t src_size = 0;    // source .gnu.hash size
+    size_t size = 0;        // new .gnu.hash size
+    uint64_t src_offset;    // source .gnu.hash offset
     int seg_i;
     int ret;
-    offset = get_section_offset(elf_name, ".gnu.hash");
-    size =  get_section_size(elf_name, ".gnu.hash");
-    gnuhash_t *src_gnuhash = malloc(size);
+    src_offset = get_section_offset(elf_name, ".gnu.hash");
+    src_size =  get_section_size(elf_name, ".gnu.hash");
+    gnuhash_t *src_gnuhash = malloc(src_size);
     if (!src_gnuhash) {
         return -1;
     }
 
-    memset(src_gnuhash, 0, size);
-    ret = read_file_offset(elf_name, offset, size, &src_gnuhash);
+    memset(src_gnuhash, 0, src_size);
+    ret = read_file_offset(elf_name, src_offset, src_size, &src_gnuhash);
     if (ret == -1) {
         free(src_gnuhash);
         return -1;
@@ -95,7 +96,7 @@ int set_hash_table32(char *elf_name) {
     memset(hash_chain, 0, hash_chain_size);
 
     for (size_t i = raw_gnuhash->symndx; i < g_dynsym.count; ++i) {
-        DEBUG("Dealing with symbol %s", g_dynsym.name[i]);
+        DEBUG("Dealing with symbol %s\n", g_dynsym.name[i]);
         const uint32_t hash = dl_new_hash(g_dynsym.name[i]);
         int bucket = hash % raw_gnuhash->nbuckets;
 
@@ -125,9 +126,15 @@ int set_hash_table32(char *elf_name) {
     memcpy(buckets_raw, buckets, buckets_size);
     uint32_t *hash_chain_raw = &buckets_raw[raw_gnuhash->nbuckets];
     memcpy(hash_chain_raw, hash_chain, hash_chain_size);
-
-    /* add hash table*/
-    seg_i = add_hash_segment(elf_name, raw_gnuhash, size);
+    
+    if (size > src_size) {
+        /* add hash table*/
+        seg_i = add_hash_segment(elf_name, raw_gnuhash, size);
+    } else {
+        /* update hash table*/
+        set_content(elf_name, src_offset, raw_gnuhash, size);
+        ;
+    }
 
     free(hash_chain);
     free(buckets);
@@ -138,19 +145,20 @@ int set_hash_table32(char *elf_name) {
 }
 
 int set_hash_table64(char *elf_name) {
-    uint64_t size;
-    uint64_t offset;
+    size_t src_size = 0;    // source .gnu.hash size
+    size_t size = 0;        // new .gnu.hash size
+    uint64_t src_offset;    // source .gnu.hash offset
     int seg_i;
     int ret;
-    offset = get_section_offset(elf_name, ".gnu.hash");
-    size =  get_section_size(elf_name, ".gnu.hash");
-    gnuhash_t *src_gnuhash = malloc(size);
+    src_offset = get_section_offset(elf_name, ".gnu.hash");
+    src_size =  get_section_size(elf_name, ".gnu.hash");
+    gnuhash_t *src_gnuhash = malloc(src_size);
     if (!src_gnuhash) {
         return -1;
     }
 
-    memset(src_gnuhash, 0, size);
-    ret = read_file_offset(elf_name, offset, size, &src_gnuhash);
+    memset(src_gnuhash, 0, src_size);
+    ret = read_file_offset(elf_name, src_offset, src_size, &src_gnuhash);
     if (ret == -1) {
         free(src_gnuhash);
         return -1;
@@ -214,7 +222,7 @@ int set_hash_table64(char *elf_name) {
     memset(hash_chain, 0, hash_chain_size);
 
     for (size_t i = raw_gnuhash->symndx; i < g_dynsym.count; ++i) {
-        DEBUG("Dealing with symbol %s", g_dynsym.name[i]);
+        DEBUG("Dealing with symbol %s\n", g_dynsym.name[i]);
         const uint32_t hash = dl_new_hash(g_dynsym.name[i]);
         int bucket = hash % raw_gnuhash->nbuckets;
 
@@ -245,8 +253,14 @@ int set_hash_table64(char *elf_name) {
     uint32_t *hash_chain_raw = &buckets_raw[raw_gnuhash->nbuckets];
     memcpy(hash_chain_raw, hash_chain, hash_chain_size);
 
-    /* add hash table*/
-    seg_i = add_hash_segment(elf_name, raw_gnuhash, size);
+    if (size > src_size) {
+        /* add hash table*/
+        seg_i = add_hash_segment(elf_name, raw_gnuhash, size);
+    } else {
+        /* update hash table*/
+        set_content(elf_name, src_offset, raw_gnuhash, size);
+        ;
+    }
 
     free(hash_chain);
     free(buckets);
@@ -254,4 +268,12 @@ int set_hash_table64(char *elf_name) {
     free(raw_gnuhash);
     free(src_gnuhash);
     return 0;
+}
+
+/* refresh gnu hash table */
+int refresh_hash_table(char *elf_name) {
+    if (MODE == ELFCLASS32)
+        return set_hash_table32(elf_name);
+    if (MODE == ELFCLASS64)
+        return set_hash_table64(elf_name);
 }
