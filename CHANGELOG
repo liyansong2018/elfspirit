@@ -1,3 +1,9 @@
+[2025-01-12]
+    elfspirit 1.9.1
+        - Add the ability to refresh the gnu hash table and example of confusing symbols
+        - Add security document for clarifying the difference between bugs and security vulnerabilities
+        - Improve command-line help
+
 [2025-01-09]
     elfspirit 1.9.0
         - Add the ability to confuse symbols of the string table
