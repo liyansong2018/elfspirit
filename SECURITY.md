@@ -1,5 +1,5 @@
-ELFSPIRIT itself is a tool, and it is inevitable that there are some bugs and security vulnerabilities. Since elfspirit is mainly for the convenience of Security Researcher, we have a stricter definition of security vulnerabilities here.
+ELFSPIRIT functions as a tool, and like any tool, it may contain occasional bugs and security vulnerabilities. Given its primary utility for Security Researchers, we uphold a rigorous standard when identifying security vulnerabilities.
 
-**We only mark vulnerabilities that can be truly exploited as security issues.  `elfspirit` tool is not expected to be used with untrusted executables.**
+Our classification of security issues is stringent, focusing solely on vulnerabilities that have the potential for real-world exploitation. It is advised not to employ the elfspirit tool with untrusted executables.
 
-In any case, we welcome issue and PR!
+We encourage the community to report issues and submit pull requests for continual improvement. Your contributions are highly valued and appreciated!
