@@ -6,11 +6,11 @@
 ![GitHub Tag](https://img.shields.io/github/v/tag/liyansong2018/elfspirit)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
-**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including parsing ELF like `readelf`, editing ELF like `010 editor`, adding section or segment, pathing ELF like `patchelf`, infecting ELF, deleting the section header table to increase the difficulty of reverse engineering.
+**elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including parsing ELF like `readelf`, editing ELF like `010 editor`, adding section or segment, pathing ELF like `patchelf`, infecting ELF, deleting the section header table to increase the difficulty of reverse engineering. 
 
- Related work: You might like [LIEF](https://github.com/lief-project/LIEF) and [libelfmaster](https://github.com/elfmaster/libelfmaster) more. Compared to [patchelf](https://github.com/NixOS/patchelf), elfspirit provides a more flexible editing environment.
+You might be familiar with popular open-source tools like [LIEF](https://github.com/lief-project/LIEF), [libelfmaster](https://github.com/elfmaster/libelfmaster), and [patchelf](https://github.com/NixOS/patchelf). **elfspirit** distinguishes itself by offering not only enhanced flexibility in editing but also a What You See Is What You Get (WYSIWYG) editing perspective and unique features. Its primary objective is to empower hackers to effortlessly manipulate every byte of an ELF file. 
 
- **elfspirit is not just a replacement for these tools, it provides even more powerful functionality about ELF. Its ultimate goal is to help hackers easily edit every byte of ELF. Please see [elfspirit wiki](https://github.com/liyansong2018/elfspirit/wiki) for more details.**
+**For further information, refer to the [elfspirit wiki](https://github.com/liyansong2018/elfspirit/wiki) for a detailed exploration of its capabilities.**
 
 
 ## Building
@@ -88,77 +88,6 @@ In addition, elfspirit also has the function of splicing firmware. A common situ
 $ ./elfspirit joinelf -a arm -m 32 -e big -c ./configure/bininfo.json ~/Documents/app.bin
 ```
 
-### Add or delete a section/segment
-
-Sometimes we need to limit the size of an ELF file, so deleting a useless section (such as. eh_frame) is a good solution.
-
-```shell
-# delete one section
-$ ./elfspirit delsec -n .eh_frame_hdr hello
-# delete multi-sections
-$ ./elfspirit delsec -c configure/multi_sec_name hello
-```
-Strip
-```
-$ ./elfspirit delsec -n .strtab hello
-```
-
-### ELF file infection or static injection
-
-ELF file infection is a broad concept, which may only involve modifying specific bytes or modifying the entire section. Let's take a static injection as an example.
-
-#### Scheme 1
-
-How to make a Linux program load a malicious *.so file? Perhaps you would say that hijacking through DLL/SO is sufficient. If you have debugging permissions for the target program, this method is indeed feasible. But the environment is not always so friendly.
-
-**elfspirit** provides the ability for static injection, injecting a piece of code (commonly known as shellcode) through file infection to load a so.
-
-```shell
-$ ./elfspirit injectso -n .eh_frame -f libdemo_x32.so -c offset.json -v 2.31 ./testcase/hello_x86
- [+] architecture: x86
- [+] .eh_frame  offset: 0x2060  viraddr: 0x2060
- [+] .eh_frame: U����(�E�libd�E�emo_�E�x32.�E�so
- [+] entry point address: 0x1090 -> 0x2060
- [+] LOAD offset: 0x2000        vaddr: 0x2000
- [+] LOAD flag: 0x4 -> 0x5
- [+] create ./testcase/hello_x86_new
-```
-We can see that the target process has already loaded the `libdemo_x32.so` 
-```shell
-$ cat /proc/2507769/maps
-565c9000-565ca000 r--p 00000000 08:01 2726664      /home/lys/Documents/elf/testcase/hello_x86_new
-...
-56709000-5672b000 rw-p 00000000 00:00 0            [heap]
-f7da5000-f7dc2000 r--p 00000000 08:01 3155369      /usr/lib32/libc-2.32.so
-f7dc2000-f7f1a000 r-xp 0001d000 08:01 3155369      /usr/lib32/libc-2.32.so
-...
-f7f91000-f7f93000 rw-p 00000000 00:00 0
-f7fa7000-f7fa8000 r--p 00000000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
-f7fa8000-f7fa9000 r-xp 00001000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
-f7fa9000-f7faa000 r--p 00002000 08:01 2726661      /home/lys/Documents/elf/testcase/libdemo_x32.so
-```
-
-#### Scheme 2
-
-The static injection feature provided by elfspirit may depend on a specific version of the Linux loader, so we have provided some configuration files: configure/offsetjson, in preparation for future gcc/ld versions.
-
-Fortunately, we have an alternative solution. Directly load malicious so by modifying the .dynamic section. For example, we can add so directly in the .dynamic section through the edit module provided by elfspirit.
-
-![3](pictures/3.png)
-
-Edit `main`
-
-```shell
-$ elfspirit edit -L -i27 -j0 -m1 main
-0->1
-$ elfspirit edit -L -i27 -j2 -ftest.so main
-0x0->0x1ba8
-```
-
-We have successfully linked a new so!
-
-![4](pictures/4.png)
-
 ### Patch ELF
 
 * Change the ELF interpreter ("the dynamic loader/linker") of executables:
@@ -203,16 +132,11 @@ We have successfully linked a new so!
 
 ## Limitations
 
-**elfspirit** is a work in process, and some things still aren't implemented. Following is the current list of know limitations.
-
--  `addsec`  The location of the added section only supports a specific offset address of ELF file, such as existing section offset, section header table offset and the end of the file. This is because if we add a section in another location, the program may not work properly.
--  `injectso` is an experimental binary, which mainly implements the idea of static injection. The current version only passes the verification test on libc-2.31/2.32 (Ubuntu 20.04 / Kali Linux 2020.4). Therefore, we specially provided a JSON file to load the relevant offset addresses of other versions of libc.
-
-We run **elfspirit** common function using :
+**elfspirit** is a work in process, and some things still aren't implemented. We run **elfspirit** common function using :
 
 - Ubuntu 22.04 / Kali Linux 2024.4
 
-Other environments may also work, but we unfortunately do not have the manpower to investigate compatibility issues. **The other functional modules of elfspirit are not limited by the environment.** Due to the lack of support for object-oriented programming in C language and limited personal abilities, there may be some redundant code in this project. Please understand.
+While other environments might be compatible, regrettably, we lack the resources to delve into potential compatibility issues. Given the absence of robust support for object-oriented programming in the C language and our constrained individual capabilities, there might exist redundant and unreasonable code within this project. Your understanding in this matter is greatly appreciated.
 
 ## License
 
