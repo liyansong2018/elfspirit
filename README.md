@@ -8,7 +8,7 @@
 
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including parsing ELF like `readelf`, editing ELF like `010 editor`, adding section or segment, pathing ELF like `patchelf`, infecting ELF, deleting the section header table to increase the difficulty of reverse engineering. 
 
-You might be familiar with popular open-source tools like [LIEF](https://github.com/lief-project/LIEF), [libelfmaster](https://github.com/elfmaster/libelfmaster), and [patchelf](https://github.com/NixOS/patchelf). **elfspirit** distinguishes itself by offering not only enhanced flexibility in editing but also a What You See Is What You Get (WYSIWYG) editing perspective and unique features. Its primary objective is to empower hackers to effortlessly manipulate every byte of an ELF file. 
+You might be familiar with popular open-source tools like [LIEF](https://github.com/lief-project/LIEF), [libelfmaster](https://github.com/elfmaster/libelfmaster), and [patchelf](https://github.com/NixOS/patchelf) (**Thanks for the inspiration and innovation that these tools have bestowed upon us!**). **elfspirit** distinguishes itself by offering not only enhanced flexibility in editing but also a What You See Is What You Get (WYSIWYG) editing perspective and unique features. Its primary objective is to empower hackers to effortlessly manipulate every byte of an ELF file. 
 
 **For further information, refer to the [elfspirit wiki](https://github.com/liyansong2018/elfspirit/wiki) for a detailed exploration of its capabilities.**
 
