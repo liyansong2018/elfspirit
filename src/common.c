@@ -37,6 +37,7 @@
 
 int MODE;
 int ARCH;
+char *g_out_name = "/tmp/elfspirit_out.bin";
 
 /**
  * @description: Judge whether the memory address is legal
@@ -526,6 +527,40 @@ cJSON *get_json_object(char *name) {
 }
 
 /**
+ * @brief 将内存中的数据保存到文件
+ * save data from memory to a file
+ * @param data memory data
+ * @param size data size
+ * @return error code {-1:error,0:sucess}
+ */
+int save_file(char *data, size_t size) {
+    // 检查传入的数据指针是否为NULL
+    if (data == NULL) {
+        return -1; // 返回-1表示出错
+    }
+
+    // 打开文件以进行写入（"wb"表示以二进制写入模式打开文件）
+    FILE *file = fopen(g_out_name, "wb");
+    if (file == NULL) {
+        return -1; // 返回-1表示出错
+    }
+
+    // 将数据写入文件
+    size_t bytes_written = fwrite(data, sizeof(char), size, file);
+
+    // 关闭文件
+    fclose(file);
+
+    // 检查写入的字节数是否与期望的大小相同
+    if (bytes_written != size) {
+        return -1; // 返回-1表示出错
+    }
+
+    INFO("write [%s] successfully!\n", g_out_name);
+    return 0; // 返回0表示成功
+}
+
+/**
  * @brief 获取elf头
  * get elf header
  * @param elf_name original file name
@@ -660,7 +695,7 @@ int extract_fragment(const char *input_file, long offset, size_t size, char *out
     fclose(input_fp);
 
     // 写入数据到一个新文件
-    FILE *output_fp = fopen("/tmp/elfspirt_out.bin", "wb");
+    FILE *output_fp = fopen(g_out_name, "wb");
     if (output_fp == NULL) {
         perror("Error creating output file");
         free(buffer);
@@ -668,7 +703,7 @@ int extract_fragment(const char *input_file, long offset, size_t size, char *out
     }
 
     fwrite(buffer, 1, size, output_fp);
-    printf("write to %s\n", "/tmp/elfspirt_out.bin");
+    printf("write to %s\n", g_out_name);
 
     // 关闭输出文件
     fclose(output_fp);

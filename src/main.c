@@ -169,7 +169,7 @@ static const char *help =
     "  [edit]         Modify ELF file information freely\n"
     "  [extract]      Extract binary fragments from the target file, like `dd` command\n"
     "  [firmware]     Add ELF info to firmware or join mutli bin file\n"
-    "                   [addelfinfo, joinelf]\n"
+    "                   [bin2elf, joinelf]\n"
     "  [patch]        Patch ELF\n"
     "                   [--set-interpreter, --set-rpath, --set-runpath]\n"
     "  [remvoe]       Delete a section, section header or symtable of ELF file\n"
@@ -209,14 +209,13 @@ static const char *help =
     "Detailed Usage: \n"
     "  elfspirit parse    [-A|H|S|P|B|D|R|I|G] ELF\n"
     "  elfspirit edit     [-H|S|P|B|D|R|I] [-i]<row> [-j]<column> [-m|-s]<int|string value> ELF\n" 
-    "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address>\n"
-    "                     ELF\n"
-    "  elfspirit joinelf  [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file>\n"
-    "                     OUT_ELF\n"
+    "  elfspirit bin2elf  [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<base address> ELF\n"
+    "  elfspirit joinelf  [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<configuration file> OUT_ELF\n"
     "  elfspirit extract  [-n]<section name> ELF\n"
     "  elfspirit          [-o]<file offset> [-z]<size> ELF\n"
     "  elfspirit hook [-s]<hook symbol> [-f]<new function bin> [-o]<new function start offset> ELF\n"
     "  elfspirit exe2so   [-s]<symbol> [-m]<function offset> [-z]<function size> ELF\n"
+    "  elfspirit hex2bin  [-s]<shellcode hex> [-z]<size>\n"
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
     "                     [-v]<libc version> ELF\n" 
@@ -245,7 +244,7 @@ static const char *help_chinese =
     "  [edit]         自由修改ELF每个字节F\n"
     "  [extract]      从目标文件中提取二进制片段(like dd)\n"
     "  [firmware]     用于IOT固件，比如为固件添加头文件，连接多个bin文件\n"
-    "                   [addelfinfo, joinelf]\n"
+    "                   [bin2elf, joinelf]\n"
     "  [patch]        Patch ELF\n"
     "                   [--set-interpreter, --set-rpath, --set-runpath]\n"
     "  [remvoe]       删除节、过滤符号表、删除节头表\n"
@@ -285,14 +284,13 @@ static const char *help_chinese =
     "细节: \n"
     "  elfspirit parse    [-A|H|S|P|B|D|R|I|G] ELF\n"
     "  elfspirit edit     [-H|S|P|B|D|R] [-i]<第几行> [-j]<第几列> [-m|-s]<int|str修改值> ELF\n"
-    "  elfspirit addelfinfo [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<基地址>\n"
-                            "ELF\n"
-    "  elfspirit joinelf  [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件>\n"
-    "                     OUT_ELF\n"
+    "  elfspirit bin2elf  [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-b]<基地址> ELF\n"
+    "  elfspirit joinelf  [-a]<arm|x86> [-m]<32|64> [-e]<little|big> [-c]<配置文件> OUT_ELF\n"
     "  elfspirit extract  [-n]<节的名字> ELF\n"
     "  elfspirit          [-o]<节的偏移> [-z]<size> ELF\n"
     "  elfspirit hook [-s]<hook函数名> [-f]<新的函数二进制> [-o]<新函数偏移> ELF\n"
     "  elfspirit exe2so   [-s]<函数名> [-m]<函数偏移> [-z]<函数大小> ELF\n"
+    "  elfspirit hex2bin  [-s]<shellcode> [-z]<size>\n"
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
     "  elfspirit injectso [-n]<节的名字> [-f]<so的名字> [-c]<配置文件>\n"
     "                     [-v]<libc的版本> ELF\n"
@@ -488,6 +486,15 @@ static void readcmdline(int argc, char *argv[]) {
         }
     }
 
+    /* shell bin to so */
+    if (optind == argc - 1 && !strcmp(argv[optind], "hex2bin")) {  
+        g_shellcode = calloc(size, 1);
+        cmdline_shellcode(string, g_shellcode);
+        save_file(g_shellcode, size);
+        free(g_shellcode);
+        exit(0);
+    }
+
     /* handle additional long parameters */
     if (optind == argc - 1) {
         memcpy(elf_name, argv[optind], LENGTH);
@@ -617,7 +624,7 @@ static void readcmdline(int argc, char *argv[]) {
     }
 
     /* add elf info to firmware for IDA */
-    if (!strcmp(function, "addelfinfo")) {
+    if (!strcmp(function, "bin2elf")) {
         add_elf_info(elf_name, arch, class, endian, base_addr);
     }
 
