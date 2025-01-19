@@ -38,9 +38,9 @@
 #define L_GREEN   "\e[1;32m"           // Light Green 鲜绿
 #define YELLOW    "\e[1;33m"           // Light Yellow 鲜黄
 
-#define WARNING(format, ...) printf (""YELLOW" [!] "format""NONE"", ##__VA_ARGS__)
-#define ERROR(format, ...) printf (""L_RED" [-] "format""NONE"", ##__VA_ARGS__)
-#define INFO(format, ...) printf (""L_GREEN" [+] "format""NONE"", ##__VA_ARGS__)
+#define WARNING(format, ...) printf (""YELLOW"[!] "format""NONE"", ##__VA_ARGS__)
+#define ERROR(format, ...) printf (""L_RED"[-] "format""NONE"", ##__VA_ARGS__)
+#define INFO(format, ...) printf (""L_GREEN"[+] "format""NONE"", ##__VA_ARGS__)
 #define VERBOSE(format, ...) printf (""YELLOW"[*] "format""NONE"", ##__VA_ARGS__)
 #ifdef debug
     #define DEBUG(format, ...) printf (""YELLOW"[d] "format""NONE"", ##__VA_ARGS__)

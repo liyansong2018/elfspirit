@@ -32,61 +32,61 @@
 #include "common.h"
 #include "parse.h"
 
-#define PRINT_HEADER_EXP(Nr, key, value, explain) printf ("     [%2d] %-20s %10p (%s)\n", Nr, key, value, explain)
-#define PRINT_HEADER(Nr, key, value) printf ("     [%2d] %-20s %10p\n", Nr, key, value)
+#define PRINT_HEADER_EXP(Nr, key, value, explain) printf ("    [%2d] %-20s %10p (%s)\n", Nr, key, value, explain)
+#define PRINT_HEADER(Nr, key, value) printf ("    [%2d] %-20s %10p\n", Nr, key, value)
 /* print section header table */
 #define PRINT_SECTION(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
-    printf("     [%2d] %-15s %-15s %08x %06x %06x %02x %4s %3u %3u %3u\n", \
+    printf("    [%2d] %-15s %-15s %08x %06x %06x %02x %4s %3u %3u %3u\n", \
     Nr, name, type, addr, off, size, es, flg, lk, inf, al)
 #define PRINT_SECTION_TITLE(Nr, name, type, addr, off, size, es, flg, lk, inf, al) \
-    printf("     [%2s] %-15s %-15s %8s %6s %6s %2s %4s %3s %3s %3s\n", \
+    printf("    [%2s] %-15s %-15s %8s %6s %6s %2s %4s %3s %3s %3s\n", \
     Nr, name, type, addr, off, size, es, flg, lk, inf, al)
 
 /* print program header table*/
 #define PRINT_PROGRAM(Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align) \
-    printf("     [%2d] %-15s %08x %08x %08x %08x %08x %-4s %5u\n", \
+    printf("    [%2d] %-15s %08x %08x %08x %08x %08x %-4s %5u\n", \
     Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align)
 #define PRINT_PROGRAM_TITLE(Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align) \
-    printf("     [%2s] %-15s %8s %8s %8s %8s %8s %-4s %5s\n", \
+    printf("    [%2s] %-15s %8s %8s %8s %8s %8s %-4s %5s\n", \
     Nr, type, offset, virtaddr, physaddr, filesiz, memsiz, flg, align)
 
 /* print dynamic symbol table*/
 #define PRINT_DYNSYM(Nr, value, size, type, bind, vis, ndx, name) \
-    printf("     [%2d] %08x %4d %-8s %-8s %-8s %4d %-20s\n", \
+    printf("    [%2d] %08x %4d %-8s %-8s %-8s %4d %-20s\n", \
     Nr, value, size, type, bind, vis, ndx, name)
 #define PRINT_DYNSYM_TITLE(Nr, value, size, type, bind, vis, ndx, name) \
-    printf("     [%2s] %8s %4s %-8s %-8s %-8s %4s %-20s\n", \
+    printf("    [%2s] %8s %4s %-8s %-8s %-8s %4s %-20s\n", \
     Nr, value, size, type, bind, vis, ndx, name)
 
 /* print dynamic table*/
 #define PRINT_DYN(Nr, tag, type, value) \
-    printf("     [%2d] %08x   %-15s   %-30s\n", \
+    printf("    [%2d] %08x   %-15s   %-30s\n", \
     Nr, tag, type, value);
 #define PRINT_DYN_TITLE(Nr, tag, type, value) \
-    printf("     [%2s] %-10s   %-15s   %-30s\n", \
+    printf("    [%2s] %-10s   %-15s   %-30s\n", \
     Nr, tag, type, value);
 
 /* print .rela */
 #define PRINT_RELA(Nr, offset, info, type, value, name) \
-    printf("     [%2d] %016x %016x %-18s %-10x %-16s\n", \
+    printf("    [%2d] %016x %016x %-18s %-10x %-16s\n", \
     Nr, offset, info, type, value, name);
 #define PRINT_RELA_TITLE(Nr, offset, info, type, value, name) \
-    printf("     [%2s] %-16s %-16s %-18s %-10s %-16s\n", \
+    printf("    [%2s] %-16s %-16s %-18s %-10s %-16s\n", \
     Nr, offset, info, type, value, name);
 
 /* print pointer */
 #define PRINT_POINTER32(Nr, value, name) \
-    printf("     [%2d] %08x %-16s\n", \
+    printf("    [%2d] %08x %-16s\n", \
     Nr, value, name);
 #define PRINT_POINTER32_TITLE(Nr, value, name) \
-    printf("     [%2s] %-08s %-16s\n", \
+    printf("    [%2s] %-08s %-16s\n", \
     Nr, value, name);
 
 #define PRINT_POINTER64(Nr, value, name) \
-    printf("     [%2d] %016x %-16s\n", \
+    printf("    [%2d] %016x %-16s\n", \
     Nr, value, name);
 #define PRINT_POINTER64_TITLE(Nr, value, name) \
-    printf("     [%2s] %-016s %-16s\n", \
+    printf("    [%2s] %-016s %-16s\n", \
     Nr, value, name);
 
 int flag2str(int flag, char *flag_str) {
@@ -734,7 +734,7 @@ static void display_segment32(handle_t32 *h) {
 
     INFO("Section to segment mapping\n");
     for (int i = 0; i < h->ehdr->e_phnum; i++) {
-        printf("     [%2d]", i);
+        printf("    [%2d]", i);
         for (int j = 0; j < h->ehdr->e_shnum; j++) {
             name = h->mem + h->shstrtab->sh_offset + h->shdr[j].sh_name;
             if (h->shdr[j].sh_addr >= h->phdr[i].p_vaddr && h->shdr[j].sh_addr + h->shdr[j].sh_size <= h->phdr[i].p_vaddr + h->phdr[i].p_memsz && h->shdr[j].sh_type != SHT_NULL) {
@@ -809,7 +809,7 @@ static void display_segment64(handle_t64 *h) {
 
     INFO("Section to segment mapping\n");
     for (int i = 0; i < h->ehdr->e_phnum; i++) {
-        printf("     [%2d]", i);
+        printf("    [%2d]", i);
         for (int j = 0; j < h->ehdr->e_shnum; j++) {
             name = h->mem + h->shstrtab->sh_offset + h->shdr[j].sh_name;
             if (h->shdr[j].sh_addr >= h->phdr[i].p_vaddr && h->shdr[j].sh_addr + h->shdr[j].sh_size <= h->phdr[i].p_vaddr + h->phdr[i].p_memsz && h->shdr[j].sh_type != SHT_NULL) {
@@ -3159,30 +3159,31 @@ int display_hash32(handle_t32 *h) {
 
     gnuhash_t *hash = (gnuhash_t *)&h->mem[h->shdr[hash_index].sh_offset];
     INFO(".gnu.hash table at offset 0x%x\n", h->shdr[hash_index].sh_offset);
-    printf("     |-------------Header-------------|\n");
-    printf("     |nbuckets:             0x%08x|\n", hash->nbuckets);
-    printf("     |symndx:               0x%08x|\n", hash->symndx);
-    printf("     |maskbits:             0x%08x|\n", hash->maskbits);
-    printf("     |shift:                0x%08x|\n", hash->shift);
+    printf("    |-------------Header-------------|\n");
+    printf("    |nbuckets:             0x%08x|\n", hash->nbuckets);
+    printf("    |symndx:               0x%08x|\n", hash->symndx);
+    printf("    |maskbits:             0x%08x|\n", hash->maskbits);
+    printf("    |shift:                0x%08x|\n", hash->shift);
     
-    printf("     |-----------Bloom filter---------|\n");
+    printf("    |-----------Bloom filter---------|\n");
     uint32_t *bloomfilter = hash->buckets;
     int i;
     for (i = 0; i < hash->maskbits; i++) {
-        printf("     |           0x%08x           |\n", bloomfilter[i]);
+        printf("    |           0x%08x           |\n", bloomfilter[i]);
     }
 
-    printf("     |-----------Hash Buckets---------|\n");
+    printf("    |-----------Hash Buckets---------|\n");
     uint32_t *buckets = &bloomfilter[i];
     for (i = 0; i < hash->nbuckets; i++) {
-        printf("     |           0x%08x           |\n", buckets[i]);
+        printf("    |           0x%08x           |\n", buckets[i]);
     }
 
-    printf("     |-----------Hash Chain-----------|\n");
+    printf("    |-----------Hash Chain-----------|\n");
     uint32_t *value = &buckets[i];
     for (i = 0; i < g_dynsym.count - hash->symndx; i++) {
-        printf("     |           0x%08x           |\n", value[i]);
+        printf("    |           0x%08x           |\n", value[i]);
     }
+    printf("    |--------------------------------|\n");
 }
 
 /**
@@ -3221,30 +3222,31 @@ int display_hash64(handle_t64 *h) {
 
     gnuhash_t *hash = (gnuhash_t *)&h->mem[h->shdr[hash_index].sh_offset];
     INFO(".gnu.hash table at offset 0x%x\n", h->shdr[hash_index].sh_offset);
-    printf("     |-------------Header-------------|\n");
-    printf("     |nbuckets:             0x%08x|\n", hash->nbuckets);
-    printf("     |symndx:               0x%08x|\n", hash->symndx);
-    printf("     |maskbits:             0x%08x|\n", hash->maskbits);
-    printf("     |shift:                0x%08x|\n", hash->shift);
+    printf("    |-------------Header-------------|\n");
+    printf("    |nbuckets:             0x%08x|\n", hash->nbuckets);
+    printf("    |symndx:               0x%08x|\n", hash->symndx);
+    printf("    |maskbits:             0x%08x|\n", hash->maskbits);
+    printf("    |shift:                0x%08x|\n", hash->shift);
     
-    printf("     |-----------Bloom filter---------|\n");
+    printf("    |-----------Bloom filter---------|\n");
     uint64_t *bloomfilter = hash->buckets;
     int i;
     for (i = 0; i < hash->maskbits; i++) {
-        printf("     |       0x%016x       |\n", bloomfilter[i]);
+        printf("    |       0x%016x       |\n", bloomfilter[i]);
     }
 
-    printf("     |-----------Hash Buckets---------|\n");
+    printf("    |-----------Hash Buckets---------|\n");
     uint32_t *buckets = &bloomfilter[i];
     for (i = 0; i < hash->nbuckets; i++) {
-        printf("     |           0x%08x           |\n", buckets[i]);
+        printf("    |           0x%08x           |\n", buckets[i]);
     }
 
-    printf("     |-----------Hash Chain-----------|\n");
+    printf("    |-----------Hash Chain-----------|\n");
     uint32_t *value = &buckets[i];
     for (i = 0; i < g_dynsym.count - hash->symndx; i++) {
-        printf("     |           0x%08x           |\n", value[i]);
+        printf("    |           0x%08x           |\n", value[i]);
     }
+    printf("    |--------------------------------|\n");
 }
 
 int parse(char *elf, parser_opt_t *po, uint32_t length) {
