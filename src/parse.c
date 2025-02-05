@@ -133,15 +133,17 @@ int get_option(parser_opt_t *po, PARSE_OPT_T option){
     return -1;
 }
 
-struct MyStr g_dynsym;
-struct MyStr g_symtab;
-struct MyStr g_secname;
+struct ElfData g_dynsym;
+struct ElfData g_symtab;
+struct ElfData g_secname;
+struct ElfData g_relplt;
 uint32_t g_strlength;
 
 void static init() {
-    memset(&g_dynsym, 0, sizeof(struct MyStr));
-    memset(&g_symtab, 0, sizeof(struct MyStr));
-    memset(&g_secname, 0, sizeof(struct MyStr));
+    memset(&g_dynsym, 0, sizeof(struct ElfData));
+    memset(&g_symtab, 0, sizeof(struct ElfData));
+    memset(&g_secname, 0, sizeof(struct ElfData));
+    memset(&g_relplt, 0, sizeof(struct ElfData));
     g_strlength = 0;
 }
 
@@ -859,12 +861,12 @@ void display_dynsym32(handle_t32 *h, char *section_name, char *str_tab, int is_d
     }
 
     if (!dynstr_index) {
-        WARNING("This file does not have a %s\n", str_tab);
+        DEBUG("This file does not have a %s\n", str_tab);
         return -1;
     }
 
     if (!dynsym_index) {
-        WARNING("This file does not have a %s\n", section_name);
+        DEBUG("This file does not have a %s\n", section_name);
         return -1;
     }
 
@@ -1058,12 +1060,12 @@ void display_dynsym64(handle_t64 *h, char *section_name, char *str_tab, int is_d
     }
 
     if (!dynstr_index) {
-        WARNING("This file does not have a %s\n", str_tab);
+        DEBUG("This file does not have a %s\n", str_tab);
         return -1;
     }
 
     if (!dynsym_index) {
-        WARNING("This file does not have a %s\n", section_name);
+        DEBUG("This file does not have a %s\n", section_name);
         return -1;
     }
 
@@ -2036,7 +2038,7 @@ static void display_dyninfo64(handle_t64 *h) {
  * @param section_name 
  * @return int error code {-1:error,0:sucess}
  */
-static int display_rel32(handle_t32 *h, char *section_name) {
+static int display_rel32(handle_t32 *h, char *section_name, int is_display) {
     char *name = NULL;
     char *type;
     char *bind;
@@ -2071,8 +2073,11 @@ static int display_rel32(handle_t32 *h, char *section_name) {
     
     rel_section = (Elf32_Rel *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
     count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf32_Rel);
-    INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
-    PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name");
+    if (is_display) {
+        INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
+        PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name");
+    }
+
     for (int i = 0; i < count; i++) {
         switch (ELF32_R_TYPE(rel_section[i].r_info))
         {
@@ -2249,11 +2254,18 @@ static int display_rel32(handle_t32 *h, char *section_name) {
         }
         
         str_index = ELF32_R_SYM(rel_section[i].r_info);
-        if (strlen(g_dynsym.name[str_index]) == 0) {
-            /* .o file .rel.text */
-            PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
-        } else
-            PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_dynsym.name[str_index]);
+        if (is_display) {
+            if (strlen(g_dynsym.name[str_index]) == 0) {
+                /* .o file .rel.text */
+                PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_symtab.name[str_index]);
+            } else
+                PRINT_RELA(i, rel_section[i].r_offset, rel_section[i].r_info, type, str_index, g_dynsym.name[str_index]); 
+        }
+
+        if (i < STR_NUM && !strcmp(section_name, ".rel.plt")){
+            g_relplt.count++;
+            g_relplt.value[i] = rel_section[i].r_offset;
+        }
     }
 }
 
@@ -2731,7 +2743,7 @@ static int display_rela32(handle_t32 *h, char *section_name) {
  * @param section_name 
  * @return int error code {-1:error,0:sucess}
  */
-static int display_rela64(handle_t64 *h, char *section_name) {
+static int display_rela64(handle_t64 *h, char *section_name, int is_display) {
     char *name = NULL;
     char *type;
     char *bind;
@@ -2766,8 +2778,11 @@ static int display_rela64(handle_t64 *h, char *section_name) {
     
     rela_dyn = (Elf64_Rela *)&h->mem[h->shdr[rela_dyn_index].sh_offset];
     count = h->shdr[rela_dyn_index].sh_size / sizeof(Elf64_Rela);
-    INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
-    PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
+    if (is_display) {
+        INFO("Relocation section '%s' at offset 0x%x contains %d entries:\n", section_name, h->shdr[rela_dyn_index].sh_offset, count);
+        PRINT_RELA_TITLE("Nr", "Addr", "Info", "Type", "Sym.Index", "Sym.Name + Addend");
+    }
+
     for (int i = 0; i < count; i++) {
         switch (ELF64_R_TYPE(rela_dyn[i].r_info))
         {
@@ -2959,7 +2974,13 @@ static int display_rela64(handle_t64 *h, char *section_name) {
             snprintf(name, STR_LENGTH, "%s + %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
         else
             snprintf(name, STR_LENGTH, "%s %d", g_dynsym.name[str_index], rela_dyn[i].r_addend);
-        PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
+        if (is_display)
+            PRINT_RELA(i, rela_dyn[i].r_offset, rela_dyn[i].r_info, type, str_index, name);
+    
+        if (i < STR_NUM && !strcmp(section_name, ".rela.plt")){
+            g_relplt.count++;
+            g_relplt.value[i] = rela_dyn[i].r_offset;
+        }
     }
 }
 
@@ -3335,7 +3356,7 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
                 if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
                     display_rela32(&h, g_secname.name[i]);
                 } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
-                    display_rel32(&h, g_secname.name[i]);
+                    display_rel32(&h, g_secname.name[i], 1);
                 }
             }
         } 
@@ -3359,6 +3380,7 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
             display_dynsym32(&h, ".dynsym", ".dynstr", 0);
             display_dynsym32(&h, ".symtab", ".strtab", 0);
             display_section32(&h, 0);
+            display_rel32(&h, ".rel.plt", 0);
         }        
     }
 
@@ -3408,7 +3430,7 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
                 display_section64(&h, 0);                       // get section name
             for (int i = 0; i < g_secname.count; i++) {
                 if (compare_firstN_chars(g_secname.name[i], ".rela", 5)) {
-                    display_rela64(&h, g_secname.name[i]);
+                    display_rela64(&h, g_secname.name[i], 1);
                 } else if (compare_firstN_chars(g_secname.name[i], ".rel", 4)){
                     display_rel64(&h, g_secname.name[i]);
                 }
@@ -3429,11 +3451,12 @@ int parse(char *elf, parser_opt_t *po, uint32_t length) {
             display_hash64(&h);
         }
 
-        /* init symbol name */
+        /* init elfdata */
         else {
             display_dynsym64(&h, ".dynsym", ".dynstr", 0);
             display_dynsym64(&h, ".symtab", ".strtab", 0);
             display_section64(&h, 0);
+            display_rela64(&h, ".rela.plt", 0);
         }   
     }
 

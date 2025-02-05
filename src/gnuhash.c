@@ -2,7 +2,7 @@
 #include "common.h"
 #include "parse.h"
 
-extern struct MyStr g_dynsym;
+extern struct ElfData g_dynsym;
 extern parser_opt_t po;
 
 // compute symbol hash

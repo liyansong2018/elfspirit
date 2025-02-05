@@ -10,7 +10,7 @@
 #include "parse.h"
 #include "rel.h"
 
-extern struct MyStr g_dynsym;
+extern struct ElfData g_dynsym;
 extern parser_opt_t po;
 
 /**
@@ -307,6 +307,8 @@ uint32_t get_rel32_offset(handle_t32 *h, char *sec_name, int index) {
         return -1;
     }
     int diff = h->shdr[h->sec_index].sh_addr - h->shdr[h->sec_index].sh_offset;
+    // refresh .rela.plt size
+    get_rel32_addr(h, sec_name, index);
     return addr - diff;
 }
 
@@ -317,6 +319,8 @@ uint64_t get_rel64_offset(handle_t64 *h, char *sec_name, int index) {
         return -1;
     }
     int diff = h->shdr[h->sec_index].sh_addr - h->shdr[h->sec_index].sh_offset;
+    // refresh .rela.plt size
+    get_rel64_addr(h, sec_name, index);
     return addr - diff;
 }
 
@@ -327,6 +331,8 @@ uint32_t get_rela32_offset(handle_t32 *h, char *sec_name, int index) {
         return -1;
     }
     int diff = h->shdr[h->sec_index].sh_addr - h->shdr[h->sec_index].sh_offset;
+    // refresh .rela.plt size
+    get_rela32_addr(h, sec_name, index);
     return addr - diff;
 }
 
@@ -337,6 +343,8 @@ uint64_t get_rela64_offset(handle_t64 *h, char *sec_name, int index) {
         return -1;
     }
     int diff = h->shdr[h->sec_index].sh_addr - h->shdr[h->sec_index].sh_offset;
+    // refresh .rela.plt size
+    get_rela64_addr(h, sec_name, index);
     return addr - diff;
 }
 

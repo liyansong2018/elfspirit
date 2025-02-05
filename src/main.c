@@ -647,9 +647,10 @@ static void readcmdline(int argc, char *argv[]) {
         add_dynsym_entry(elf_name, string, value, size);
     }
 
-    DEBUG("function: %s\n", function);
-    DEBUG("elf: %s\n", elf_name);
-    DEBUG("name:%s, size: %u\n", section_name, size);
+    /* change bin to so */
+    if (!strcmp(function, "checksec")) {
+        checksec(elf_name);
+    }
 }
 
 int main(int argc, char *argv[]) {

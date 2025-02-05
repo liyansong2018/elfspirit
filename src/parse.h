@@ -47,7 +47,7 @@ typedef struct parser_opt {
 
 #define STR_NUM 0x4096
 #define STR_LENGTH 0x1024
-struct MyStr {
+struct ElfData {
     size_t count;
     uint64_t value[STR_NUM];
     char name[STR_NUM][STR_LENGTH];

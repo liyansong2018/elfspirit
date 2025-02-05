@@ -657,6 +657,25 @@ uint64_t get_phdr_offset(char *elf_name) {
 }
 
 /**
+ * @brief 获取程序入口
+ * get program entry
+ * @return uint64_t program entry
+ */
+uint64_t get_entry(char *elf_name) {
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr ehdr;
+        get_header(elf_name, &ehdr);
+        return ehdr.e_entry;
+    } else if (MODE == ELFCLASS64) {
+        Elf64_Ehdr ehdr;
+        get_header(elf_name, &ehdr);
+        return ehdr.e_entry;
+    } else {
+        return -1;
+    }
+}
+
+/**
  * @brief Extract binary fragments from the target file
  * 
  * @param input_file original file name
@@ -908,6 +927,9 @@ int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offs
             }
             if (!strncmp(name, symbol, strlen(name))) {
                 offset = get_rel32_offset(&h32, ".rel.plt", i);
+                if (offset == -1) {
+                    goto ERR_EXIT;
+                }
                 break;
             }
         }
@@ -925,6 +947,9 @@ int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offs
             }
             if (!strncmp(name, symbol, strlen(name))) {
                 offset = get_rela64_offset(&h64, ".rela.plt", i);
+                if (offset == -1) {
+                    goto ERR_EXIT;
+                }
                 break;
             }
         }
@@ -934,9 +959,9 @@ int hook_extern(char *elf_name, char *symbol, char *hookfile, uint64_t hook_offs
     }
     
     finit_elf(&h32, &h64);
-
     return 0;
 ERR_EXIT:
+    finit_elf(&h32, &h64);
     return -1;
 }
 

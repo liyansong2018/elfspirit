@@ -202,6 +202,13 @@ uint64_t get_shdr_offset(char *elf_name);
 uint64_t get_phdr_offset(char *elf_name);
 
 /**
+ * @brief 获取程序入口
+ * get program entry
+ * @return uint64_t program entry
+ */
+uint64_t get_entry(char *elf_name);
+
+/**
  * @brief Extract binary fragments from the target file
  * 
  * @param input_file original file name
