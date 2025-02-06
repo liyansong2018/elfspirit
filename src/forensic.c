@@ -220,6 +220,109 @@ int check_load_continuity(char *elf_name) {
 }
 
 /**
+ * @brief 检查DT_NEEDED是否连续
+ * check if the DT_NEEDED so are continuous
+ * @param elf_name elf file name
+ * @return int error code {-1:error,0:sucess,1:failed}
+ */
+int check_needed_continuity(char *elf_name) {
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    int last = 0;
+    int current = 0;
+    int has_first = 0;
+    int ret = 0;
+
+    fd = open(elf_name, O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
+        Elf32_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
+        Elf32_Dyn *dyn = NULL;
+        uint32_t dyn_c;
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_DYNAMIC) {
+                dyn = elf_map + phdr[i].p_offset;
+                dyn_c = phdr[i].p_filesz / sizeof(Elf32_Dyn);
+                break;
+            }
+        }
+        if (!dyn) ret = -1;
+        else {
+            for (int i = 0; i < dyn_c; i++) {
+                if (dyn[i].d_tag == DT_NEEDED) {
+                    if (!has_first) {
+                        has_first = 1;
+                        last = i;
+                        continue;
+                    }
+                    
+                    current = i;
+                    if (current - last != 1) {
+                        ret = 1;
+                        break;
+                    }
+                    last = i;
+                }
+            }
+        }
+    }
+
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_map;
+        Elf64_Phdr *phdr = (Elf64_Phdr *)&elf_map[ehdr->e_phoff];
+        Elf64_Dyn *dyn = NULL;
+        uint64_t dyn_c;
+        for (int i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_DYNAMIC) {
+                dyn = elf_map + phdr[i].p_offset;
+                dyn_c = phdr[i].p_filesz / sizeof(Elf64_Dyn);
+                break;
+            }
+        }
+        if (!dyn) ret = -1;
+        else {
+            for (int i = 0; i < dyn_c; i++) {
+                if (dyn[i].d_tag == DT_NEEDED) {
+                    if (!has_first) {
+                        has_first = 1;
+                        last = i;
+                        continue;
+                    }
+                    
+                    current = i;
+                    if (current - last != 1) {
+                        ret = 1;
+                        break;
+                    }
+                    last = i;
+                }
+            }
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return ret;
+}
+
+/**
  * @brief 检查elf文件是否合法
  * check if the elf file is legal
  * @param elf_name elf file name
@@ -234,11 +337,11 @@ int checksec(char *elf_name) {
     uint64_t addr = get_section_addr(elf_name, ".text");
     size_t size = get_section_size(elf_name, ".text");
     if (entry == addr) {
-        printf("|%-20s|%1s| %-50s|\n", "entry point", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "entry point", "✓", "normal");
     } else if (entry > addr && entry < addr + size) {
-        printf("\033[0;31m|%-20s|%1s| %-50s|\033[0m\n", "entry", "✗", "the entry point IS inside the .TEXT section");
+        CHECK_WARNING("|%-20s|%1s| %-50s|\n", "entry point", "-", "the entry point IS inside the .TEXT section");
     } else {
-        printf("\033[0;31m|%-20s|%1s| %-50s|\033[0m\n","entry point", "✗", "the entry point is NOT inside the .TEXT section");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n","entry point", "✗", "the entry point is NOT inside the .TEXT section");
     }
 
     /* check plt/got hook (lazy bind) */
@@ -246,31 +349,41 @@ int checksec(char *elf_name) {
     size = get_section_size(elf_name, ".plt");
     int ret = check_hook(elf_name, addr, size);
     if (ret == 0) {
-        printf("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "✓", "normal");
     } else if (ret == 1) {
-        printf("\033[0;31m|%-20s|%1s| %-50s|\033[0m\n", "hook(.got.plt)", "✗", ".got.plt hook is detected");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "✗", ".got.plt hook is detected");
     } else if (ret == -1) {
-        printf("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "-", "na(bind now)");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "-", "na(bind now)");
     }
 
     /* check load segment permission */
     ret = check_load_flags(elf_name);
     if (ret == 0) {
-        printf("|%-20s|%1s| %-50s|\n", "load flags", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load flags", "✓", "normal");
     } else if (ret == 1) {
-        printf("\033[0;31m|%-20s|%1s| %-50s|\033[0m\n", "load flags", "✗", "more than one executable segment");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", "load flags", "✗", "more than one executable segment");
     } else if (ret == -1) {
-        printf("|%-20s|%1s| %-50s|\n", "load flags", "-", "na(no executable elf file)");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load flags", "-", "na(no executable elf file)");
     }
 
     /* check segment continuity */
     ret = check_load_continuity(elf_name);
     if (ret == 0) {
-        printf("|%-20s|%1s| %-50s|\n", "load continuity", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load continuity", "✓", "normal");
     } else if (ret == 1) {
-        printf("\033[0;31m|%-20s|%1s| %-50s|\033[0m\n", "load continuity", "✗", "load segments are NOT continuous");
+        CHECK_ERROR("|%-20s|%1s| %-50s|", "load continuity", "✗", "load segments are NOT continuous");
     } else if (ret == -1) {
-        printf("|%-20s|%1s| %-50s|\n", "load continuity", "-", "na");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load continuity", "-", "na");
+    }
+
+    /* check DLL injection */
+    ret = check_needed_continuity(elf_name);
+    if (ret == 0) {
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "DT_NEEDED continuity", "✓", "normal");
+    } else if (ret == 1) {
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", "DT_NEEDED continuity", "✗", "DT_NEEDED libraries are NOT continuous");
+    } else if (ret == -1) {
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "DT_NEEDED continuity", "-", "na(static elf)");
     }
 
     printf("|--------------------------------------------------------------------------|\n");

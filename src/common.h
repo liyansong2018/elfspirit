@@ -42,6 +42,12 @@
 #define ERROR(format, ...) printf (""L_RED"[-] "format""NONE"", ##__VA_ARGS__)
 #define INFO(format, ...) printf (""L_GREEN"[+] "format""NONE"", ##__VA_ARGS__)
 #define VERBOSE(format, ...) printf (""YELLOW"[*] "format""NONE"", ##__VA_ARGS__)
+
+#define CHECK_WARNING(format, ...) printf (""YELLOW""format""NONE"", ##__VA_ARGS__)
+#define CHECK_ERROR(format, ...) printf (""L_RED""format""NONE"", ##__VA_ARGS__)
+#define CHECK_INFO(format, ...) printf (""L_GREEN""format""NONE"", ##__VA_ARGS__)
+#define CHECK_COMMON(format, ...) printf (""format"", ##__VA_ARGS__)
+
 #ifdef debug
     #define DEBUG(format, ...) printf (""YELLOW"[d] "format""NONE"", ##__VA_ARGS__)
 #else
