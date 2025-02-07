@@ -420,7 +420,7 @@ int get_section(char *elf_name, char *section_name, char *section_info) {
     }
 
     if (!flag) {
-        ERROR("This file does not have %s\n", section_name);
+        DEBUG("This file does not have %s\n", section_name);
         goto ERR_EXIT;
     }
 

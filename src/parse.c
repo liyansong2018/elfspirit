@@ -2062,7 +2062,7 @@ static int display_rel32(handle_t32 *h, char *section_name, int is_display) {
     }
 
     if (!has_component) {
-        WARNING("This file does not have a %s\n", section_name);
+        DEBUG("This file does not have a %s\n", section_name);
         return -1;
     }
     
@@ -2300,7 +2300,7 @@ static int display_rel64(handle_t64 *h, char *section_name) {
     }
 
     if (!has_component) {
-        WARNING("This file does not have a %s\n", section_name);
+        DEBUG("This file does not have a %s\n", section_name);
         return -1;
     }
     
@@ -2528,7 +2528,7 @@ static int display_rela32(handle_t32 *h, char *section_name) {
     }
 
     if (!has_component) {
-        WARNING("This file does not have a %s\n", section_name);
+        DEBUG("This file does not have a %s\n", section_name);
         return -1;
     }
     
@@ -2767,7 +2767,7 @@ static int display_rela64(handle_t64 *h, char *section_name, int is_display) {
     }
 
     if (!has_component) {
-        WARNING("This file does not have a %s\n", section_name);
+        DEBUG("This file does not have a %s\n", section_name);
         return -1;
     }
     

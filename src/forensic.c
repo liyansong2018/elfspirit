@@ -323,67 +323,150 @@ int check_needed_continuity(char *elf_name) {
 }
 
 /**
+ * @brief 检查节头表是否存在
+ * check if the section header table exists
+ * @param elf_name elf file name
+ * @return int error code {-1:error,0:sucess,1:failed,2:warn}
+ */
+int check_shdr(char *elf_name) {
+    int fd;
+    struct stat st;
+    uint8_t *elf_map;
+    int ret = 0;
+
+    fd = open(elf_name, O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return -1;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        perror("fstat");
+        return -1;
+    }
+
+    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (elf_map == MAP_FAILED) {
+        perror("mmap");
+        return -1;
+    }
+
+    if (MODE == ELFCLASS32) {
+        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
+        if (ehdr->e_shoff == 0 || ehdr->e_shnum == 0) {
+            ret = 1;
+        } else if (ehdr->e_shoff != st.st_size - sizeof(Elf32_Shdr) * ehdr->e_shnum) {
+            ret = 2;
+        }
+    }
+
+    if (MODE == ELFCLASS64) {
+        Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_map;
+        if (ehdr->e_shoff == 0 || ehdr->e_shnum == 0) {
+            ret = 1;
+        } else if (ehdr->e_shoff != st.st_size - sizeof(Elf64_Shdr) * ehdr->e_shnum) {
+            ret = 2;
+        }
+    }
+
+    close(fd);
+    munmap(elf_map, st.st_size);
+    return ret;
+}
+
+/**
  * @brief 检查elf文件是否合法
  * check if the elf file is legal
  * @param elf_name elf file name
  * @return int error code {-1:error,0:sucess}
  */
 int checksec(char *elf_name) {
+    char TAG[50];
     printf("|--------------------------------------------------------------------------|\n");
     printf("|%-20s|%1s| %-50s|\n", "checkpoint", "s", "description");
     printf("|--------------------------------------------------------------------------|\n");
     /* check entry */
+    strcpy(TAG, "entry point");
     uint64_t entry = get_entry(elf_name);
     uint64_t addr = get_section_addr(elf_name, ".text");
     size_t size = get_section_size(elf_name, ".text");
     if (entry == addr) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "entry point", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
     } else if (entry > addr && entry < addr + size) {
-        CHECK_WARNING("|%-20s|%1s| %-50s|\n", "entry point", "-", "the entry point IS inside the .TEXT section");
+        CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "!", "is NOT at the start of the .TEXT section");
     } else {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n","entry point", "✗", "the entry point is NOT inside the .TEXT section");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "is NOT inside the .TEXT section");
     }
 
     /* check plt/got hook (lazy bind) */
+    strcpy(TAG, "hook(.got.plt)");
     addr = get_section_addr(elf_name, ".plt");
     size = get_section_size(elf_name, ".plt");
     int ret = check_hook(elf_name, addr, size);
     if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
     } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "✗", ".got.plt hook is detected");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", ".got.plt hook is detected");
     } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "hook(.got.plt)", "-", "na(bind now)");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(bind now)");
     }
 
     /* check load segment permission */
+    strcpy(TAG, "load flags");
     ret = check_load_flags(elf_name);
     if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load flags", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
     } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n", "load flags", "✗", "more than one executable segment");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "more than one executable segment");
     } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load flags", "-", "na(no executable elf file)");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no executable elf file)");
     }
 
     /* check segment continuity */
+    strcpy(TAG, "load continuity");
     ret = check_load_continuity(elf_name);
     if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load continuity", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
     } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|", "load continuity", "✗", "load segments are NOT continuous");
+        CHECK_ERROR("|%-20s|%1s| %-50s|", TAG, "✗", "load segments are NOT continuous");
     } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "load continuity", "-", "na");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
     }
 
     /* check DLL injection */
+    strcpy(TAG, "needed so continuity");
     ret = check_needed_continuity(elf_name);
     if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "DT_NEEDED continuity", "✓", "normal");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
     } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n", "DT_NEEDED continuity", "✗", "DT_NEEDED libraries are NOT continuous");
+        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "DT_NEEDED libraries are NOT continuous");
     } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", "DT_NEEDED continuity", "-", "na(static elf)");
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(static elf)");
+    }
+
+    /* check section header table */
+    strcpy(TAG, "section header table");
+    ret = check_shdr(elf_name);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+        
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "NO section header table");
+            break;
+
+        case 2:
+            CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "!", "is NOT at the end of the file");
+            break;
+
+        case -1:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
+            break;
+        
+        default:
+            break;
     }
 
     printf("|--------------------------------------------------------------------------|\n");
