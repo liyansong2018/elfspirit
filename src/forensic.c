@@ -12,102 +12,64 @@
 /**
  * @brief 检查hook外部函数
  * chekc hook function by .got.plt
- * @param elf_name elf file name
- * @param addr start address(.plt)
- * @param size section size(.plt)
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
+ * @param start start address
+ * @param size area size
  * @return int error code {-1:error,0:sucess,1:failed}
  */
-int check_hook(char *elf_name, uint64_t addr,size_t size) {
+int check_hook(handle_t32 *h32, handle_t64 *h64, uint64_t start, size_t size) {
     uint64_t offset = 0;
-    int ret = -1;
-
-    char *name;
-    handle_t32 h32;
-    handle_t64 h64;
-    ret = init_elf(elf_name, &h32, &h64);
-    if (ret < 0) {
-        ERROR("init elf error\n");
-        goto ERR_EXIT;
-    }
-
+    
     /* attention: The 32-bit program has not been tested! */
     if (MODE == ELFCLASS32) {
-        h32.sec_size = sizeof(Elf32_Rel);  // init
-        for (int i = 0; i < h32.sec_size / sizeof(Elf32_Rel); i++) {
-            offset = get_rel32_offset(&h32, ".rel.plt", i);
+        h32->sec_size = sizeof(Elf32_Rel);  // init
+        for (int i = 0; i < h32->sec_size / sizeof(Elf32_Rel); i++) {
+            offset = get_rel32_offset(h32, ".rel.plt", i);
             if (offset == -1) {
-                goto ERR_EXIT;
-                break;
+                return -1;
             }
-            uint32_t *p = (uint32_t *)(h32.mem + offset);
+            uint32_t *p = (uint32_t *)(h32->mem + offset);
             DEBUG("0x%x, 0x%x\n", offset, *p);
-            if (*p < addr || *p >= addr + size) {
-                goto FAILED;
+            if (*p < start || *p >= start + size) {
+                return 1;
             }
         }
     }
 
     if (MODE == ELFCLASS64) {
-        h64.sec_size = sizeof(Elf64_Rela);  // init
-        for (int i = 0; i < h64.sec_size / sizeof(Elf64_Rela); i++) {
-            offset = get_rela64_offset(&h64, ".rela.plt", i);
+        h64->sec_size = sizeof(Elf64_Rela);  // init
+        for (int i = 0; i < h64->sec_size / sizeof(Elf64_Rela); i++) {
+            offset = get_rela64_offset(h64, ".rela.plt", i);
             if (offset == -1) {
-                goto ERR_EXIT;
-                break;
+                return -1;
             }
-            uint64_t *p = (uint64_t *)(h64.mem + offset);
+            uint64_t *p = (uint64_t *)(h64->mem + offset);
             DEBUG("0x%x, 0x%x\n", offset, *p);
-            if (*p < addr || *p >= addr + size) {
-                goto FAILED;
+            if (*p < start || *p >= start + size) {
+                return 1;
             }
         }
     }
-    
-    finit_elf(&h32, &h64);
+
     return 0;
-ERR_EXIT:
-    return -1;
-FAILED:
-    finit_elf(&h32, &h64);
-    return 1;
 }
 
 /**
  * @brief 检查load
  * chekc load segment flags
- * @param elf_name elf file name
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
  * @return int error code {-1:error,0:sucess,1:failed}
  */
-int check_load_flags(char *elf_name) {
-    int fd;
-    struct stat st;
-    uint8_t *elf_map;
+int check_load_flags(handle_t32 *h32, handle_t64 *h64) {
     int count = 0;
 
-    fd = open(elf_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
     if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        Elf32_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == PT_LOAD) {
+        for (int i = 0; i < h32->ehdr->e_phnum; i++) {
+            if (h32->phdr[i].p_type == PT_LOAD) {
                 // flags:E
-                if (phdr[i].p_flags & 0x1) {
+                if (h32->phdr[i].p_flags & 0x1) {
                     count++;
                 }
             }
@@ -115,20 +77,16 @@ int check_load_flags(char *elf_name) {
     }
 
     if (MODE == ELFCLASS64) {
-        Elf64_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        Elf64_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == PT_LOAD) {
+        for (int i = 0; i < h64->ehdr->e_phnum; i++) {
+            if (h64->phdr[i].p_type == PT_LOAD) {
                 // flags:E
-                if (phdr[i].p_flags & 0x1) {
+                if (h64->phdr[i].p_flags & 0x1) {
                     count++;
                 }
             }
         }
     }
 
-    close(fd);
-    munmap(elf_map, st.st_size);
     DEBUG("executable segment count: %d\n", count);
     if (count > 1) {
         return 1;
@@ -142,39 +100,18 @@ int check_load_flags(char *elf_name) {
 /**
  * @brief 检查段是否连续
  * check if the load segments are continuous
- * @param elf_name elf file name
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
  * @return int error code {-1:error,0:sucess,1:failed}
  */
-int check_load_continuity(char *elf_name) {
-    int fd;
-    struct stat st;
-    uint8_t *elf_map;
+int check_load_continuity(handle_t32 *h32, handle_t64 *h64) {
     int last = 0;
     int current = 0;
     int has_first = 0;
 
-    fd = open(elf_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
     if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        Elf32_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == PT_LOAD) {
+        for (int i = 0; i < h32->ehdr->e_phnum; i++) {
+            if (h32->phdr[i].p_type == PT_LOAD) {
                 if (!has_first) {
                     has_first = 1;
                     last = i;
@@ -183,8 +120,6 @@ int check_load_continuity(char *elf_name) {
                 
                 current = i;
                 if (current - last != 1) {
-                    close(fd);
-                    munmap(elf_map, st.st_size);
                     return 1;
                 }
                 last = i;
@@ -193,10 +128,8 @@ int check_load_continuity(char *elf_name) {
     }
 
     if (MODE == ELFCLASS64) {
-        Elf64_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        Elf64_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == PT_LOAD) {
+        for (int i = 0; i < h64->ehdr->e_phnum; i++) {
+            if (h64->phdr[i].p_type == PT_LOAD) {
                 if (!has_first) {
                     has_first = 1;
                     last = i;
@@ -205,8 +138,6 @@ int check_load_continuity(char *elf_name) {
                 
                 current = i;
                 if (current - last != 1) {
-                    close(fd);
-                    munmap(elf_map, st.st_size);
                     return 1;
                 }
                 last = i;
@@ -214,52 +145,29 @@ int check_load_continuity(char *elf_name) {
         }
     }
 
-    close(fd);
-    munmap(elf_map, st.st_size);
     return 0;
 }
 
 /**
  * @brief 检查DT_NEEDED是否连续
  * check if the DT_NEEDED so are continuous
- * @param elf_name elf file name
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
  * @return int error code {-1:error,0:sucess,1:failed}
  */
-int check_needed_continuity(char *elf_name) {
-    int fd;
-    struct stat st;
-    uint8_t *elf_map;
+int check_needed_continuity(handle_t32 *h32, handle_t64 *h64) {
     int last = 0;
     int current = 0;
     int has_first = 0;
     int ret = 0;
 
-    fd = open(elf_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
     if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        Elf32_Phdr *phdr = (Elf32_Phdr *)&elf_map[ehdr->e_phoff];
         Elf32_Dyn *dyn = NULL;
         uint32_t dyn_c;
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == PT_DYNAMIC) {
-                dyn = elf_map + phdr[i].p_offset;
-                dyn_c = phdr[i].p_filesz / sizeof(Elf32_Dyn);
+        for (int i = 0; i < h32->ehdr->e_phnum; i++) {
+            if (h32->phdr[i].p_type == PT_DYNAMIC) {
+                dyn = h32->mem + h32->phdr[i].p_offset;
+                dyn_c = h32->phdr[i].p_filesz / sizeof(Elf32_Dyn);
                 break;
             }
         }
@@ -285,14 +193,12 @@ int check_needed_continuity(char *elf_name) {
     }
 
     if (MODE == ELFCLASS64) {
-        Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_map;
-        Elf64_Phdr *phdr = (Elf64_Phdr *)&elf_map[ehdr->e_phoff];
         Elf64_Dyn *dyn = NULL;
         uint64_t dyn_c;
-        for (int i = 0; i < ehdr->e_phnum; i++) {
-            if (phdr[i].p_type == PT_DYNAMIC) {
-                dyn = elf_map + phdr[i].p_offset;
-                dyn_c = phdr[i].p_filesz / sizeof(Elf64_Dyn);
+        for (int i = 0; i < h64->ehdr->e_phnum; i++) {
+            if (h64->phdr[i].p_type == PT_DYNAMIC) {
+                dyn = h64->mem + h64->phdr[i].p_offset;
+                dyn_c = h64->phdr[i].p_filesz / sizeof(Elf64_Dyn);
                 break;
             }
         }
@@ -317,60 +223,35 @@ int check_needed_continuity(char *elf_name) {
         }
     }
 
-    close(fd);
-    munmap(elf_map, st.st_size);
     return ret;
 }
 
 /**
  * @brief 检查节头表是否存在
  * check if the section header table exists
- * @param elf_name elf file name
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
  * @return int error code {-1:error,0:sucess,1:failed,2:warn}
  */
-int check_shdr(char *elf_name) {
-    int fd;
-    struct stat st;
-    uint8_t *elf_map;
+int check_shdr(handle_t32 *h32, handle_t64 *h64) {
     int ret = 0;
 
-    fd = open(elf_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
-        return -1;
-    }
-
-    if (fstat(fd, &st) < 0) {
-        perror("fstat");
-        return -1;
-    }
-
-    elf_map = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (elf_map == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-
     if (MODE == ELFCLASS32) {
-        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elf_map;
-        if (ehdr->e_shoff == 0 || ehdr->e_shnum == 0) {
+        if (h32->ehdr->e_shoff == 0 || h32->ehdr->e_shnum == 0) {
             ret = 1;
-        } else if (ehdr->e_shoff != st.st_size - sizeof(Elf32_Shdr) * ehdr->e_shnum) {
+        } else if (h32->ehdr->e_shoff != h32->size - sizeof(Elf32_Shdr) * h32->ehdr->e_shnum) {
             ret = 2;
         }
     }
 
     if (MODE == ELFCLASS64) {
-        Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_map;
-        if (ehdr->e_shoff == 0 || ehdr->e_shnum == 0) {
+        if (h64->ehdr->e_shoff == 0 || h64->ehdr->e_shnum == 0) {
             ret = 1;
-        } else if (ehdr->e_shoff != st.st_size - sizeof(Elf64_Shdr) * ehdr->e_shnum) {
+        } else if (h64->ehdr->e_shoff != h64->size - sizeof(Elf64_Shdr) * h64->ehdr->e_shnum) {
             ret = 2;
         }
     }
 
-    close(fd);
-    munmap(elf_map, st.st_size);
     return ret;
 }
 
@@ -381,6 +262,14 @@ int check_shdr(char *elf_name) {
  * @return int error code {-1:error,0:sucess}
  */
 int checksec(char *elf_name) {
+    handle_t32 h32;
+    handle_t64 h64;
+    int ret = init_elf(elf_name, &h32, &h64);
+    if (ret) {
+        ERROR("init elf error\n");
+        return -1;
+    }
+
     char TAG[50];
     printf("|--------------------------------------------------------------------------|\n");
     printf("|%-20s|%1s| %-50s|\n", "checkpoint", "s", "description");
@@ -399,54 +288,82 @@ int checksec(char *elf_name) {
     }
 
     /* check plt/got hook (lazy bind) */
-    strcpy(TAG, "hook(.got.plt)");
+    strcpy(TAG, "hook in .got.plt");
     addr = get_section_addr(elf_name, ".plt");
     size = get_section_size(elf_name, ".plt");
-    int ret = check_hook(elf_name, addr, size);
-    if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
-    } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", ".got.plt hook is detected");
-    } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(bind now)");
+    ret = check_hook(&h32, &h64, addr, size);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", ".got.plt hook is detected");
+            break;
+
+        default:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(bind now)");
+            break;
     }
 
     /* check load segment permission */
-    strcpy(TAG, "load flags");
-    ret = check_load_flags(elf_name);
-    if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
-    } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "more than one executable segment");
-    } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no executable elf file)");
+    strcpy(TAG, "segment flags");
+    ret = check_load_flags(&h32, &h64);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "more than one executable segment");
+            break;
+
+        default:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no executable elf file)");
+            break;
     }
 
     /* check segment continuity */
-    strcpy(TAG, "load continuity");
-    ret = check_load_continuity(elf_name);
-    if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
-    } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|", TAG, "✗", "load segments are NOT continuous");
-    } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
+    strcpy(TAG, "segment continuity");
+    ret = check_load_continuity(&h32, &h64);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "load segments are NOT continuous");
+            break;
+
+        default:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
+            break;
     }
 
     /* check DLL injection */
-    strcpy(TAG, "needed so continuity");
-    ret = check_needed_continuity(elf_name);
-    if (ret == 0) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
-    } else if (ret == 1) {
-        CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "DT_NEEDED libraries are NOT continuous");
-    } else if (ret == -1) {
-        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(static elf)");
+    strcpy(TAG, "DLL injection");
+    ret = check_needed_continuity(&h32, &h64);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "DT_NEEDED libraries are NOT continuous");
+            break;
+
+        default:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(static elf)");
+            break;
     }
 
     /* check section header table */
     strcpy(TAG, "section header table");
-    ret = check_shdr(elf_name);
+    ret = check_shdr(&h32, &h64);
     switch (ret)
     {
         case 0:
@@ -460,15 +377,13 @@ int checksec(char *elf_name) {
         case 2:
             CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "!", "is NOT at the end of the file");
             break;
-
-        case -1:
-            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
-            break;
         
         default:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
             break;
     }
 
     printf("|--------------------------------------------------------------------------|\n");
+    finit_elf(&h32, &h64);
     return 0;
 }
