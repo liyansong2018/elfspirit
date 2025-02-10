@@ -256,6 +256,73 @@ int check_shdr(handle_t32 *h32, handle_t64 *h64) {
 }
 
 /**
+ * @brief 检查dynstr是否连续以及字符串是否存在空格
+ * check if the dynstr segments are continuous and whether there are extra spaces in the string
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
+ * @return int error code {-1:error,0:sucess,1:failed}
+ */
+int check_dynstr(handle_t32 *h32, handle_t64 *h64) {
+    char *name;
+    int ret = 0;
+    int dynsym_i = 0, dynstr_i = 0;
+    char *tmp;
+    size_t tmp_size = 1;
+    if (MODE == ELFCLASS32) {
+        for (int i = 0; i < h32->ehdr->e_shnum; i++) {
+            name = h32->mem + h32->shstrtab->sh_offset + h32->shdr[i].sh_name;
+            if (validated_offset(name, h32->mem, h32->mem + h32->size)) {
+                ERROR("Corrupt file format\n");
+                ret = -1;
+            }
+            if (!strcmp(name, ".dynsym")) dynsym_i = i;
+            if (!strcmp(name, ".dynstr")) dynstr_i = i;
+        }
+        /* check if the dynstr segments are continuous */
+        if (h32->shdr[dynsym_i].sh_offset + h32->shdr[dynsym_i].sh_size != h32->shdr[dynstr_i].sh_offset)
+            ret = 1;
+        /* check if the string length is less than original one */
+        tmp = h32->mem + h32->shdr[dynstr_i].sh_offset + 1;
+        while (tmp_size < h32->shdr[dynstr_i].sh_size) {
+            tmp_size += strlen(tmp) + 1;
+            DEBUG("%s 0x%x\n", tmp, tmp_size);
+            tmp += strlen(tmp) + 1;
+            if (strlen(tmp) == 0) {
+                ret = 1;
+                break;
+            }
+        }
+    }
+    else if (MODE == ELFCLASS64) {
+        for (int i = 0; i < h64->ehdr->e_shnum; i++) {
+            name = h64->mem + h64->shstrtab->sh_offset + h64->shdr[i].sh_name;
+            if (validated_offset(name, h64->mem, h64->mem + h64->size)) {
+                ERROR("Corrupt file format\n");
+                ret = -1;
+            }
+            if (!strcmp(name, ".dynsym")) dynsym_i = i;
+            if (!strcmp(name, ".dynstr")) dynstr_i = i;
+        }
+        /* check if the dynstr segments are continuous */
+        if (h64->shdr[dynsym_i].sh_offset + h64->shdr[dynsym_i].sh_size != h64->shdr[dynstr_i].sh_offset)
+            ret = 1;
+        /* check if the string length is less than original one */
+        tmp = h64->mem + h64->shdr[dynstr_i].sh_offset + 1;
+        while (tmp_size < h64->shdr[dynstr_i].sh_size) {
+            tmp_size += strlen(tmp) + 1;
+            DEBUG("%s 0x%x\n", tmp, tmp_size);
+            tmp += strlen(tmp) + 1;
+            if (tmp_size != h64->shdr[dynstr_i].sh_size && strlen(tmp) == 0) {
+                ret = 1;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+/**
  * @brief 检查elf文件是否合法
  * check if the elf file is legal
  * @param elf_name elf file name
@@ -380,6 +447,24 @@ int checksec(char *elf_name) {
         
         default:
             CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na");
+            break;
+    }
+
+    /* check .dynstr */
+    strcpy(TAG, "symbol injection");
+    ret = check_dynstr(&h32, &h64);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+        
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "modified symbol is detected");
+            break;
+        
+        default:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no .dynstr section)");
             break;
     }
 
