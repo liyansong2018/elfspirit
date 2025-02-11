@@ -287,7 +287,7 @@ int check_dynstr(handle_t32 *h32, handle_t64 *h64) {
             tmp_size += strlen(tmp) + 1;
             DEBUG("%s 0x%x\n", tmp, tmp_size);
             tmp += strlen(tmp) + 1;
-            if (strlen(tmp) == 0) {
+            if (tmp_size != h32->shdr[dynstr_i].sh_size && strlen(tmp) == 0) {
                 ret = 1;
                 break;
             }
@@ -317,6 +317,53 @@ int check_dynstr(handle_t32 *h32, handle_t64 *h64) {
                 break;
             }
         }
+    }
+
+    return ret;
+}
+
+/**
+ * @brief 检查interpreter
+ * check if the interpreter is legal
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
+ * @return int error code {-1:error,0:sucess,1:failed}
+ */
+int check_interpreter(handle_t32 *h32, handle_t64 *h64) {
+    char *name;
+    int ret = 0;
+    int interp_i = 0;
+    char *tmp;
+    size_t tmp_size = 1;
+    if (MODE == ELFCLASS32) {
+        for (int i = 0; i < h32->ehdr->e_shnum; i++) {
+            name = h32->mem + h32->shstrtab->sh_offset + h32->shdr[i].sh_name;
+            if (validated_offset(name, h32->mem, h32->mem + h32->size)) {
+                ERROR("Corrupt file format\n");
+                ret = -1;
+            }
+            if (!strcmp(name, ".interp")) interp_i = i;
+        }
+        /* check index */
+        if (interp_i > 2) ret = 1;
+        /* check if the string length is less than original one */
+        name = h32->mem + h32->shdr[interp_i].sh_offset;
+        if (strlen(name) != h32->shdr[interp_i].sh_size - 1) ret = 1;
+    }
+    else if (MODE == ELFCLASS64) {
+        for (int i = 0; i < h64->ehdr->e_shnum; i++) {
+            name = h64->mem + h64->shstrtab->sh_offset + h64->shdr[i].sh_name;
+            if (validated_offset(name, h64->mem, h64->mem + h64->size)) {
+                ERROR("Corrupt file format\n");
+                ret = -1;
+            }
+            if (!strcmp(name, ".interp")) interp_i = i;
+        }
+        /* check index */
+        if (interp_i > 2) ret = 1;
+        /* check if the string length is less than original one */
+        name = h64->mem + h64->shdr[interp_i].sh_offset;
+        if (strlen(name) != h64->shdr[interp_i].sh_size - 1) ret = 1;
     }
 
     return ret;
@@ -464,7 +511,25 @@ int checksec(char *elf_name) {
             break;
         
         default:
-            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no .dynstr section)");
+            CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no .dynstr section)");
+            break;
+    }
+
+    /* check .interp */
+    strcpy(TAG, "interp injection");
+    ret = check_interpreter(&h32, &h64);
+    switch (ret)
+    {
+        case 0:
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+            break;
+        
+        case 1:
+            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", "modified interpreter is detected");
+            break;
+        
+        default:
+            CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no .interp section)");
             break;
     }
 
