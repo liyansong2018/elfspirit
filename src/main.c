@@ -42,7 +42,7 @@
 #include "segment.h"
 #include "rel.h"
 
-#define VERSION "1.9.2"
+#define VERSION "1.10.0"
 #define CONTENT_LENGTH 1024 * 1024
 
 char section_name[LENGTH];
@@ -172,6 +172,7 @@ static const char *help =
     "  patch        Patch ELF. [--set-interpreter, --set-rpath, --set-runpath]\n"
     "  confuse      Obfuscate ELF symbols. [--rm-section, --rm-shdr, --rm-strip, confuse]\n"
     "  infect       Infect ELF like virus. [--infect-silvio, --infect-skeksi, --infect-data, exe2so]\n"
+    "  forensic     Analyze the Legitimacy of ELF File Structure. [checksec]\n"
     "  other        Deprecated cmd. [addsec, injectso(deprecate)]\n"
     "Currently defined options:\n"
     "  -n, --section-name=<section name>         Set section name\n"
@@ -213,6 +214,7 @@ static const char *help =
     "  elfspirit addsec   [-n]<section name> [-z]<section size> [-o]<offset(optional)> ELF\n"
     "  elfspirit injectso [-n]<section name> [-f]<so name> [-c]<configure file>\n"
     "                     [-v]<libc version> ELF\n" 
+    "  elfspirit checksec ELF\n"
     "  elfspirit --edit-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<index of item> [-m]<pointer value> ELF\n"
@@ -241,6 +243,7 @@ static const char *help_chinese =
     "  patch        修补ELF. [--set-interpreter, --set-rpath, --set-runpath]\n"
     "  confuse      删除节、过滤符号表、删除节头表，混淆ELF符号. [--rm-section, --rm-shdr, --rm-strip, confuse]\n"
     "  infect       ELF文件感染. [--infect-silvio, --infect-skeksi, --infect-data, exe2so]\n"
+    "  forensic     分析ELF文件结构的合法性. [checksec]\n"
     "  other        即将弃用的功能. [addsec, injectso(deprecate)]\n"
     "支持的选项:\n"
     "  -n, --section-name=<section name>         设置节名\n"
@@ -282,6 +285,7 @@ static const char *help_chinese =
     "  elfspirit addsec   [-n]<节的名字> [-z]<节的大小> [-o]<节的偏移(可选项)> ELF\n"
     "  elfspirit injectso [-n]<节的名字> [-f]<so的名字> [-c]<配置文件>\n"
     "                     [-v]<libc的版本> ELF\n"
+    "  elfspirit checksec ELF\n"
     "  elfspirit --edit-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<第几个条目> [-m]<指针值> ELF\n"

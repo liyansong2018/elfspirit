@@ -1,4 +1,10 @@
 [2025-01-19]
+    elfspirit 1.10.0
+        - Add the ELF forensic analysis
+        - Update the help information of the tool
+        - Fix some issues
+
+[2025-01-19]
     elfspirit 1.9.2
         - Add the ability to save shellcode hex to binary & Redesign to convert the bare-meta/shellcode into an elf file
         - Delete the first space character in output formatting
