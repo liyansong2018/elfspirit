@@ -198,7 +198,7 @@ static void display_header32(handle_t32 *h) {
     }
     PRINT_HEADER_EXP(nr++, "e_type:", h->ehdr->e_type, tmp);
 
-    switch (h->ehdr->e_type) {
+    switch (h->ehdr->e_machine) {
         case EM_NONE:
             tmp = "An unknown machine";
             break;
@@ -234,9 +234,17 @@ static void display_header32(handle_t32 *h) {
         case EM_PARISC:
             tmp = "HP/PA";
             break;
+        
+        case EM_VPP500:
+            tmp = "Fujitsu VPP500";
+            break;
 
         case EM_SPARC32PLUS:
-            tmp = "SPARC with enhanced instruction set";
+            tmp = "Sun's \"v8plus\"";
+            break;
+
+        case EM_960:
+            tmp = "Intel 80960";
             break;
         
         case EM_PPC:
@@ -251,30 +259,654 @@ static void display_header32(handle_t32 *h) {
             tmp = "IBM S/390";
             break;
 
+        case EM_SPU:
+            tmp = "IBM SPU/SPC";
+            break;
+        
+        case EM_V800:
+            tmp = "NEC V800 series";
+            break;
+
+        case EM_FR20:
+            tmp = "Fujitsu FR20";
+            break;
+
+        case EM_RH32:
+            tmp = "TRW RH-32";
+            break;
+       
+        case EM_RCE:
+            tmp = "Motorola RCE";
+            break;
+
         case EM_ARM:
-            tmp = "Advanced RISC Machines";
+            tmp = "ARM";
+            break;
+        
+        case EM_FAKE_ALPHA:
+            tmp = "Digital Alpha";
             break;
 
         case EM_SH:
-            tmp = "Renesas SuperH";
+            tmp = "Hitachi SH";
             break;
         
         case EM_SPARCV9:
             tmp = "SPARC v9 64-bit";
             break;
 
+        case EM_TRICORE:
+            tmp = "Siemens Tricore";
+            break;
+
+        case EM_ARC:
+            tmp = "Argonaut RISC Core";
+            break;
+
+        case EM_H8_300:
+            tmp = "Hitachi H8/300";
+            break;
+
+        case EM_H8_300H:
+            tmp = "Hitachi H8/300H";
+            break;
+
+        case EM_H8S:
+            tmp = "Hitachi H8S";
+            break;
+
+        case EM_H8_500:
+            tmp = "Hitachi H8/500";
+            break;
+
         case EM_IA_64:
             tmp = "Intel Itanium";
+            break;
+
+        case EM_MIPS_X:
+            tmp = "Stanford MIPS-X";
+            break;
+
+        case EM_COLDFIRE:
+            tmp = "Motorola Coldfire";
+            break;
+
+        case EM_68HC12:
+            tmp = "Motorola M68HC12";
+            break;
+
+        case EM_MMA:
+            tmp = "Fujitsu MMA Multimedia Accelerator";
+            break;
+
+        case EM_PCP:
+            tmp = "Siemens PCP";
+            break;
+
+        case EM_NCPU:
+            tmp = "Sony nCPU embeeded RISC";
+            break;
+
+        case EM_NDR1:
+            tmp = "Denso NDR1 microprocessor";
+            break;
+        
+        case EM_STARCORE:
+            tmp = "Motorola Start*Core processor";
+            break;
+
+        case EM_ME16:
+            tmp = "Toyota ME16 processor";
+            break;
+
+        case EM_ST100:
+            tmp = "STMicroelectronic ST100 processor";
+            break;
+
+        case EM_TINYJ:
+            tmp = "Advanced Logic Corp. Tinyj emb.fam";
             break;
 
         case EM_X86_64:
             tmp = "AMD x86-64";
             break;
 
+        case EM_PDSP:
+            tmp = "Sony DSP Processor";
+            break;
+        
+        case EM_PDP10:
+            tmp = "Digital PDP-10";
+            break;
+
+        case EM_PDP11:
+            tmp = "Digital PDP-11";
+            break;
+
+        case EM_FX66:
+            tmp = "Siemens FX66 microcontroller";
+            break;
+
+        case EM_ST9PLUS:
+            tmp = "STMicroelectronics ST9+ 8/16 mc";
+            break;
+
+        case EM_ST7:
+            tmp = "STmicroelectronics ST7 8 bit mc";
+            break;
+
+        case EM_68HC16:
+            tmp = "Motorola MC68HC16 microcontroller";
+            break;
+
+        case EM_68HC11:
+            tmp = "Motorola MC68HC11 microcontroller";
+            break;
+
+        case EM_68HC08:
+            tmp = "Motorola MC68HC08 microcontroller";
+            break;
+
+        case EM_68HC05:
+            tmp = "Motorola MC68HC05 microcontroller";
+            break;
+
+        case EM_SVX:
+            tmp = "Silicon Graphics SVx";
+            break;
+
+        case EM_ST19:
+            tmp = "STMicroelectronics ST19 8 bit mc";
+            break;
+
         case EM_VAX:
             tmp = "DEC Vax";
             break;
         
+        case EM_CRIS:
+            tmp = "Axis Communications 32-bit emb.proc";
+            break;
+
+        case EM_JAVELIN:
+            tmp = "Infineon Technologies 32-bit emb.proc";
+            break;
+
+        case EM_FIREPATH:
+            tmp = "Element 14 64-bit DSP Processor";
+            break;
+
+        case EM_ZSP:
+            tmp = "LSI Logic 16-bit DSP Processor";
+            break;
+
+        case EM_MMIX:
+            tmp = "Donald Knuth's educational 64-bit proc";
+            break;
+
+        case EM_HUANY:
+            tmp = "Harvard University machine-independent object files";
+            break;
+
+        case EM_PRISM:
+            tmp = "SiTera Prism";
+            break;
+        
+        case EM_AVR:
+            tmp = "Atmel AVR 8-bit microcontroller";
+            break;
+        
+        case EM_FR30:
+            tmp = "Fujitsu FR30";
+            break;
+        
+        case EM_D10V:
+            tmp = "Mitsubishi D10V";
+            break;
+
+        case EM_D30V:
+            tmp = "Mitsubishi D30V";
+            break;
+        
+        case EM_V850:
+            tmp = "NEC v850";
+            break;
+
+        case EM_M32R:
+            tmp = "Mitsubishi M32R";
+            break;
+
+        case EM_MN10300:
+            tmp = "Matsushita MN10300";
+            break;
+
+        case EM_MN10200:
+            tmp = "Matsushita MN10200";
+            break;
+
+        case EM_PJ:
+            tmp = "picoJava";
+            break;
+
+        case EM_OPENRISC:
+            tmp = "OpenRISC 32-bit embedded processor";
+            break;
+
+        case EM_ARC_COMPACT:
+            tmp = "ARC International ARCompact";
+            break;
+
+        case EM_XTENSA:
+            tmp = "Tensilica Xtensa Architecture";
+            break;
+
+        case EM_VIDEOCORE:
+            tmp = "Alphamosaic VideoCore";
+            break;
+
+        case EM_TMM_GPP:
+            tmp = "Thompson Multimedia General Purpose Proc";
+            break;
+
+        case EM_NS32K:
+            tmp = "National Semi. 32000";
+            break;
+
+        case EM_TPC:
+            tmp = "Tenor Network TPC";
+            break;
+
+        case EM_SNP1K:
+            tmp = "Trebia SNP 1000";
+            break;
+
+        case EM_ST200:
+            tmp = "STMicroelectronics ST200";
+            break;
+
+        case EM_IP2K:
+            tmp = "Ubicom IP2xxx";
+            break;
+
+        case EM_MAX:
+            tmp = "MAX processor";
+            break;
+
+        case EM_CR:
+            tmp = "National Semi. CompactRISC";
+            break;
+
+        case EM_F2MC16:
+            tmp = "Fujitsu F2MC16";
+            break;
+
+        case EM_MSP430:
+            tmp = "Texas Instruments msp430";
+            break;
+
+        case EM_BLACKFIN:
+            tmp = "Analog Devices Blackfin DSP";
+            break;
+
+        case EM_SE_C33:
+            tmp = "Seiko Epson S1C33 family";
+            break;
+
+        case EM_SEP:
+            tmp = "Sharp embedded microprocessor";
+            break;
+
+        case EM_ARCA:
+            tmp = "Arca RISC";
+            break;
+
+        case EM_UNICORE:
+            tmp = "PKU-Unity & MPRC Peking Uni. mc series";
+            break;
+
+        case EM_EXCESS:
+            tmp = "eXcess configurable cpu";
+            break;
+
+        case EM_DXP:
+            tmp = "Icera Semi. Deep Execution Processor";
+            break;
+
+        case EM_ALTERA_NIOS2:
+            tmp = "Altera Nios II";
+            break;
+
+        case EM_CRX:
+            tmp = "National Semi. CompactRISC CRX";
+            break;
+
+        case EM_XGATE:
+            tmp = " Motorola XGATE";
+            break;
+
+        case EM_C166:
+            tmp = " Infineon C16x/XC16x";
+            break;
+
+        case EM_M16C:
+            tmp = "Renesas M16C";
+            break;
+
+        case EM_DSPIC30F:
+            tmp = "Microchip Technology dsPIC30F";
+            break;
+
+        case EM_CE:
+            tmp = "Freescale Communication Engine RISC";
+            break;
+
+        case EM_M32C:
+            tmp = "Renesas M32C";
+            break;
+
+        case EM_TSK3000:
+            tmp = "Altium TSK3000";
+            break;
+
+        case EM_RS08:
+            tmp = "Freescale RS08";
+            break;
+
+        case EM_SHARC:
+            tmp = "Analog Devices SHARC family";
+            break;
+
+        case EM_ECOG2:
+            tmp = "Cyan Technology eCOG2";
+            break;
+
+        case EM_SCORE7:
+            tmp = "Sunplus S+core7 RISC";
+            break;
+
+        case EM_DSP24:
+            tmp = "New Japan Radio (NJR) 24-bit DSP";
+            break;
+
+        case EM_VIDEOCORE3:
+            tmp = "Broadcom VideoCore III";
+            break;
+
+        case EM_LATTICEMICO32:
+            tmp = "RISC for Lattice FPGA";
+            break;
+
+        case EM_SE_C17:
+            tmp = "Seiko Epson C17";
+            break;
+
+        case EM_TI_C6000:
+            tmp = "Texas Instruments TMS320C6000 DSPP";
+            break;
+
+        case EM_TI_C2000:
+            tmp = "Texas Instruments TMS320C2000 DSP";
+            break;
+
+        case EM_TI_C5500:
+            tmp = "Texas Instruments TMS320C55x DSP";
+            break;
+
+        case EM_TI_ARP32:
+            tmp = "Texas Instruments App. Specific RISC";
+            break;
+
+        case EM_TI_PRU:
+            tmp = "Texas Instruments Prog. Realtime Unit";
+            break;
+
+        case EM_MMDSP_PLUS:
+            tmp = "STMicroelectronics 64bit VLIW DSP";
+            break;
+
+        case EM_CYPRESS_M8C:
+            tmp = "Cypress M8CP";
+            break;
+
+        case EM_R32C:
+            tmp = "Renesas R32C";
+            break;
+
+        case EM_TRIMEDIA:
+            tmp = "NXP Semi. TriMedia";
+            break;
+
+        case EM_QDSP6:
+            tmp = "QUALCOMM DSP6";
+            break;
+
+        case EM_8051:
+            tmp = "Intel 8051 and variants";
+            break;
+
+        case EM_STXP7X:
+            tmp = "STMicroelectronics STxP7x";
+            break;
+
+        case EM_NDS32:
+            tmp = "Andes Tech. compact code emb. RISC";
+            break;
+
+        case EM_ECOG1X:
+            tmp = "Cyan Technology eCOG1X";
+            break;
+
+        case EM_MAXQ30:
+            tmp = "Dallas Semi. MAXQ30 mc";
+            break;
+
+        case EM_XIMO16:
+            tmp = "New Japan Radio (NJR) 16-bit DSP";
+            break;
+
+        case EM_MANIK:
+            tmp = "M2000 Reconfigurable RISC";
+            break;
+
+        case EM_CRAYNV2:
+            tmp = "Cray NV2 vector architecture";
+            break;
+
+        case EM_RX:
+            tmp = "Renesas RX";
+            break;
+
+        case EM_METAG:
+            tmp = "Imagination Tech. META";
+            break;
+
+        case EM_MCST_ELBRUS:
+            tmp = "MCST Elbrus";
+            break;
+
+        case EM_ECOG16:
+            tmp = "Cyan Technology eCOG16";
+            break;
+
+        case EM_CR16:
+            tmp = "National Semi. CompactRISC CR16";
+            break;
+
+        case EM_ETPU:
+            tmp = "Freescale Extended Time Processing Unit";
+            break;
+
+        case EM_SLE9X:
+            tmp = "Infineon Tech. SLE9X";
+            break;
+
+        case EM_L10M:
+            tmp = "Intel L10M";
+            break;
+
+        case EM_K10M:
+            tmp = "Intel K10M";
+            break;
+
+        case EM_AARCH64:
+            tmp = "ARM AARCH64";
+            break;
+
+        case EM_AVR32:
+            tmp = "Amtel 32-bit microprocessor";
+            break;
+
+        case EM_STM8:
+            tmp = "STMicroelectronics STM8";
+            break;
+
+        case EM_TILE64:
+            tmp = "Tilera TILE64";
+            break;
+
+        case EM_TILEPRO:
+            tmp = "Tilera TILEPro";
+            break;
+
+        case EM_MICROBLAZE:
+            tmp = "Xilinx MicroBlaze";
+            break;
+
+        case EM_CUDA:
+            tmp = "NVIDIA CUDA";
+            break;
+
+        case EM_TILEGX:
+            tmp = "Tilera TILE-Gx";
+            break;
+
+        case EM_CLOUDSHIELD:
+            tmp = "CloudShield";
+            break;
+
+        case EM_COREA_1ST:
+            tmp = "KIPO-KAIST Core-A 1st gen";
+            break;
+
+        case EM_COREA_2ND:
+            tmp = "KIPO-KAIST Core-A 2nd gen";
+            break;
+
+        case EM_ARCV2:
+            tmp = "Synopsys ARCv2 ISA";
+            break;
+
+        case EM_OPEN8:
+            tmp = "Open8 RISC";
+            break;
+
+        case EM_RL78:
+            tmp = "Renesas RL78";
+            break;
+
+        case EM_VIDEOCORE5:
+            tmp = "Broadcom VideoCore V";
+            break;
+
+        case EM_78KOR:
+            tmp = "Renesas 78KOR";
+            break;
+
+        case EM_56800EX:
+            tmp = "Freescale 56800EX DSC";
+            break;
+
+        case EM_BA1:
+            tmp = "Beyond BA1";
+            break;
+
+        case EM_BA2:
+            tmp = "Beyond BA2";
+            break;
+
+        case EM_XCORE:
+            tmp = "XMOS xCORE";
+            break;
+
+        case EM_MCHP_PIC:
+            tmp = "Microchip 8-bit PIC(r)";
+            break;
+
+        case EM_INTELGT:
+            tmp = "Intel Graphics Technology";
+            break;
+
+        case EM_KM32:
+            tmp = "KM211 KM32";
+            break;
+
+        case EM_KMX32:
+            tmp = "KM211 KMX32";
+            break;
+
+        case EM_EMX16:
+            tmp = "KM211 KMX16";
+            break;
+
+        case EM_EMX8:
+            tmp = "KM211 KMX8";
+            break;
+
+        case EM_KVARC:
+            tmp = "KM211 KVARC";
+            break;
+
+        case EM_CDP:
+            tmp = "Paneve CD";
+            break;
+
+        case EM_COGE:
+            tmp = "Cognitive Smart Memory Processor";
+            break;
+
+        case EM_COOL:
+            tmp = "Bluechip CoolEngine";
+            break;
+
+        case EM_NORC:
+            tmp = "Nanoradio Optimized RISC";
+            break;
+
+        case EM_CSR_KALIMBA:
+            tmp = "CSR Kalimba";
+            break;
+
+        case EM_Z80:
+            tmp = "Zilog Z80";
+            break;
+
+        case EM_VISIUM:
+            tmp = "Controls and Data Services VISIUMcore";
+            break;
+
+        case EM_FT32:
+            tmp = "FTDI Chip FT32";
+            break;
+
+        case EM_MOXIE:
+            tmp = "Moxie processor";
+            break;
+
+        case EM_AMDGPU:
+            tmp = "AMD GPU";
+            break;
+
+        case EM_RISCV:
+            tmp = "RISC-V";
+            break;
+
+        case EM_BPF:
+            tmp = "Linux BPF -- in-kernel virtual machine";
+            break;
+
+        case EM_CSKY:
+            tmp = "C-SKY";
+            break;
+
         default:
             tmp = UNKOWN;
             break;
@@ -353,7 +985,7 @@ static void display_header64(handle_t64 *h) {
     }
     PRINT_HEADER_EXP(nr++, "e_type:", h->ehdr->e_type, tmp);
 
-    switch (h->ehdr->e_type) {
+    switch (h->ehdr->e_machine) {
         case EM_NONE:
             tmp = "An unknown machine";
             break;
@@ -389,9 +1021,17 @@ static void display_header64(handle_t64 *h) {
         case EM_PARISC:
             tmp = "HP/PA";
             break;
+        
+        case EM_VPP500:
+            tmp = "Fujitsu VPP500";
+            break;
 
         case EM_SPARC32PLUS:
-            tmp = "SPARC with enhanced instruction set";
+            tmp = "Sun's \"v8plus\"";
+            break;
+
+        case EM_960:
+            tmp = "Intel 80960";
             break;
         
         case EM_PPC:
@@ -406,30 +1046,654 @@ static void display_header64(handle_t64 *h) {
             tmp = "IBM S/390";
             break;
 
+        case EM_SPU:
+            tmp = "IBM SPU/SPC";
+            break;
+        
+        case EM_V800:
+            tmp = "NEC V800 series";
+            break;
+
+        case EM_FR20:
+            tmp = "Fujitsu FR20";
+            break;
+
+        case EM_RH32:
+            tmp = "TRW RH-32";
+            break;
+       
+        case EM_RCE:
+            tmp = "Motorola RCE";
+            break;
+
         case EM_ARM:
-            tmp = "Advanced RISC Machines";
+            tmp = "ARM";
+            break;
+        
+        case EM_FAKE_ALPHA:
+            tmp = "Digital Alpha";
             break;
 
         case EM_SH:
-            tmp = "Renesas SuperH";
+            tmp = "Hitachi SH";
             break;
         
         case EM_SPARCV9:
             tmp = "SPARC v9 64-bit";
             break;
 
+        case EM_TRICORE:
+            tmp = "Siemens Tricore";
+            break;
+
+        case EM_ARC:
+            tmp = "Argonaut RISC Core";
+            break;
+
+        case EM_H8_300:
+            tmp = "Hitachi H8/300";
+            break;
+
+        case EM_H8_300H:
+            tmp = "Hitachi H8/300H";
+            break;
+
+        case EM_H8S:
+            tmp = "Hitachi H8S";
+            break;
+
+        case EM_H8_500:
+            tmp = "Hitachi H8/500";
+            break;
+
         case EM_IA_64:
             tmp = "Intel Itanium";
+            break;
+
+        case EM_MIPS_X:
+            tmp = "Stanford MIPS-X";
+            break;
+
+        case EM_COLDFIRE:
+            tmp = "Motorola Coldfire";
+            break;
+
+        case EM_68HC12:
+            tmp = "Motorola M68HC12";
+            break;
+
+        case EM_MMA:
+            tmp = "Fujitsu MMA Multimedia Accelerator";
+            break;
+
+        case EM_PCP:
+            tmp = "Siemens PCP";
+            break;
+
+        case EM_NCPU:
+            tmp = "Sony nCPU embeeded RISC";
+            break;
+
+        case EM_NDR1:
+            tmp = "Denso NDR1 microprocessor";
+            break;
+        
+        case EM_STARCORE:
+            tmp = "Motorola Start*Core processor";
+            break;
+
+        case EM_ME16:
+            tmp = "Toyota ME16 processor";
+            break;
+
+        case EM_ST100:
+            tmp = "STMicroelectronic ST100 processor";
+            break;
+
+        case EM_TINYJ:
+            tmp = "Advanced Logic Corp. Tinyj emb.fam";
             break;
 
         case EM_X86_64:
             tmp = "AMD x86-64";
             break;
 
+        case EM_PDSP:
+            tmp = "Sony DSP Processor";
+            break;
+        
+        case EM_PDP10:
+            tmp = "Digital PDP-10";
+            break;
+
+        case EM_PDP11:
+            tmp = "Digital PDP-11";
+            break;
+
+        case EM_FX66:
+            tmp = "Siemens FX66 microcontroller";
+            break;
+
+        case EM_ST9PLUS:
+            tmp = "STMicroelectronics ST9+ 8/16 mc";
+            break;
+
+        case EM_ST7:
+            tmp = "STmicroelectronics ST7 8 bit mc";
+            break;
+
+        case EM_68HC16:
+            tmp = "Motorola MC68HC16 microcontroller";
+            break;
+
+        case EM_68HC11:
+            tmp = "Motorola MC68HC11 microcontroller";
+            break;
+
+        case EM_68HC08:
+            tmp = "Motorola MC68HC08 microcontroller";
+            break;
+
+        case EM_68HC05:
+            tmp = "Motorola MC68HC05 microcontroller";
+            break;
+
+        case EM_SVX:
+            tmp = "Silicon Graphics SVx";
+            break;
+
+        case EM_ST19:
+            tmp = "STMicroelectronics ST19 8 bit mc";
+            break;
+
         case EM_VAX:
             tmp = "DEC Vax";
             break;
         
+        case EM_CRIS:
+            tmp = "Axis Communications 32-bit emb.proc";
+            break;
+
+        case EM_JAVELIN:
+            tmp = "Infineon Technologies 32-bit emb.proc";
+            break;
+
+        case EM_FIREPATH:
+            tmp = "Element 14 64-bit DSP Processor";
+            break;
+
+        case EM_ZSP:
+            tmp = "LSI Logic 16-bit DSP Processor";
+            break;
+
+        case EM_MMIX:
+            tmp = "Donald Knuth's educational 64-bit proc";
+            break;
+
+        case EM_HUANY:
+            tmp = "Harvard University machine-independent object files";
+            break;
+
+        case EM_PRISM:
+            tmp = "SiTera Prism";
+            break;
+        
+        case EM_AVR:
+            tmp = "Atmel AVR 8-bit microcontroller";
+            break;
+        
+        case EM_FR30:
+            tmp = "Fujitsu FR30";
+            break;
+        
+        case EM_D10V:
+            tmp = "Mitsubishi D10V";
+            break;
+
+        case EM_D30V:
+            tmp = "Mitsubishi D30V";
+            break;
+        
+        case EM_V850:
+            tmp = "NEC v850";
+            break;
+
+        case EM_M32R:
+            tmp = "Mitsubishi M32R";
+            break;
+
+        case EM_MN10300:
+            tmp = "Matsushita MN10300";
+            break;
+
+        case EM_MN10200:
+            tmp = "Matsushita MN10200";
+            break;
+
+        case EM_PJ:
+            tmp = "picoJava";
+            break;
+
+        case EM_OPENRISC:
+            tmp = "OpenRISC 32-bit embedded processor";
+            break;
+
+        case EM_ARC_COMPACT:
+            tmp = "ARC International ARCompact";
+            break;
+
+        case EM_XTENSA:
+            tmp = "Tensilica Xtensa Architecture";
+            break;
+
+        case EM_VIDEOCORE:
+            tmp = "Alphamosaic VideoCore";
+            break;
+
+        case EM_TMM_GPP:
+            tmp = "Thompson Multimedia General Purpose Proc";
+            break;
+
+        case EM_NS32K:
+            tmp = "National Semi. 32000";
+            break;
+
+        case EM_TPC:
+            tmp = "Tenor Network TPC";
+            break;
+
+        case EM_SNP1K:
+            tmp = "Trebia SNP 1000";
+            break;
+
+        case EM_ST200:
+            tmp = "STMicroelectronics ST200";
+            break;
+
+        case EM_IP2K:
+            tmp = "Ubicom IP2xxx";
+            break;
+
+        case EM_MAX:
+            tmp = "MAX processor";
+            break;
+
+        case EM_CR:
+            tmp = "National Semi. CompactRISC";
+            break;
+
+        case EM_F2MC16:
+            tmp = "Fujitsu F2MC16";
+            break;
+
+        case EM_MSP430:
+            tmp = "Texas Instruments msp430";
+            break;
+
+        case EM_BLACKFIN:
+            tmp = "Analog Devices Blackfin DSP";
+            break;
+
+        case EM_SE_C33:
+            tmp = "Seiko Epson S1C33 family";
+            break;
+
+        case EM_SEP:
+            tmp = "Sharp embedded microprocessor";
+            break;
+
+        case EM_ARCA:
+            tmp = "Arca RISC";
+            break;
+
+        case EM_UNICORE:
+            tmp = "PKU-Unity & MPRC Peking Uni. mc series";
+            break;
+
+        case EM_EXCESS:
+            tmp = "eXcess configurable cpu";
+            break;
+
+        case EM_DXP:
+            tmp = "Icera Semi. Deep Execution Processor";
+            break;
+
+        case EM_ALTERA_NIOS2:
+            tmp = "Altera Nios II";
+            break;
+
+        case EM_CRX:
+            tmp = "National Semi. CompactRISC CRX";
+            break;
+
+        case EM_XGATE:
+            tmp = " Motorola XGATE";
+            break;
+
+        case EM_C166:
+            tmp = " Infineon C16x/XC16x";
+            break;
+
+        case EM_M16C:
+            tmp = "Renesas M16C";
+            break;
+
+        case EM_DSPIC30F:
+            tmp = "Microchip Technology dsPIC30F";
+            break;
+
+        case EM_CE:
+            tmp = "Freescale Communication Engine RISC";
+            break;
+
+        case EM_M32C:
+            tmp = "Renesas M32C";
+            break;
+
+        case EM_TSK3000:
+            tmp = "Altium TSK3000";
+            break;
+
+        case EM_RS08:
+            tmp = "Freescale RS08";
+            break;
+
+        case EM_SHARC:
+            tmp = "Analog Devices SHARC family";
+            break;
+
+        case EM_ECOG2:
+            tmp = "Cyan Technology eCOG2";
+            break;
+
+        case EM_SCORE7:
+            tmp = "Sunplus S+core7 RISC";
+            break;
+
+        case EM_DSP24:
+            tmp = "New Japan Radio (NJR) 24-bit DSP";
+            break;
+
+        case EM_VIDEOCORE3:
+            tmp = "Broadcom VideoCore III";
+            break;
+
+        case EM_LATTICEMICO32:
+            tmp = "RISC for Lattice FPGA";
+            break;
+
+        case EM_SE_C17:
+            tmp = "Seiko Epson C17";
+            break;
+
+        case EM_TI_C6000:
+            tmp = "Texas Instruments TMS320C6000 DSPP";
+            break;
+
+        case EM_TI_C2000:
+            tmp = "Texas Instruments TMS320C2000 DSP";
+            break;
+
+        case EM_TI_C5500:
+            tmp = "Texas Instruments TMS320C55x DSP";
+            break;
+
+        case EM_TI_ARP32:
+            tmp = "Texas Instruments App. Specific RISC";
+            break;
+
+        case EM_TI_PRU:
+            tmp = "Texas Instruments Prog. Realtime Unit";
+            break;
+
+        case EM_MMDSP_PLUS:
+            tmp = "STMicroelectronics 64bit VLIW DSP";
+            break;
+
+        case EM_CYPRESS_M8C:
+            tmp = "Cypress M8CP";
+            break;
+
+        case EM_R32C:
+            tmp = "Renesas R32C";
+            break;
+
+        case EM_TRIMEDIA:
+            tmp = "NXP Semi. TriMedia";
+            break;
+
+        case EM_QDSP6:
+            tmp = "QUALCOMM DSP6";
+            break;
+
+        case EM_8051:
+            tmp = "Intel 8051 and variants";
+            break;
+
+        case EM_STXP7X:
+            tmp = "STMicroelectronics STxP7x";
+            break;
+
+        case EM_NDS32:
+            tmp = "Andes Tech. compact code emb. RISC";
+            break;
+
+        case EM_ECOG1X:
+            tmp = "Cyan Technology eCOG1X";
+            break;
+
+        case EM_MAXQ30:
+            tmp = "Dallas Semi. MAXQ30 mc";
+            break;
+
+        case EM_XIMO16:
+            tmp = "New Japan Radio (NJR) 16-bit DSP";
+            break;
+
+        case EM_MANIK:
+            tmp = "M2000 Reconfigurable RISC";
+            break;
+
+        case EM_CRAYNV2:
+            tmp = "Cray NV2 vector architecture";
+            break;
+
+        case EM_RX:
+            tmp = "Renesas RX";
+            break;
+
+        case EM_METAG:
+            tmp = "Imagination Tech. META";
+            break;
+
+        case EM_MCST_ELBRUS:
+            tmp = "MCST Elbrus";
+            break;
+
+        case EM_ECOG16:
+            tmp = "Cyan Technology eCOG16";
+            break;
+
+        case EM_CR16:
+            tmp = "National Semi. CompactRISC CR16";
+            break;
+
+        case EM_ETPU:
+            tmp = "Freescale Extended Time Processing Unit";
+            break;
+
+        case EM_SLE9X:
+            tmp = "Infineon Tech. SLE9X";
+            break;
+
+        case EM_L10M:
+            tmp = "Intel L10M";
+            break;
+
+        case EM_K10M:
+            tmp = "Intel K10M";
+            break;
+
+        case EM_AARCH64:
+            tmp = "ARM AARCH64";
+            break;
+
+        case EM_AVR32:
+            tmp = "Amtel 32-bit microprocessor";
+            break;
+
+        case EM_STM8:
+            tmp = "STMicroelectronics STM8";
+            break;
+
+        case EM_TILE64:
+            tmp = "Tilera TILE64";
+            break;
+
+        case EM_TILEPRO:
+            tmp = "Tilera TILEPro";
+            break;
+
+        case EM_MICROBLAZE:
+            tmp = "Xilinx MicroBlaze";
+            break;
+
+        case EM_CUDA:
+            tmp = "NVIDIA CUDA";
+            break;
+
+        case EM_TILEGX:
+            tmp = "Tilera TILE-Gx";
+            break;
+
+        case EM_CLOUDSHIELD:
+            tmp = "CloudShield";
+            break;
+
+        case EM_COREA_1ST:
+            tmp = "KIPO-KAIST Core-A 1st gen";
+            break;
+
+        case EM_COREA_2ND:
+            tmp = "KIPO-KAIST Core-A 2nd gen";
+            break;
+
+        case EM_ARCV2:
+            tmp = "Synopsys ARCv2 ISA";
+            break;
+
+        case EM_OPEN8:
+            tmp = "Open8 RISC";
+            break;
+
+        case EM_RL78:
+            tmp = "Renesas RL78";
+            break;
+
+        case EM_VIDEOCORE5:
+            tmp = "Broadcom VideoCore V";
+            break;
+
+        case EM_78KOR:
+            tmp = "Renesas 78KOR";
+            break;
+
+        case EM_56800EX:
+            tmp = "Freescale 56800EX DSC";
+            break;
+
+        case EM_BA1:
+            tmp = "Beyond BA1";
+            break;
+
+        case EM_BA2:
+            tmp = "Beyond BA2";
+            break;
+
+        case EM_XCORE:
+            tmp = "XMOS xCORE";
+            break;
+
+        case EM_MCHP_PIC:
+            tmp = "Microchip 8-bit PIC(r)";
+            break;
+
+        case EM_INTELGT:
+            tmp = "Intel Graphics Technology";
+            break;
+
+        case EM_KM32:
+            tmp = "KM211 KM32";
+            break;
+
+        case EM_KMX32:
+            tmp = "KM211 KMX32";
+            break;
+
+        case EM_EMX16:
+            tmp = "KM211 KMX16";
+            break;
+
+        case EM_EMX8:
+            tmp = "KM211 KMX8";
+            break;
+
+        case EM_KVARC:
+            tmp = "KM211 KVARC";
+            break;
+
+        case EM_CDP:
+            tmp = "Paneve CD";
+            break;
+
+        case EM_COGE:
+            tmp = "Cognitive Smart Memory Processor";
+            break;
+
+        case EM_COOL:
+            tmp = "Bluechip CoolEngine";
+            break;
+
+        case EM_NORC:
+            tmp = "Nanoradio Optimized RISC";
+            break;
+
+        case EM_CSR_KALIMBA:
+            tmp = "CSR Kalimba";
+            break;
+
+        case EM_Z80:
+            tmp = "Zilog Z80";
+            break;
+
+        case EM_VISIUM:
+            tmp = "Controls and Data Services VISIUMcore";
+            break;
+
+        case EM_FT32:
+            tmp = "FTDI Chip FT32";
+            break;
+
+        case EM_MOXIE:
+            tmp = "Moxie processor";
+            break;
+
+        case EM_AMDGPU:
+            tmp = "AMD GPU";
+            break;
+
+        case EM_RISCV:
+            tmp = "RISC-V";
+            break;
+
+        case EM_BPF:
+            tmp = "Linux BPF -- in-kernel virtual machine";
+            break;
+
+        case EM_CSKY:
+            tmp = "C-SKY";
+            break;
+
         default:
             tmp = UNKOWN;
             break;
