@@ -9,6 +9,79 @@
 #include "common.h"
 #include "section.h"
 
+enum ELF_TYPE {
+    ELF_STATIC,
+    ELF_EXE_NOW,
+    ELF_EXE_LAZY,
+    ELF_SHARED
+};
+
+/**
+ * @brief elf类型
+ * get elf type
+ * @param h32 elf file handle struct
+ * @param h64 elf file handle struct
+ * @return int error code {-1:error,elf type}
+ */
+int get_elf_type(handle_t32 *h32, handle_t64 *h64) {
+    int has_dynamic = 0;
+    if (MODE == ELFCLASS32) {
+        Elf32_Dyn *dyn = NULL;
+        uint32_t dyn_c;
+        for (int i = 0; i < h32->ehdr->e_phnum; i++) {
+            if (h32->phdr[i].p_type == PT_DYNAMIC) {
+                has_dynamic = 1;
+                dyn = h32->mem + h32->phdr[i].p_offset;
+                dyn_c = h32->phdr[i].p_filesz / sizeof(Elf32_Dyn);
+                break;
+            }
+        }
+        if (!has_dynamic && h32->ehdr->e_type == ET_EXEC) {
+            return ELF_STATIC;
+        }
+        else if (has_dynamic && h32->ehdr->e_type == ET_DYN) {
+            for (int i = 0; i < dyn_c; i++) {
+                if (dyn[i].d_tag == DT_FLAGS_1) {
+                    if (has_flag(dyn[i].d_un.d_val, DF_1_NOW))
+                        return ELF_EXE_NOW;
+                    else
+                        return ELF_EXE_LAZY;
+                    break;
+                }
+            }
+            return ELF_SHARED;
+        }
+    }
+    if (MODE == ELFCLASS64) {
+        Elf64_Dyn *dyn = NULL;
+        uint64_t dyn_c;
+        for (int i = 0; i < h64->ehdr->e_phnum; i++) {
+            if (h64->phdr[i].p_type == PT_DYNAMIC) {
+                has_dynamic = 1;
+                dyn = h64->mem + h64->phdr[i].p_offset;
+                dyn_c = h64->phdr[i].p_filesz / sizeof(Elf64_Dyn);
+                break;
+            }
+        }
+        if (!has_dynamic && h64->ehdr->e_type == ET_EXEC) {
+            return ELF_STATIC;
+        }
+        else if (has_dynamic && h64->ehdr->e_type == ET_DYN) {
+            for (int i = 0; i < dyn_c; i++) {
+                if (dyn[i].d_tag == DT_FLAGS_1) {
+                    if (has_flag(dyn[i].d_un.d_val, DF_1_NOW))
+                        return ELF_EXE_NOW;
+                    else
+                        return ELF_EXE_LAZY;
+                    break;
+                }
+            }
+            return ELF_SHARED;
+        }
+    }
+    return -1;
+}
+
 /**
  * @brief 检查hook外部函数
  * chekc hook function by .got.plt
@@ -332,7 +405,7 @@ int check_dynstr(handle_t32 *h32, handle_t64 *h64) {
 int check_interpreter(handle_t32 *h32, handle_t64 *h64) {
     char *name;
     int ret = 0;
-    int interp_i = 0;
+    int interp_i = -1;
     char *tmp;
     size_t tmp_size = 1;
     if (MODE == ELFCLASS32) {
@@ -344,11 +417,18 @@ int check_interpreter(handle_t32 *h32, handle_t64 *h64) {
             }
             if (!strcmp(name, ".interp")) interp_i = i;
         }
-        /* check index */
-        if (interp_i > 2) ret = 1;
-        /* check if the string length is less than original one */
         name = h32->mem + h32->shdr[interp_i].sh_offset;
-        if (strlen(name) != h32->shdr[interp_i].sh_size - 1) ret = 1;
+        /* check index */
+        if (interp_i == -1) {
+            ret = -1;
+        }
+        else if (interp_i > 2) {
+            ret = 1;
+        }
+        /* check if the string length is less than original one */
+        else if (strlen(name) != h32->shdr[interp_i].sh_size - 1) {
+            ret = 1;
+        }
     }
     else if (MODE == ELFCLASS64) {
         for (int i = 0; i < h64->ehdr->e_shnum; i++) {
@@ -359,11 +439,18 @@ int check_interpreter(handle_t32 *h32, handle_t64 *h64) {
             }
             if (!strcmp(name, ".interp")) interp_i = i;
         }
-        /* check index */
-        if (interp_i > 2) ret = 1;
-        /* check if the string length is less than original one */
         name = h64->mem + h64->shdr[interp_i].sh_offset;
-        if (strlen(name) != h64->shdr[interp_i].sh_size - 1) ret = 1;
+        /* check index */
+        if (interp_i == -1) {
+            ret = -1;
+        }
+        else if (interp_i > 2) {
+            ret = 1;
+        }
+        /* check if the string length is less than original one */
+        else if (strlen(name) != h64->shdr[interp_i].sh_size - 1) {
+            ret = 1;
+        }
     }
 
     return ret;
@@ -384,6 +471,31 @@ int checksec(char *elf_name) {
         return -1;
     }
 
+    char *mode, *tmp, *bind;
+    char elf_info[1000];
+    enum ELF_TYPE type;
+    type = get_elf_type(&h32, &h64);
+    if (MODE == ELFCLASS32) {
+        mode = "32-bit";
+    } else if (MODE == ELFCLASS64) {
+        mode = "64-bit";
+    }
+    if (type == ELF_EXE_LAZY) {
+        bind = "bind lazy";
+        tmp = "pie executable";
+    } else if (type == ELF_EXE_NOW) {
+        bind = "bind now";
+        tmp = "pie executable";
+    } else if (type == ELF_SHARED) {
+        bind = "dynamically linked";
+        tmp = "shared object";
+    } else if (type == ELF_STATIC) {
+        bind = "statically linked";
+        tmp = "executable";
+    }
+    snprintf(elf_info, 1000, "ELF %s %s, %s", mode, tmp, bind);
+    printf("%s\n", elf_info);
+
     char TAG[50];
     printf("|--------------------------------------------------------------------------|\n");
     printf("|%-20s|%1s| %-50s|\n", "checkpoint", "s", "description");
@@ -393,7 +505,10 @@ int checksec(char *elf_name) {
     uint64_t entry = get_entry(elf_name);
     uint64_t addr = get_section_addr(elf_name, ".text");
     size_t size = get_section_size(elf_name, ".text");
-    if (entry == addr) {
+    if (type == ELF_SHARED && entry == 0) {
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(shared library)");
+    }
+    else if (entry == addr) {
         CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
     } else if (entry > addr && entry < addr + size) {
         CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "!", "is NOT at the start of the .TEXT section");
@@ -403,23 +518,30 @@ int checksec(char *elf_name) {
 
     /* check plt/got hook (lazy bind) */
     strcpy(TAG, "hook in .got.plt");
-    addr = get_section_addr(elf_name, ".plt");
-    size = get_section_size(elf_name, ".plt");
-    ret = check_hook(&h32, &h64, addr, size);
-    switch (ret)
-    {
-        case 0:
-            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
-            break;
+    if (type == ELF_SHARED) {
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(shared library)");
+    } else if (type == ELF_STATIC) {
+        CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(statically linked)");
+    } else {
+        addr = get_section_addr(elf_name, ".plt");
+        size = get_section_size(elf_name, ".plt");
+        ret = check_hook(&h32, &h64, addr, size);
+        switch (ret)
+        {
+            case 0:
+                CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "✓", "normal");
+                break;
 
-        case 1:
-            CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", ".got.plt hook is detected");
-            break;
+            case 1:
+                CHECK_ERROR("|%-20s|%1s| %-50s|\n", TAG, "✗", ".got.plt hook is detected");
+                break;
 
-        default:
-            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(bind now)");
-            break;
+            default:
+                CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(bind now)");
+                break;
+        }
     }
+    
 
     /* check load segment permission */
     strcpy(TAG, "segment flags");
@@ -471,7 +593,7 @@ int checksec(char *elf_name) {
             break;
 
         default:
-            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(static elf)");
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(statically linked)");
             break;
     }
 
@@ -529,7 +651,7 @@ int checksec(char *elf_name) {
             break;
         
         default:
-            CHECK_WARNING("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no .interp section)");
+            CHECK_COMMON("|%-20s|%1s| %-50s|\n", TAG, "-", "na(no .interp section)");
             break;
     }
 
