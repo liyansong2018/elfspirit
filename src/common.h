@@ -254,6 +254,15 @@ int set_interpreter(char *elf_name, char *new_interpreter);
 int is_pie(char *elfname);
 
 /**
+ * @brief 编辑指针
+ * edit pointers in the ELF files
+ * @param elf_name elf file name
+ * @param offset start elf file offset
+ * @return int error code {-1:error,0:sucess}
+ */
+int set_pointer(char *elf_name, uint64_t offset, uint64_t value);
+
+/**
  * @brief 向ELF文件特定偏移处，写入一段数据
  * Write a piece of data to a specific offset in the ELF file
  * @param elf_name elf file name
