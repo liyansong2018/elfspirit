@@ -72,6 +72,7 @@ enum LONG_OPTION {
     EDIT_SEGMENT_FLAGS,
     EDIT_POINTER,
     SET_POINTER,
+    SET_CONTENT,
     SET_INTERPRETER,
     ADD_SEGMENT,
     ADD_SECTION,
@@ -145,6 +146,7 @@ static const struct option longopts[] = {
     {"edit-segment-flags", no_argument, &g_long_option, EDIT_SEGMENT_FLAGS},
     {"edit-pointer", no_argument, &g_long_option, EDIT_POINTER},
     {"set-pointer", no_argument, &g_long_option, SET_POINTER},
+    {"edit-hex", no_argument, &g_long_option, SET_CONTENT},
     {"set-interpreter", no_argument, &g_long_option, SET_INTERPRETER},
     {"add-segment", no_argument, &g_long_option, ADD_SEGMENT},
     {"add-section", no_argument, &g_long_option, ADD_SECTION},
@@ -219,6 +221,7 @@ static const char *help =
     "  elfspirit checksec ELF\n"
     "  elfspirit --edit-section-flags [-i]<row of section> [-m]<permission> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<row of segment> [-m]<permission> ELF\n"
+    "  elfspirit --edit-hex     [-o]<offset> [-s]<hex string> [-z]<size> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<index of item> [-m]<pointer value> ELF\n"
     "  elfspirit --set-pointer  [-o]<offset> [-m]<pointer value> ELF\n"
     "  elfspirit --set-interpreter [-s]<new interpreter> ELF\n"
@@ -291,6 +294,7 @@ static const char *help_chinese =
     "  elfspirit checksec ELF\n"
     "  elfspirit --edit-section-flags [-i]<第几个节> [-m]<权限值> ELF\n"
     "  elfspirit --edit-segment-flags [-i]<第几个段> [-m]<权限值> ELF\n"
+    "  elfspirit --edit-hex     [-o]<偏移> [-s]<hex string> [-z]<size> ELF\n"
     "  elfspirit --edit-pointer [-n]<section name> [-i]<第几个条目> [-m]<指针值> ELF\n"
     "  elfspirit --set-pointer  [-o]<偏移> [-m]<指针值> ELF\n"
     "  elfspirit --set-interpreter [-s]<新的链接器> ELF\n"
@@ -516,6 +520,14 @@ static void readcmdline(int argc, char *argv[]) {
                 case SET_POINTER:
                     /* set pointer */
                     set_pointer(elf_name, off, value);
+                    break;
+
+                case SET_CONTENT:
+                    /* set content */
+                    g_shellcode = malloc(size);
+                    cmdline_shellcode(string, g_shellcode);
+                    set_content(elf_name, off, g_shellcode, size);
+                    free(g_shellcode);
                     break;
 
                 case SET_INTERPRETER:
