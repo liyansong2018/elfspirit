@@ -2,8 +2,8 @@
 # elfspirit
 
 [![arch](https://img.shields.io/badge/arch-i386%20%7C%20amd64-orange)](#)
-[![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-orange)](#)
-![GitHub Tag](https://img.shields.io/github/v/tag/liyansong2018/elfspirit)
+[![platform](https://img.shields.io/badge/platform-Ubuntu%20%7C%20Kali-orange)](https://github.com/liyansong2018/elfspirit#Limitations)
+[![GitHub Tag](https://img.shields.io/github/v/tag/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/tags)
 [![license](https://img.shields.io/github/license/liyansong2018/elfspirit)](https://github.com/liyansong2018/elfspirit/blob/main/LICENSE)
 
 **elfspirit** is a useful program that parse, manipulate and camouflage ELF files. It provides a variety of functions, including parsing ELF like `readelf`, editing ELF like `010 editor`, adding section or segment, pathing ELF like `patchelf`, infecting ELF, deleting the section header table to increase the difficulty of reverse engineering. 
