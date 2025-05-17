@@ -95,8 +95,8 @@
 
 [2022-03-15]
     elfspirit 1.1.4
-        - Fix https://github.com/liyansong2018/elfspirit/issues/4
-        - Fix https://github.com/liyansong2018/elfspirit/issues/3
+        - Fix https://github.com/secnotes/elfspirit/issues/4
+        - Fix https://github.com/secnotes/elfspirit/issues/3
         - Prevent CWE - <NULL Pointer Dereference - (476)>
 
 [2022-02-17]
