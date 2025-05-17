@@ -1,6 +1,6 @@
 TARGET=elfspirit
 OUT=/usr/local/bin/
-SRCS = $(wildcard *.c cJSON/*.c)
+SRCS = $(wildcard *.c cJSON/cJSON.c)
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -w -c
 
