@@ -468,6 +468,8 @@ static void readcmdline(int argc, char *argv[]) {
 
     /* handle additional long parameters */
     Elf elf;
+    uint64_t index = 0;
+
     if (optind == argc - 1) {
         memcpy(elf_name, argv[optind], strlen(argv[optind]));
         init(elf_name, &elf, false);
@@ -506,7 +508,6 @@ static void readcmdline(int argc, char *argv[]) {
                     break;
 
                 case ADD_SEGMENT:
-                    uint64_t index = 0;
                     if (strlen(file) == 0)
                         err = add_segment_auto(&elf, size, &index);
                     else
@@ -515,8 +516,7 @@ static void readcmdline(int argc, char *argv[]) {
                     break;
 
                 case ADD_SECTION:
-                    uint64_t index1 = 0;
-                    err = add_section_auto(&elf, size, section_name, &index1);
+                    err = add_section_auto(&elf, size, section_name, &index);
                     print_error(err);
                     break;
 
