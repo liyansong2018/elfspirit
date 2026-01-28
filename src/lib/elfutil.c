@@ -1461,12 +1461,24 @@ int set_section_name_t(Elf *elf, char *src_name, char *dst_name) {
 static int is_isolated_dynstr(Elf *elf) {
     // uint64_t addr = get_section_addr_by_name(elf, ".dynstr");
     uint64_t addr = get_dynseg_value_by_tag(elf, DT_STRTAB);
-    for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
-        if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
-            if (addr == elf->data.elf64.phdr[i].p_vaddr) {
-                return i;
+    if (elf->class == ELFCLASS32) {
+        for (int i = 0; i < elf->data.elf32.ehdr->e_phnum; i++) {
+            if (elf->data.elf32.phdr[i].p_type == PT_LOAD) {
+                if (addr == elf->data.elf32.phdr[i].p_vaddr) {
+                    return i;
+                }
             }
         }
+    } else if (elf->class == ELFCLASS64) {
+        for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
+            if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
+                if (addr == elf->data.elf64.phdr[i].p_vaddr) {
+                    return i;
+                }
+            }
+        }
+    } else {
+        return ERR_ELF_CLASS;
     }
     return FALSE;
 }
@@ -1474,35 +1486,71 @@ static int is_isolated_dynstr(Elf *elf) {
 static int is_isolated_dynamic(Elf *elf) {
     size_t index = 0;
     get_segment_index_by_type(elf, PT_DYNAMIC, &index);
-    for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
-        if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
-            if (elf->data.elf64.phdr[index].p_vaddr == elf->data.elf64.phdr[i].p_vaddr) {
-                return i;
+    if (elf->class == ELFCLASS32) {
+        for (int i = 0; i < elf->data.elf32.ehdr->e_phnum; i++) {
+            if (elf->data.elf32.phdr[i].p_type == PT_LOAD) {
+                if (elf->data.elf32.phdr[index].p_vaddr == elf->data.elf32.phdr[i].p_vaddr) {
+                    return i;
+                }
             }
         }
+    } else if (elf->class == ELFCLASS64) {
+        for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
+            if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
+                if (elf->data.elf64.phdr[index].p_vaddr == elf->data.elf64.phdr[i].p_vaddr) {
+                    return i;
+                }
+            }
+        }
+    } else {
+        return ERR_ELF_CLASS;
     }
     return FALSE;
 }
 
 static int is_isolated_shstr(Elf *elf) {
     uint64_t offset = get_section_offset_by_name(elf, ".shstrtab");
-    for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
-        if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
-            if (offset == elf->data.elf64.phdr[i].p_offset) {
-                return i;
+    if (elf->class == ELFCLASS32) {
+        for (int i = 0; i < elf->data.elf32.ehdr->e_phnum; i++) {
+            if (elf->data.elf32.phdr[i].p_type == PT_LOAD) {
+                if (offset == elf->data.elf32.phdr[i].p_offset) {
+                    return i;
+                }
             }
         }
+    } else if (elf->class == ELFCLASS64) {
+        for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
+            if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
+                if (offset == elf->data.elf64.phdr[i].p_offset) {
+                    return i;
+                }
+            }
+        }
+    } else {
+        return ERR_ELF_CLASS;
     }
     return FALSE;
 }
 
 static int is_isolated_seg(Elf *elf, uint64_t offset) {
-    for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
-        if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
-            if (offset == elf->data.elf64.phdr[i].p_offset) {
-                return i;
+    if (elf->class == ELFCLASS32) {
+        for (int i = 0; i < elf->data.elf32.ehdr->e_phnum; i++) {
+            if (elf->data.elf32.phdr[i].p_type == PT_LOAD) {
+                if (offset == elf->data.elf32.phdr[i].p_offset) {
+                    return i;
+                }
             }
         }
+    } else if (elf->class == ELFCLASS64) {
+        for (int i = 0; i < elf->data.elf64.ehdr->e_phnum; i++) {
+            if (elf->data.elf64.phdr[i].p_type == PT_LOAD) {
+                if (offset == elf->data.elf64.phdr[i].p_offset) {
+                    return i;
+                }
+            }
+        }
+    } else {
+        return ERR_ELF_CLASS;
     }
     return FALSE;
 }
@@ -1520,7 +1568,7 @@ int set_dynstr_name(Elf *elf, char *src_name, char *dst_name) {
     uint64_t offset = 0;    // for expand_segment_load
     uint64_t addr = 0;      // for expand_segment_load
     uint64_t seg_i = 0;
-    if (index == FALSE) {
+    if (sym_i == FALSE) {
         return ERR_SEC_NOTFOUND;
     }
     if (elf->class == ELFCLASS32) {
@@ -1672,7 +1720,7 @@ int add_dynstr_name(Elf *elf, char *name, uint64_t *name_offset) {
     uint64_t src_size = get_section_size_by_name(elf, ".dynstr");
     int dst_index = 0;
     int err = 0;
-    if (index == FALSE) {
+    if (src_offset == 0 || src_size == 0) {
         return ERR_SEC_NOTFOUND;
     }
     if (elf->class == ELFCLASS32) {
@@ -1733,11 +1781,60 @@ int add_shstr_name(Elf *elf, char *name, uint64_t *name_offset) {
     uint64_t offset = 0;    // for expand_segment_load
     uint64_t addr = 0;      // for expand_segment_load
     uint64_t seg_i = 0;
-    if (index == FALSE) {
+    if (shstr_sec_i == FALSE) {
         return ERR_SEC_NOTFOUND;
     }
     if (elf->class == ELFCLASS32) {
-        ;
+        /* Determine whether shstrtab is within an independent PT_LOAD segment */
+        /* 判断shstrtab是否在一个独立的PT_LOAD段内 */
+        seg_i = is_isolated_shstr(elf);
+        if (seg_i != FALSE) {
+            PRINT_VERBOSE("shstr is in an isolated PT_LOAD segment, expand a segment\n");
+            /* Determine if PT_LOAD has extra space */
+            /* 判断PT_LOAD是否有多余空间 */
+            if (elf->data.elf32.phdr[seg_i].p_filesz - elf->data.elf32.shdr[shstr_sec_i].sh_size >= strlen(name) + 1) {
+                // enough space
+                *name_offset = elf->data.elf32.shdr[shstr_sec_i].sh_size;
+                memset((void *)elf->mem + elf->data.elf32.shdr[shstr_sec_i].sh_offset + elf->data.elf32.shdr[shstr_sec_i].sh_size, 0, strlen(name) + 1);
+                strcpy((char *)elf->mem + elf->data.elf32.shdr[shstr_sec_i].sh_offset + elf->data.elf32.shdr[shstr_sec_i].sh_size, name);
+                elf->data.elf32.shdr[shstr_sec_i].sh_size += strlen(name) + 1;
+            } else if (expand_segment_load(elf, seg_i, strlen(name) + 1, &offset, &addr) == NO_ERR) {
+                *name_offset = elf->data.elf32.shdr[shstr_sec_i].sh_size;
+                memset((void *)elf->mem + elf->data.elf32.shdr[shstr_sec_i].sh_offset + elf->data.elf32.shdr[shstr_sec_i].sh_size, 0, strlen(name) + 1);
+                strcpy((char *)elf->mem + elf->data.elf32.shdr[shstr_sec_i].sh_offset + elf->data.elf32.shdr[shstr_sec_i].sh_size, name);
+                elf->data.elf32.shdr[shstr_sec_i].sh_size += strlen(name) + 1;
+            } else {
+                return ERR_EXPAND_SEG;
+            }
+
+            return NO_ERR;
+        } else {
+            PRINT_VERBOSE("shstr is not in an isolated PT_LOAD segment, add a new segment\n");
+            size_t src_len = elf->data.elf32.shdr[shstr_sec_i].sh_size;
+            size_t dst_len = src_len + strlen(name) + 1;
+            if (add_segment_auto(elf, dst_len, &seg_i) != NO_ERR) {
+                return ERR_ADD_SEG;
+            }
+
+            uint32_t dst_offset = elf->data.elf32.phdr[seg_i].p_offset;
+            uint32_t dst_addr = elf->data.elf32.phdr[seg_i].p_vaddr;
+            void *src = (void *)elf->mem + elf->data.elf32.shdr[shstr_sec_i].sh_offset;
+            void *dst = (void *)elf->mem + dst_offset;
+
+            if (copy_data(src, dst, src_len) == NO_ERR) {
+                // new section shdr table
+                elf->data.elf32.shdr[shstr_sec_i].sh_offset = dst_offset;
+                // elf->data.elf32.shdr[shstr_sec_i].sh_addr = dst_addr;
+                elf->data.elf32.shdr[shstr_sec_i].sh_size = dst_len;
+                memset(dst + src_len, 0, strlen(name) + 1);
+                strcpy(dst + src_len, name);
+                // new section name offset
+                *name_offset = src_len;
+                return NO_ERR;
+            } else {
+                return ERR_COPY;
+            }
+        }
     } else if (elf->class == ELFCLASS64) { 
         /* Determine whether dynstr is within an independent PT_LOAD segment */
         /* 判断shstrtab是否在一个独立的PT_LOAD段内 */
