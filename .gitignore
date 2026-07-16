@@ -1,4 +1,3 @@
 .vscode
 src/*.o
-src/cJSON/*.o
 src/elfspirit

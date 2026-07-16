@@ -4,7 +4,7 @@ GCC_VERSION := $(shell gcc -dumpversion | cut -d. -f1)
 BIN=elfspirit
 LIB=libelfspirit
 OUT=/usr/local/bin/
-SRCS = $(wildcard *.c cJSON/cJSON.c lib/*.c)
+SRCS = $(wildcard *.c lib/*.c)
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -w -c
 # LDFLAGS = -L./lib -lelfutil
@@ -55,7 +55,6 @@ $(LIB):
 .PHONY: clean
 clean:
 	rm -rvf *.o
-	rm -rvf cJSON/*.o
 	rm -vf $(BIN)
 	$(MAKE) -C lib clean
 
