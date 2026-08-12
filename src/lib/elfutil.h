@@ -2,6 +2,45 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/*
+ * AArch64 ILP32 (P32) dynamic relocations. These are only defined in newer
+ * glibc <elf.h> (and absent even from some aarch64 cross-toolchain glibc);
+ * provide fallbacks so the build is portable across hosts that lack them.
+ *
+ * Values follow glibc's LP64 convention (TLS_DTPMOD < TLS_DTPREL, mirroring
+ * R_AARCH64_TLS_DTPMOD=1028 < R_AARCH64_TLS_DTPREL=1029). NOTE: LLVM's
+ * AArch64.def lists P32 TLS_DTPREL/TLS_DTPMOD in the opposite order -- do
+ * NOT "correct" these values against LLVM; they must match glibc <elf.h> so
+ * behaviour is consistent whether or not the host defines them.
+ */
+#ifndef R_AARCH64_P32_COPY
+#define R_AARCH64_P32_COPY          180
+#endif
+#ifndef R_AARCH64_P32_GLOB_DAT
+#define R_AARCH64_P32_GLOB_DAT      181
+#endif
+#ifndef R_AARCH64_P32_JUMP_SLOT
+#define R_AARCH64_P32_JUMP_SLOT     182
+#endif
+#ifndef R_AARCH64_P32_RELATIVE
+#define R_AARCH64_P32_RELATIVE      183
+#endif
+#ifndef R_AARCH64_P32_TLS_DTPMOD
+#define R_AARCH64_P32_TLS_DTPMOD    184
+#endif
+#ifndef R_AARCH64_P32_TLS_DTPREL
+#define R_AARCH64_P32_TLS_DTPREL    185
+#endif
+#ifndef R_AARCH64_P32_TLS_TPREL
+#define R_AARCH64_P32_TLS_TPREL     186
+#endif
+#ifndef R_AARCH64_P32_TLSDESC
+#define R_AARCH64_P32_TLSDESC       187
+#endif
+#ifndef R_AARCH64_P32_IRELATIVE
+#define R_AARCH64_P32_IRELATIVE     188
+#endif
+
 enum ErrorCode {
     /* ELF file error */
     ERR_OUT_OF_BOUNDS = -40,
