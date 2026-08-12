@@ -80,6 +80,9 @@ enum LONG_OPTION {
     INFECT_DATA,
     SET_RPATH,
     SET_RUNPATH,
+    ADD_NEEDED,
+    REMOVE_NEEDED,
+    SET_SONAME,
     TO_EXE2SO,
     TO_HEX2BIN,
     TO_BIN2ELF,
@@ -129,7 +132,7 @@ static void init_shellcode() {
         if (err != NO_ERR) {
             free(shellcode);
             print_error(err);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
     }
 }
@@ -167,6 +170,9 @@ static const struct option longopts[] = {
     {"infect-data", no_argument, &g_long_option, INFECT_DATA},
     {"set-rpath", no_argument, &g_long_option, SET_RPATH},
     {"set-runpath", no_argument, &g_long_option, SET_RUNPATH},
+    {"add-needed", no_argument, &g_long_option, ADD_NEEDED},
+    {"rm-needed", no_argument, &g_long_option, REMOVE_NEEDED},
+    {"set-soname", no_argument, &g_long_option, SET_SONAME},
     {"to-exe2so", no_argument, &g_long_option, TO_EXE2SO},
     {"to-hex2bin", no_argument, &g_long_option, TO_HEX2BIN},
     {"to-bin2elf", no_argument, &g_long_option, TO_BIN2ELF},
@@ -185,7 +191,7 @@ static const char *help =
     "  edit         Modify ELF file information freely\n"
     "  shellcode    Extract binary fragments and convert shellcode. [extract, hex2bin]\n"
     "  firmware     Add ELF info to firmware or join mutli bin file. [bin2elf, joinelf]\n"
-    "  patch        Patch ELF. [--set-interpreter, --set-rpath, --set-runpath]\n"
+    "  patch        Patch ELF. [--set-interpreter, --set-rpath, --set-runpath, --add-needed, --rm-needed, --set-soname]\n"
     "  confuse      Obfuscate ELF symbols. [--rm-section, --rm-shdr, --rm-strip]\n"
     "  infect       Infect ELF like virus. [--infect-silvio, --infect-skeksi, --infect-data, exe2so]\n"
     "  forensic     Analyze the Legitimacy of ELF File Structure. [checksec]\n"
@@ -224,9 +230,12 @@ static const char *help =
     "  elfspirit --set-interp  [-s]<new interpreter> ELF\n"
     "  elfspirit --set-rpath   [-s]<rpath> ELF\n"
     "  elfspirit --set-runpath [-s]<runpath> ELF\n"
+    "  elfspirit --set-soname  [-s]<soname> ELF\n"
+    "  elfspirit --add-needed  [-s]<library> ELF\n"
     "  elfspirit --add-section [-z]<size> [-n]<section name> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
     "                          [-f]<segment file> ELF\n"
+    "  elfspirit --rm-needed   [-s]<library> ELF\n"
     "  elfspirit --rm-section  [-n]<section name> ELF\n"
     "  elfspirit --rm-shdr ELF\n"
     "  elfspirit --rm-strip ELF\n"
@@ -247,7 +256,7 @@ static const char *help_chinese =
     "  edit         自由修改ELF每个字节\n"
     "  shellcode    从目标文件中提取二进制片段，将shellcode转化为二进制. [extract, hex2bin]\n"
     "  firmware     用于IOT固件，比如将二进制转换为elf文件，连接多个bin文件. [bin2elf, joinelf]\n"
-    "  patch        修补ELF. [--set-interpreter, --set-rpath, --set-runpath]\n"
+    "  patch        修补ELF. [--set-interpreter, --set-rpath, --set-runpath, --add-needed, --rm-needed, --set-soname]\n"
     "  confuse      删除节、过滤符号表、删除节头表，混淆ELF符号. [--rm-section, --rm-shdr, --rm-strip]\n"
     "  infect       ELF文件感染. [--infect-silvio, --infect-skeksi, --infect-data, exe2so]\n"
     "  forensic     分析ELF文件结构的合法性. [checksec]\n"
@@ -286,9 +295,12 @@ static const char *help_chinese =
     "  elfspirit --set-interp  [-s]<新的链接器> ELF\n"
     "  elfspirit --set-rpath   [-s]<rpath> ELF\n"
     "  elfspirit --set-runpath [-s]<runpath> ELF\n"
+    "  elfspirit --set-soname  [-s]<soname> ELF\n"
+    "  elfspirit --add-needed  [-s]<库名> ELF\n"
     "  elfspirit --add-section [-z]<size> [-n]<节的名字> ELF\n"
     "  elfspirit --add-segment [-z]<size> ELF\n"
     "                          [-f]<segment file> ELF\n"
+    "  elfspirit --rm-needed   [-s]<库名> ELF\n"
     "  elfspirit --rm-section  [-n]<节的名字> ELF\n"
     "  elfspirit --rm-shdr ELF\n"
     "  elfspirit --rm-strip ELF\n"
@@ -473,6 +485,7 @@ static void readcmdline(int argc, char *argv[]) {
     if (optind == argc - 1) {
         memcpy(elf_name, argv[optind], strlen(argv[optind]));
         init(elf_name, &elf, false);
+        err = NO_ERR;   /* baseline; some ops (e.g. --to-script) don't set err */
         if (g_long_option) {
             switch (g_long_option)
             {
@@ -504,6 +517,24 @@ static void readcmdline(int argc, char *argv[]) {
                 case SET_RUNPATH:
                     /* set runpath */
                     err = set_runpath(&elf, string);
+                    print_error(err);
+                    break;
+
+                case ADD_NEEDED:
+                    /* add a DT_NEEDED dependency */
+                    err = add_needed(&elf, string);
+                    print_error(err);
+                    break;
+
+                case REMOVE_NEEDED:
+                    /* remove a DT_NEEDED dependency */
+                    err = remove_needed(&elf, string);
+                    print_error(err);
+                    break;
+
+                case SET_SONAME:
+                    /* set DT_SONAME */
+                    err = set_soname(&elf, string);
                     print_error(err);
                     break;
 
@@ -595,7 +626,7 @@ static void readcmdline(int argc, char *argv[]) {
                     if (err != NO_ERR) {
                         free(shellcode);
                         print_error(err);
-                        exit(-1);
+                        exit(EXIT_FAILURE);
                     }
                     PRINT_INFO("shellcode has been saved to %s\n", elf_name);
                     break;
@@ -606,7 +637,7 @@ static void readcmdline(int argc, char *argv[]) {
                     err = add_elf_header(elf_name, arch, class, endian, base_addr);
                     if (err != NO_ERR) {
                         print_error(err);
-                        exit(-1);
+                        exit(EXIT_FAILURE);
                     }
                     break;
 
@@ -621,11 +652,11 @@ static void readcmdline(int argc, char *argv[]) {
             }
         }
         if (shellcode) free(shellcode);
-        exit(-1);
+        exit(err == NO_ERR ? EXIT_SUCCESS : EXIT_FAILURE);
     }
 
     else if (optind != argc - 2) {
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
     /* handle additional function parameters */
     else {

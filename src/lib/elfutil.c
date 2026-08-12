@@ -33,6 +33,9 @@ void print_error(enum ErrorCode code) {
         case ERR_DYN_NOTFOUND:
             PRINT_ERROR("error: cannot find dynamic section\n");
             break;
+        case ERR_NEEDED_NOTFOUND:
+            PRINT_ERROR("error: cannot find the specified DT_NEEDED entry\n");
+            break;
         case ERR_SEC_NOTFOUND:
             PRINT_ERROR("error: cannot find section\n");
             break;
@@ -2091,6 +2094,112 @@ int set_runpath(Elf *elf, char *runpath) {
     }
     // 2. add DT_RUNPATH entry in .dynamic
     return add_dynseg_auto(elf, DT_RUNPATH, path_offset);
+}
+
+/**
+ * @brief 增加一个DT_NEEDED依赖
+ * add a DT_NEEDED dependency
+ * @param elf Elf custom structure
+ * @param libname library name (e.g. libfoo.so.1)
+ * @return error code
+ */
+int add_needed(Elf *elf, char *libname) {
+    // 1. store libname string in .dynstr
+    uint64_t name_offset = 0;
+    int err = add_dynstr_name(elf, libname, &name_offset);
+    if (err != NO_ERR) {
+        PRINT_ERROR("add dynstr name error :%d\n", err);
+        return err;
+    }
+    // 2. add DT_NEEDED entry in .dynamic
+    return add_dynseg_auto(elf, DT_NEEDED, name_offset);
+}
+
+/**
+ * @brief 删除一个DT_NEEDED依赖(按库名精确匹配)
+ * remove a DT_NEEDED dependency by library name (exact match)
+ * @param elf Elf custom structure
+ * @param libname library name to remove
+ * @return error code
+ */
+int remove_needed(Elf *elf, char *libname) {
+    if (elf->class == ELFCLASS32) {
+        Elf32_Dyn *dyn = elf->data.elf32.dyn;
+        int count = elf->data.elf32.dyn_count;
+        Elf32_Shdr *dynstr = elf->data.elf32.dynstrtab;
+        if (!dyn || !dynstr) {
+            return ERR_DYN_NOTFOUND;
+        }
+        char *dynstr_base = (char *)elf->mem + dynstr->sh_offset;
+        uint64_t dynstr_end = (uint64_t)elf->mem + dynstr->sh_offset + dynstr->sh_size;
+        for (int i = 0; i < count; i++) {
+            if (dyn[i].d_tag != DT_NEEDED) {
+                continue;
+            }
+            char *name = dynstr_base + dyn[i].d_un.d_val;
+            if (validated_offset((uint64_t)name, (uint64_t)elf->mem, dynstr_end) != 0) {
+                /* out-of-bounds d_val: corrupt entry, skip */
+                continue;
+            }
+            if (strcmp(name, libname) == 0) {
+                /* shift subsequent entries down by one slot. the trailing
+                 * DT_NULL terminator moves up with them, leaving one extra
+                 * DT_NULL at the end -- valid, the loader stops at the first
+                 * DT_NULL. no resize needed. */
+                size_t n = (count - i - 1) * sizeof(Elf32_Dyn);
+                memmove(&dyn[i], &dyn[i + 1], n);
+                return NO_ERR;
+            }
+        }
+        return ERR_NEEDED_NOTFOUND;
+    } else if (elf->class == ELFCLASS64) {
+        Elf64_Dyn *dyn = elf->data.elf64.dyn;
+        int count = elf->data.elf64.dyn_count;
+        Elf64_Shdr *dynstr = elf->data.elf64.dynstrtab;
+        if (!dyn || !dynstr) {
+            return ERR_DYN_NOTFOUND;
+        }
+        char *dynstr_base = (char *)elf->mem + dynstr->sh_offset;
+        uint64_t dynstr_end = (uint64_t)elf->mem + dynstr->sh_offset + dynstr->sh_size;
+        for (int i = 0; i < count; i++) {
+            if (dyn[i].d_tag != DT_NEEDED) {
+                continue;
+            }
+            char *name = dynstr_base + dyn[i].d_un.d_val;
+            if (validated_offset((uint64_t)name, (uint64_t)elf->mem, dynstr_end) != 0) {
+                continue;
+            }
+            if (strcmp(name, libname) == 0) {
+                size_t n = (count - i - 1) * sizeof(Elf64_Dyn);
+                memmove(&dyn[i], &dyn[i + 1], n);
+                return NO_ERR;
+            }
+        }
+        return ERR_NEEDED_NOTFOUND;
+    }
+    return ERR_ELF_CLASS;
+}
+
+/**
+ * @brief 设置SONAME
+ * set the DT_SONAME of a shared library
+ * @param elf Elf custom structure
+ * @param soname new soname string
+ * @return error code
+ */
+int set_soname(Elf *elf, char *soname) {
+    // 1. store soname string in .dynstr
+    uint64_t name_offset = 0;
+    int err = add_dynstr_name(elf, soname, &name_offset);
+    if (err != NO_ERR) {
+        PRINT_ERROR("add dynstr name error :%d\n", err);
+        return err;
+    }
+    // 2. update existing DT_SONAME, otherwise add a new entry
+    if (get_dynseg_index_by_tag(elf, DT_SONAME) >= 0) {
+        return set_dynseg_value_by_tag(elf, DT_SONAME, name_offset);
+    }
+    return add_dynseg_auto(elf, DT_SONAME, name_offset);
 }
 
 static int mov_last_sections(Elf *elf, uint64_t expand_offset, size_t size) {

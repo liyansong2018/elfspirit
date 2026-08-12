@@ -46,6 +46,7 @@ enum ErrorCode {
     ERR_OUT_OF_BOUNDS = -40,
     ERR_NOTFOUND = -30,
     ERR_DYN_NOTFOUND = -20,
+    ERR_NEEDED_NOTFOUND = -19,
     ERR_SEC_NOTFOUND = -15,
     ERR_SEG_NOTFOUND = -14,
     ERR_ELF_TYPE = -13,
@@ -556,6 +557,33 @@ int set_rpath(Elf *elf, char *rpath);
  * @return error code
  */
 int set_runpath(Elf *elf, char *runpath);
+
+/**
+ * @brief 增加一个DT_NEEDED依赖
+ * add a DT_NEEDED dependency
+ * @param elf Elf custom structure
+ * @param libname library name (e.g. libfoo.so.1)
+ * @return error code
+ */
+int add_needed(Elf *elf, char *libname);
+
+/**
+ * @brief 删除一个DT_NEEDED依赖(按库名精确匹配)
+ * remove a DT_NEEDED dependency by library name (exact match)
+ * @param elf Elf custom structure
+ * @param libname library name to remove
+ * @return error code
+ */
+int remove_needed(Elf *elf, char *libname);
+
+/**
+ * @brief 设置SONAME
+ * set the DT_SONAME of a shared library
+ * @param elf Elf custom structure
+ * @param soname new soname string
+ * @return error code
+ */
+int set_soname(Elf *elf, char *soname);
 
 /**
  * @brief hook外部函数

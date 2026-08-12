@@ -1,3 +1,5 @@
 .vscode
 src/*.o
+src/lib/*.o
+src/lib/*.so
 src/elfspirit
